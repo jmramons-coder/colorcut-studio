@@ -332,12 +332,21 @@ button {
   opacity: 0.12;
   filter: grayscale(1) saturate(0) contrast(1.15);
   pointer-events: none;
+  z-index: 1;
 }
 
 .slot-layer,
 .piece-layer {
   position: absolute;
   inset: 0;
+}
+
+.slot-layer {
+  z-index: 2;
+}
+
+.piece-layer {
+  z-index: 3;
 }
 
 .slot {
@@ -407,7 +416,20 @@ button {
 }
 
 .puzzle-board.is-complete .ghost-art {
+  opacity: 1;
+  filter:
+    grayscale(1)
+    saturate(0)
+    contrast(1.18)
+    brightness(0.88)
+    drop-shadow(0 3px 7px rgba(31, 49, 56, 0.08));
+  z-index: 4;
+}
+
+.puzzle-board.is-complete .piece-layer {
   opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .puzzle-board.is-complete .piece {
