@@ -3,6 +3,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const PIECE_PAD_RATIO = 0.23;
 const BRUSH_SIZE = 42;
 const COLOR_COMPLETE_RATIO = 0.68;
+const BUILD_CONTROL_SAFE_BOTTOM = 86;
 
 const categories = [
   { id: "animals", name: "Animals" },
@@ -113,6 +114,7 @@ const dom = {
   slotLayer: document.querySelector("#slotLayer"),
   pieceLayer: document.querySelector("#pieceLayer"),
   completePop: document.querySelector("#completePop"),
+  spreadButton: document.querySelector("#spreadButton"),
   colorArt: document.querySelector("#colorArt"),
   colorCanvas: document.querySelector("#colorCanvas"),
   finishTray: document.querySelector("#finishTray"),
@@ -215,6 +217,7 @@ function renderDrawingCards() {
 function bindControls() {
   dom.galleryButton.addEventListener("click", showPicker);
   dom.fullscreenButton.addEventListener("click", toggleFullscreen);
+  dom.spreadButton.addEventListener("click", spreadLoosePieces);
   dom.finishLibraryButton.addEventListener("click", showPicker);
   dom.finishRestartButton.addEventListener("click", restartCurrentAnimal);
   dom.brand.addEventListener("click", (event) => {
@@ -444,11 +447,12 @@ function itemTargetRatio() {
   return state.animal?.targetRatio || 0.78;
 }
 
-function artLayout(rect) {
+function artLayout(rect, reservedBottom = 0) {
   const ratio = itemTargetRatio();
   const aspect = itemAspect();
   const maxW = rect.width * ratio;
-  const maxH = rect.height * ratio;
+  const availableHeight = Math.max(160, rect.height - reservedBottom);
+  const maxH = availableHeight * ratio;
   let width = maxW;
   let height = width / aspect;
 
@@ -459,7 +463,7 @@ function artLayout(rect) {
 
   return {
     x: (rect.width - width) / 2,
-    y: (rect.height - height) / 2,
+    y: (availableHeight - height) / 2,
     width,
     height
   };
@@ -489,6 +493,32 @@ function startFraction(index, total) {
     x: 0.08 + ((index * 0.27) % 0.68),
     y: 0.05 + ((index * 0.19) % 0.72),
     r: index % 2 === 0 ? 5 : -5
+  };
+}
+
+function loosePiecePosition(index, total, pieceWidth, pieceHeight, boardWidth, boardHeight, layout) {
+  const margin = Math.max(14, Math.min(boardWidth, boardHeight) * 0.035);
+  const safeHeight = Math.max(120, boardHeight - BUILD_CONTROL_SAFE_BOTTOM);
+  const centerX = layout.x + layout.width / 2;
+  const centerY = layout.y + layout.height / 2;
+  const angle = -Math.PI / 2 + (index / Math.max(1, total)) * Math.PI * 2 + ((index % 3) - 1) * 0.08;
+  const radiusX = layout.width / 2 + pieceWidth * 0.86 + boardWidth * 0.025;
+  const radiusY = layout.height / 2 + pieceHeight * (total > 12 ? 0.64 : 0.5) + boardHeight * 0.012;
+  let x = centerX + Math.cos(angle) * radiusX - pieceWidth / 2;
+  let y = centerY + Math.sin(angle) * radiusY - pieceHeight / 2;
+
+  if (x > layout.x - pieceWidth * 0.4 && x < layout.x + layout.width - pieceWidth * 0.6) {
+    x += Math.cos(angle) >= 0 ? pieceWidth * 0.42 : -pieceWidth * 0.42;
+  }
+
+  if (y > layout.y - pieceHeight * 0.4 && y < layout.y + layout.height - pieceHeight * 0.6) {
+    y += Math.sin(angle) >= 0 ? pieceHeight * 0.28 : -pieceHeight * 0.28;
+  }
+
+  return {
+    x: clamp(x, margin, boardWidth - pieceWidth - margin),
+    y: clamp(y, margin, safeHeight - pieceHeight - margin),
+    rotation: startFraction(index, total).r
   };
 }
 
@@ -602,7 +632,7 @@ function buildPuzzle() {
   const boardW = rect.width;
   const boardH = rect.height;
   const grid = itemGrid();
-  const layout = artLayout(rect);
+  const layout = artLayout(rect, BUILD_CONTROL_SAFE_BOTTOM);
   const targetX = layout.x;
   const targetY = layout.y;
   const targetW = layout.width;
@@ -635,7 +665,7 @@ function buildPuzzle() {
     slot.style.top = `${targetY + cellY}px`;
     dom.slotLayer.append(slot);
 
-    const start = startFraction(index, grid.cols * grid.rows);
+    const totalPieces = grid.cols * grid.rows;
     const piece = document.createElementNS(SVG_NS, "svg");
     const pieceShape = piecePath(col, row, tileW, tileH, pad, grid);
     const clipId = `piece-clip-${state.animal.id}-${index}`;
@@ -677,16 +707,17 @@ function buildPuzzle() {
 
     piece.append(defs, image, outlineHalo, outline);
 
+    const start = loosePiecePosition(index, totalPieces, visualW, visualH, boardW, boardH, layout);
     const model = {
       element: piece,
       index,
-      x: clamp(start.x * boardW, 0, boardW - visualW),
-      y: clamp(start.y * boardH, 0, boardH - visualH),
+      x: start.x,
+      y: start.y,
       targetX: snapX,
       targetY: snapY,
       width: visualW,
       height: visualH,
-      rotation: start.r,
+      rotation: start.rotation,
       snapped: false,
       pointerId: null,
       dragOffsetX: 0,
@@ -698,6 +729,31 @@ function buildPuzzle() {
     dom.pieceLayer.append(piece);
     state.pieces.push(model);
   }
+}
+
+function spreadLoosePieces() {
+  if (state.stage !== "build" || !state.pieces.length) return;
+
+  const rect = dom.puzzleBoard.getBoundingClientRect();
+  const layout = artLayout(rect, BUILD_CONTROL_SAFE_BOTTOM);
+  const loosePieces = state.pieces.filter((piece) => !piece.snapped);
+  loosePieces.forEach((piece, looseIndex) => {
+    const position = loosePiecePosition(
+      looseIndex,
+      loosePieces.length,
+      piece.width,
+      piece.height,
+      rect.width,
+      rect.height,
+      layout
+    );
+    piece.x = position.x;
+    piece.y = position.y;
+    piece.rotation = position.rotation;
+    piece.element.style.zIndex = String(10 + piece.index);
+    setPieceTransform(piece);
+  });
+  playArrivalSound();
 }
 
 function grabPiece(event, piece) {
@@ -724,8 +780,9 @@ function dragPiece(event) {
 
   const rect = dom.puzzleBoard.getBoundingClientRect();
   const point = boardPoint(event, dom.puzzleBoard);
+  const safeHeight = Math.max(piece.height, rect.height - BUILD_CONTROL_SAFE_BOTTOM);
   piece.x = clamp(point.x - piece.dragOffsetX, 0, rect.width - piece.width);
-  piece.y = clamp(point.y - piece.dragOffsetY, 0, rect.height - piece.height);
+  piece.y = clamp(point.y - piece.dragOffsetY, 0, safeHeight - piece.height);
   setPieceTransform(piece);
 }
 
