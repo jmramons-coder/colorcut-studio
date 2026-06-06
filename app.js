@@ -27,6 +27,16 @@ const animals = [
     id: "sea-turtle",
     name: "Sea Turtle",
     src: "assets/sea-turtle.png"
+  },
+  {
+    id: "tiger",
+    name: "Tiger",
+    src: "assets/tiger.png"
+  },
+  {
+    id: "deer",
+    name: "Deer",
+    src: "assets/deer.png"
   }
 ];
 
@@ -45,8 +55,7 @@ const dom = {
   pieceLayer: document.querySelector("#pieceLayer"),
   completePop: document.querySelector("#completePop"),
   colorArt: document.querySelector("#colorArt"),
-  colorCanvas: document.querySelector("#colorCanvas"),
-  stepDots: Array.from(document.querySelectorAll(".step-dot"))
+  colorCanvas: document.querySelector("#colorCanvas")
 };
 
 const state = {
@@ -71,15 +80,12 @@ bindControls();
 setStage("pick");
 
 function renderPicker() {
-  const arrow =
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.2 5.3 20 12l-6.8 6.7-1.7-1.7 3.9-3.8H4v-2.4h11.4L11.5 7l1.7-1.7Z"/></svg>';
-
   dom.drawingGrid.innerHTML = animals
     .map((animal) => {
       return `
         <button class="drawing-card" type="button" data-animal="${animal.id}" aria-label="${animal.name}">
           <img class="drawing-preview" src="${animal.src}" alt="" />
-          <span class="drawing-name">${animal.name}${arrow}</span>
+          <span class="drawing-name">${animal.name}</span>
         </button>
       `;
     })
@@ -136,6 +142,7 @@ function selectAnimal(id) {
   const animal = animals.find((item) => item.id === id);
   if (!animal) return;
 
+  playPickSound();
   state.animal = animal;
   state.lineUrl = animal.src;
   state.colorUrl = animal.src;
@@ -159,9 +166,6 @@ function selectAnimal(id) {
 
 function setStage(stage) {
   state.stage = stage;
-  dom.stepDots.forEach((dot) => {
-    dot.classList.toggle("is-active", dot.dataset.step === stage);
-  });
 }
 
 function piecePath(col, row, width, height, pad) {
@@ -315,7 +319,6 @@ function buildPuzzle() {
     const clipPath = document.createElementNS(SVG_NS, "clipPath");
     const clipPathShape = document.createElementNS(SVG_NS, "path");
     const image = document.createElementNS(SVG_NS, "image");
-    const outline = document.createElementNS(SVG_NS, "path");
 
     piece.setAttribute("class", "piece");
     piece.setAttribute("role", "button");
@@ -338,10 +341,7 @@ function buildPuzzle() {
     image.setAttribute("preserveAspectRatio", "none");
     image.setAttribute("clip-path", `url(#${clipId})`);
 
-    outline.setAttribute("class", "piece-outline");
-    outline.setAttribute("d", pieceShape);
-
-    piece.append(defs, image, outline);
+    piece.append(defs, image);
 
     const model = {
       element: piece,
@@ -589,6 +589,14 @@ function playSnapSound() {
 
   const now = context.currentTime;
   playTone(context, 540, 920, now, 0.11, 0.06, "triangle");
+}
+
+function playPickSound() {
+  const context = ensureAudioContext();
+  if (!context) return;
+
+  const now = context.currentTime;
+  playTone(context, 430, 680, now, 0.08, 0.035, "sine");
 }
 
 function playCompleteSound() {
