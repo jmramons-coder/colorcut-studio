@@ -1,6 +1,7 @@
 const GRID = { cols: 3, rows: 2 };
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PIECE_PAD_RATIO = 0.18;
+const BRUSH_SIZE = 42;
 const verticalCutSigns = [
   [1, -1],
   [-1, 1]
@@ -45,8 +46,6 @@ const dom = {
   completePop: document.querySelector("#completePop"),
   colorArt: document.querySelector("#colorArt"),
   colorCanvas: document.querySelector("#colorCanvas"),
-  brushSize: document.querySelector("#brushSize"),
-  resetColorButton: document.querySelector("#resetColorButton"),
   stepDots: Array.from(document.querySelectorAll(".step-dot"))
 };
 
@@ -57,7 +56,7 @@ const state = {
   activePiece: null,
   lineUrl: "",
   colorUrl: "",
-  brushSize: Number(dom.brushSize.value),
+  brushSize: BRUSH_SIZE,
   colorContext: null,
   deviceScale: 1,
   isColoring: false,
@@ -100,13 +99,6 @@ function bindControls() {
     event.preventDefault();
     showPicker();
   });
-  dom.brushSize.addEventListener("input", () => {
-    state.brushSize = Number(dom.brushSize.value);
-  });
-  dom.resetColorButton.addEventListener("click", () => {
-    if (state.stage === "color") prepareColorCanvas();
-  });
-
   dom.colorCanvas.addEventListener("pointerdown", beginColorStroke);
   dom.colorCanvas.addEventListener("pointermove", continueColorStroke);
   dom.colorCanvas.addEventListener("pointerup", endColorStroke);
@@ -134,6 +126,8 @@ function showPicker() {
   setStage("pick");
   dom.pickerView.classList.remove("is-hidden");
   dom.studioView.classList.add("is-hidden");
+  dom.colorBoard.classList.remove("is-mask-ready");
+  dom.colorArt.classList.remove("is-visible");
   dom.completePop.classList.remove("is-visible");
   dom.puzzleBoard.classList.remove("is-complete");
 }
@@ -153,6 +147,8 @@ function selectAnimal(id) {
   dom.puzzleBoard.style.display = "";
   dom.puzzleBoard.classList.remove("is-complete");
   dom.colorBoard.classList.add("is-hidden");
+  dom.colorBoard.classList.remove("is-mask-ready");
+  dom.colorArt.classList.remove("is-visible");
   dom.completePop.classList.remove("is-visible");
   dom.ghostArt.src = state.lineUrl;
   dom.colorArt.src = state.colorUrl;
@@ -451,6 +447,8 @@ function beginColoringMode() {
   setStage("color");
   dom.puzzleBoard.style.display = "none";
   dom.colorBoard.classList.remove("is-hidden");
+  dom.colorBoard.classList.remove("is-mask-ready");
+  dom.colorArt.classList.remove("is-visible");
   prepareColorCanvas();
 }
 
@@ -466,19 +464,41 @@ function prepareColorCanvas() {
   canvas.width = Math.round(rect.width * state.deviceScale);
   canvas.height = Math.round(rect.height * state.deviceScale);
 
-  const context = canvas.getContext("2d", { willReadFrequently: false });
+  const context = canvas.getContext("2d", { willReadFrequently: true });
   state.colorContext = context;
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.globalCompositeOperation = "source-over";
+  dom.colorBoard.classList.remove("is-mask-ready");
+  dom.colorArt.classList.remove("is-visible");
 
   const image = new Image();
   image.onload = () => {
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.filter = "grayscale(1) saturate(0) contrast(1.22) brightness(0.86)";
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    context.filter = "none";
+    drawGrayMask(context, image, canvas.width, canvas.height);
+    dom.colorBoard.classList.add("is-mask-ready");
+    dom.colorArt.classList.add("is-visible");
   };
   image.src = state.lineUrl;
+}
+
+function drawGrayMask(context, image, width, height) {
+  context.clearRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  const imageData = context.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  for (let index = 0; index < data.length; index += 4) {
+    const alpha = data[index + 3];
+    if (alpha === 0) continue;
+
+    const luminance = data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
+    const gray = clamp((luminance - 128) * 1.16 + 104, 24, 214);
+    data[index] = gray;
+    data[index + 1] = gray;
+    data[index + 2] = gray;
+    data[index + 3] = alpha;
+  }
+
+  context.putImageData(imageData, 0, 0);
 }
 
 function beginColorStroke(event) {
