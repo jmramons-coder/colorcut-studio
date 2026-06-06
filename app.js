@@ -1,9 +1,9 @@
 const DEFAULT_GRID = { cols: 3, rows: 3 };
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PIECE_PAD_RATIO = 0.23;
+const PIECE_OFFSCREEN_RATIO = 0.46;
 const BRUSH_SIZE = 42;
 const COLOR_COMPLETE_RATIO = 0.68;
-const BUILD_CONTROL_SAFE_BOTTOM = 86;
 
 const categories = [
   { id: "animals", name: "Animals" },
@@ -93,6 +93,24 @@ const libraryItems = [
     name: "Taj Mahal",
     category: "landmarks",
     src: "assets/taj-mahal.png",
+    aspect: 3 / 2,
+    grid: { cols: 4, rows: 4 },
+    targetRatio: 0.86
+  },
+  {
+    id: "statue-of-liberty",
+    name: "Statue of Liberty",
+    category: "landmarks",
+    src: "assets/statue-of-liberty.png",
+    aspect: 941 / 1672,
+    grid: { cols: 4, rows: 4 },
+    targetRatio: 0.86
+  },
+  {
+    id: "sydney-opera-house",
+    name: "Sydney Opera House",
+    category: "landmarks",
+    src: "assets/sydney-opera-house.png",
     aspect: 3 / 2,
     grid: { cols: 4, rows: 4 },
     targetRatio: 0.86
@@ -447,12 +465,11 @@ function itemTargetRatio() {
   return state.animal?.targetRatio || 0.78;
 }
 
-function artLayout(rect, reservedBottom = 0) {
+function artLayout(rect) {
   const ratio = itemTargetRatio();
   const aspect = itemAspect();
   const maxW = rect.width * ratio;
-  const availableHeight = Math.max(160, rect.height - reservedBottom);
-  const maxH = availableHeight * ratio;
+  const maxH = rect.height * ratio;
   let width = maxW;
   let height = width / aspect;
 
@@ -463,7 +480,7 @@ function artLayout(rect, reservedBottom = 0) {
 
   return {
     x: (rect.width - width) / 2,
-    y: (availableHeight - height) / 2,
+    y: (rect.height - height) / 2,
     width,
     height
   };
@@ -498,7 +515,7 @@ function startFraction(index, total) {
 
 function loosePiecePosition(index, total, pieceWidth, pieceHeight, boardWidth, boardHeight, layout) {
   const margin = Math.max(14, Math.min(boardWidth, boardHeight) * 0.035);
-  const safeHeight = Math.max(120, boardHeight - BUILD_CONTROL_SAFE_BOTTOM);
+  const bounds = pieceDragBounds(pieceWidth, pieceHeight, boardWidth, boardHeight);
   const centerX = layout.x + layout.width / 2;
   const centerY = layout.y + layout.height / 2;
   const angle = -Math.PI / 2 + (index / Math.max(1, total)) * Math.PI * 2 + ((index % 3) - 1) * 0.08;
@@ -516,10 +533,27 @@ function loosePiecePosition(index, total, pieceWidth, pieceHeight, boardWidth, b
   }
 
   return {
-    x: clamp(x, margin, boardWidth - pieceWidth - margin),
-    y: clamp(y, margin, safeHeight - pieceHeight - margin),
+    x: clampWithFallback(x, bounds.minX + margin, bounds.maxX - margin),
+    y: clampWithFallback(y, bounds.minY + margin, bounds.maxY - margin),
     rotation: startFraction(index, total).r
   };
+}
+
+function pieceDragBounds(pieceWidth, pieceHeight, boardWidth, boardHeight) {
+  const overflowX = Math.min(pieceWidth * PIECE_OFFSCREEN_RATIO, boardWidth * 0.42);
+  const overflowY = Math.min(pieceHeight * PIECE_OFFSCREEN_RATIO, boardHeight * 0.42);
+
+  return {
+    minX: -overflowX,
+    maxX: boardWidth - pieceWidth + overflowX,
+    minY: -overflowY,
+    maxY: boardHeight - pieceHeight + overflowY
+  };
+}
+
+function clampWithFallback(value, min, max) {
+  if (max < min) return (min + max) / 2;
+  return clamp(value, min, max);
 }
 
 function piecePath(col, row, width, height, pad, grid) {
@@ -632,7 +666,7 @@ function buildPuzzle() {
   const boardW = rect.width;
   const boardH = rect.height;
   const grid = itemGrid();
-  const layout = artLayout(rect, BUILD_CONTROL_SAFE_BOTTOM);
+  const layout = artLayout(rect);
   const targetX = layout.x;
   const targetY = layout.y;
   const targetW = layout.width;
@@ -735,7 +769,7 @@ function spreadLoosePieces() {
   if (state.stage !== "build" || !state.pieces.length) return;
 
   const rect = dom.puzzleBoard.getBoundingClientRect();
-  const layout = artLayout(rect, BUILD_CONTROL_SAFE_BOTTOM);
+  const layout = artLayout(rect);
   const loosePieces = state.pieces.filter((piece) => !piece.snapped);
   loosePieces.forEach((piece, looseIndex) => {
     const position = loosePiecePosition(
@@ -780,9 +814,9 @@ function dragPiece(event) {
 
   const rect = dom.puzzleBoard.getBoundingClientRect();
   const point = boardPoint(event, dom.puzzleBoard);
-  const safeHeight = Math.max(piece.height, rect.height - BUILD_CONTROL_SAFE_BOTTOM);
-  piece.x = clamp(point.x - piece.dragOffsetX, 0, rect.width - piece.width);
-  piece.y = clamp(point.y - piece.dragOffsetY, 0, safeHeight - piece.height);
+  const bounds = pieceDragBounds(piece.width, piece.height, rect.width, rect.height);
+  piece.x = clampWithFallback(point.x - piece.dragOffsetX, bounds.minX, bounds.maxX);
+  piece.y = clampWithFallback(point.y - piece.dragOffsetY, bounds.minY, bounds.maxY);
   setPieceTransform(piece);
 }
 
