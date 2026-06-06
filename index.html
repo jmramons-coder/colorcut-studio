@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ColorCut Studio</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='8' y1='8' x2='56' y2='56'%3E%3Cstop stop-color='%23ff806e'/%3E%3Cstop offset='.45' stop-color='%23ffd166'/%3E%3Cstop offset='1' stop-color='%2362c6c4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='8' y='8' width='48' height='48' rx='10' fill='url(%23g)'/%3E%3Cpath d='M16 48 48 16' stroke='white' stroke-width='6' stroke-linecap='round' opacity='.9'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <a class="brand" href="#" aria-label="ColorCut Studio home">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span>ColorCut</span>
+        </a>
+
+        <nav class="step-rail" aria-label="Activity stage">
+          <span class="step-dot is-active" data-step="pick">Pick</span>
+          <span class="step-dot" data-step="build">Build</span>
+          <span class="step-dot" data-step="color">Color</span>
+        </nav>
+
+        <button class="icon-button" id="galleryButton" type="button" aria-label="Choose another drawing" title="Choose another drawing">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h4A1.5 1.5 0 0 1 11 5.5v4A1.5 1.5 0 0 1 9.5 11h-4A1.5 1.5 0 0 1 4 9.5v-4Zm9 0A1.5 1.5 0 0 1 14.5 4h4A1.5 1.5 0 0 1 20 5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4A1.5 1.5 0 0 1 13 9.5v-4ZM4 14.5A1.5 1.5 0 0 1 5.5 13h4a1.5 1.5 0 0 1 1.5 1.5v4A1.5 1.5 0 0 1 9.5 20h-4A1.5 1.5 0 0 1 4 18.5v-4Zm9 0a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4Z" />
+          </svg>
+        </button>
+      </header>
+
+      <main class="main">
+        <section class="picker-view" id="pickerView" aria-label="Drawing gallery">
+          <div class="drawing-grid" id="drawingGrid"></div>
+        </section>
+
+        <section class="studio-view is-hidden" id="studioView" aria-label="ColorCut activity">
+          <div class="work-area">
+            <div class="board-shell">
+              <div class="puzzle-board" id="puzzleBoard" aria-label="Puzzle board">
+                <img class="ghost-art" id="ghostArt" alt="" />
+                <div class="slot-layer" id="slotLayer" aria-hidden="true"></div>
+                <div class="piece-layer" id="pieceLayer"></div>
+                <div class="complete-pop" id="completePop" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m9.4 16.6-4-4 1.7-1.7 2.3 2.3 7.5-7.5 1.7 1.7-9.2 9.2Z" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="color-board is-hidden" id="colorBoard" aria-label="Coloring board">
+                <img class="color-art" id="colorArt" alt="" />
+                <canvas id="colorCanvas"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <aside class="tool-panel" aria-label="Drawing tools">
+            <button class="tool-button is-selected" id="penButton" type="button" aria-label="Reveal pen" title="Reveal pen">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M17.7 3.8a2.6 2.6 0 0 1 3.7 3.7L9.8 19.1 4 20.5l1.4-5.8L17.7 3.8Zm-10.4 12-.5 2.2 2.2-.5L18.3 8 16.6 6.3 7.3 15.8Z" />
+              </svg>
+            </button>
+
+            <label class="size-control" for="brushSize">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Zm0-5.4a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Z" />
+              </svg>
+              <input id="brushSize" type="range" min="18" max="64" value="36" aria-label="Brush size" />
+            </label>
+
+            <button class="tool-button" id="resetColorButton" type="button" aria-label="Reset coloring" title="Reset coloring">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 4a8 8 0 0 1 7.8 6.2h-2.4A5.8 5.8 0 1 0 12 17.8a5.7 5.7 0 0 0 4.1-1.7l1.7 1.7A8 8 0 1 1 12 4Zm8.5 1.6v6.1h-6.1l2.3-2.3-3-3L15.4 5l3 3 2.1-2.4Z" />
+              </svg>
+            </button>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
