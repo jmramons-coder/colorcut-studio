@@ -1,65 +1,107 @@
-const GRID = { cols: 3, rows: 3 };
+const DEFAULT_GRID = { cols: 3, rows: 3 };
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PIECE_PAD_RATIO = 0.23;
 const BRUSH_SIZE = 42;
 const COLOR_COMPLETE_RATIO = 0.68;
-const verticalCutSigns = [
-  [1, -1],
-  [-1, 1],
-  [1, -1]
-];
-const horizontalCutSigns = [
-  [-1, 1, -1],
-  [1, -1, 1]
-];
-const verticalCutProfiles = [
-  [-0.04, 0.06],
-  [0.05, -0.05],
-  [-0.03, 0.04]
-];
-const horizontalCutProfiles = [
-  [0.06, -0.04, 0.03],
-  [-0.05, 0.05, -0.06]
+
+const categories = [
+  { id: "animals", name: "Animals" },
+  { id: "landmarks", name: "Landmarks" }
 ];
 
-const startFractions = [
-  { x: 0.69, y: 0.59, r: 6 },
-  { x: 0.05, y: 0.57, r: -5 },
-  { x: 0.39, y: 0.04, r: 4 },
-  { x: 0.68, y: 0.08, r: -6 },
-  { x: 0.06, y: 0.28, r: 5 },
-  { x: 0.39, y: 0.62, r: -4 },
-  { x: 0.08, y: 0.04, r: -6 },
-  { x: 0.68, y: 0.35, r: 5 },
-  { x: 0.36, y: 0.34, r: -3 }
-];
+const startPatterns = {
+  9: [
+    { x: 0.69, y: 0.59, r: 6 },
+    { x: 0.05, y: 0.57, r: -5 },
+    { x: 0.39, y: 0.04, r: 4 },
+    { x: 0.68, y: 0.08, r: -6 },
+    { x: 0.06, y: 0.28, r: 5 },
+    { x: 0.39, y: 0.62, r: -4 },
+    { x: 0.08, y: 0.04, r: -6 },
+    { x: 0.68, y: 0.35, r: 5 },
+    { x: 0.36, y: 0.34, r: -3 }
+  ],
+  16: [
+    { x: 0.72, y: 0.65, r: 6 },
+    { x: 0.05, y: 0.59, r: -5 },
+    { x: 0.39, y: 0.05, r: 4 },
+    { x: 0.68, y: 0.08, r: -6 },
+    { x: 0.07, y: 0.31, r: 5 },
+    { x: 0.39, y: 0.64, r: -4 },
+    { x: 0.08, y: 0.05, r: -6 },
+    { x: 0.69, y: 0.37, r: 5 },
+    { x: 0.36, y: 0.35, r: -3 },
+    { x: 0.04, y: 0.74, r: 4 },
+    { x: 0.22, y: 0.08, r: -5 },
+    { x: 0.58, y: 0.76, r: 6 },
+    { x: 0.75, y: 0.23, r: -4 },
+    { x: 0.22, y: 0.66, r: 5 },
+    { x: 0.5, y: 0.18, r: -5 },
+    { x: 0.54, y: 0.5, r: 3 }
+  ]
+};
 
-const animals = [
+const libraryItems = [
   {
     id: "red-panda",
     name: "Red Panda",
-    src: "assets/red-panda.png"
+    category: "animals",
+    src: "assets/red-panda.png",
+    aspect: 1,
+    grid: { cols: 3, rows: 3 },
+    targetRatio: 0.78
   },
   {
     id: "sea-turtle",
     name: "Sea Turtle",
-    src: "assets/sea-turtle.png"
+    category: "animals",
+    src: "assets/sea-turtle.png",
+    aspect: 1,
+    grid: { cols: 3, rows: 3 },
+    targetRatio: 0.78
   },
   {
     id: "tiger",
     name: "Tiger",
-    src: "assets/tiger.png"
+    category: "animals",
+    src: "assets/tiger.png",
+    aspect: 1,
+    grid: { cols: 3, rows: 3 },
+    targetRatio: 0.78
   },
   {
     id: "deer",
     name: "Deer",
-    src: "assets/deer.png"
+    category: "animals",
+    src: "assets/deer.png",
+    aspect: 1,
+    grid: { cols: 3, rows: 3 },
+    targetRatio: 0.78
+  },
+  {
+    id: "eiffel-tower",
+    name: "Eiffel Tower",
+    category: "landmarks",
+    src: "assets/eiffel-tower.png",
+    aspect: 2 / 3,
+    grid: { cols: 4, rows: 4 },
+    targetRatio: 0.84
+  },
+  {
+    id: "taj-mahal",
+    name: "Taj Mahal",
+    category: "landmarks",
+    src: "assets/taj-mahal.png",
+    aspect: 3 / 2,
+    grid: { cols: 4, rows: 4 },
+    targetRatio: 0.86
   }
 ];
 
 const dom = {
   appShell: document.querySelector(".app-shell"),
   pickerView: document.querySelector("#pickerView"),
+  categoryTabs: document.querySelector("#categoryTabs"),
   drawingGrid: document.querySelector("#drawingGrid"),
   studioView: document.querySelector("#studioView"),
   galleryButton: document.querySelector("#galleryButton"),
@@ -81,6 +123,7 @@ const dom = {
 const state = {
   stage: "pick",
   animal: null,
+  category: "animals",
   pieces: [],
   activePiece: null,
   lineUrl: "",
@@ -107,16 +150,20 @@ bindControls();
 setStage("pick");
 
 function renderPicker() {
-  dom.drawingGrid.innerHTML = animals
-    .map((animal) => {
-      return `
-        <button class="drawing-card" type="button" data-animal="${animal.id}" aria-label="${animal.name}">
-          <img class="drawing-preview" src="${animal.src}" alt="" draggable="false" />
-          <span class="drawing-name">${animal.name}</span>
-        </button>
-      `;
-    })
-    .join("");
+  renderCategoryTabs();
+  renderDrawingCards();
+
+  dom.categoryTabs.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-category]");
+    if (!button || button.dataset.category === state.category) return;
+    state.category = button.dataset.category;
+    state.galleryActiveIndex = 0;
+    renderCategoryTabs();
+    renderDrawingCards();
+    dom.drawingGrid.scrollLeft = 0;
+    ensureAudioContext();
+    playArrivalSound();
+  });
 
   dom.drawingGrid.addEventListener("click", (event) => {
     if (state.gallerySuppressClick) {
@@ -136,6 +183,33 @@ function renderPicker() {
   window.addEventListener("mouseup", endGalleryMouseDrag);
   dom.drawingGrid.addEventListener("wheel", handleGalleryWheel, { passive: false });
   dom.drawingGrid.addEventListener("scroll", handleGalleryScroll, { passive: true });
+}
+
+function renderCategoryTabs() {
+  dom.categoryTabs.innerHTML = categories
+    .map((category) => {
+      const active = category.id === state.category;
+      return `
+        <button class="category-tab${active ? " is-active" : ""}" type="button" data-category="${category.id}" role="tab" aria-selected="${active}">
+          ${category.name}
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function renderDrawingCards() {
+  dom.drawingGrid.innerHTML = libraryItems
+    .filter((item) => item.category === state.category)
+    .map((animal) => {
+      return `
+        <button class="drawing-card" type="button" data-animal="${animal.id}" aria-label="${animal.name}">
+          <img class="drawing-preview" src="${animal.src}" alt="" draggable="false" />
+          <span class="drawing-name">${animal.name}</span>
+        </button>
+      `;
+    })
+    .join("");
 }
 
 function bindControls() {
@@ -324,11 +398,12 @@ function showPicker() {
 }
 
 function selectAnimal(id) {
-  const animal = animals.find((item) => item.id === id);
+  const animal = libraryItems.find((item) => item.id === id);
   if (!animal) return;
 
   playPickSound();
   state.animal = animal;
+  state.category = animal.category;
   state.lineUrl = animal.src;
   state.colorUrl = animal.src;
   state.pieces = [];
@@ -357,27 +432,87 @@ function setStage(stage) {
   dom.appShell.dataset.stage = stage;
 }
 
-function piecePath(col, row, width, height, pad) {
+function itemGrid() {
+  return state.animal?.grid || DEFAULT_GRID;
+}
+
+function itemAspect() {
+  return state.animal?.aspect || 1;
+}
+
+function itemTargetRatio() {
+  return state.animal?.targetRatio || 0.78;
+}
+
+function artLayout(rect) {
+  const ratio = itemTargetRatio();
+  const aspect = itemAspect();
+  const maxW = rect.width * ratio;
+  const maxH = rect.height * ratio;
+  let width = maxW;
+  let height = width / aspect;
+
+  if (height > maxH) {
+    height = maxH;
+    width = height * aspect;
+  }
+
+  return {
+    x: (rect.width - width) / 2,
+    y: (rect.height - height) / 2,
+    width,
+    height
+  };
+}
+
+function applyArtLayout(element, layout) {
+  element.style.left = `${layout.x}px`;
+  element.style.top = `${layout.y}px`;
+  element.style.width = `${layout.width}px`;
+  element.style.height = `${layout.height}px`;
+}
+
+function cutSign(primary, secondary, offset) {
+  return (primary + secondary + offset) % 2 === 0 ? 1 : -1;
+}
+
+function cutBias(primary, secondary, offset) {
+  const values = [0.06, -0.04, 0.03, -0.05, 0.05, -0.06];
+  return values[(primary * 3 + secondary * 5 + offset) % values.length];
+}
+
+function startFraction(index, total) {
+  const pattern = startPatterns[total];
+  if (pattern?.[index]) return pattern[index];
+
+  return {
+    x: 0.08 + ((index * 0.27) % 0.68),
+    y: 0.05 + ((index * 0.19) % 0.72),
+    r: index % 2 === 0 ? 5 : -5
+  };
+}
+
+function piecePath(col, row, width, height, pad, grid) {
   const x0 = pad;
   const y0 = pad;
   const x1 = pad + width;
   const y1 = pad + height;
   const amp = Math.min(width, height) * 0.2;
   const isTop = row === 0;
-  const isRight = col === GRID.cols - 1;
-  const isBottom = row === GRID.rows - 1;
+  const isRight = col === grid.cols - 1;
+  const isBottom = row === grid.rows - 1;
   const isLeft = col === 0;
-  const topProfile = row > 0 ? horizontalCutProfiles[row - 1][col] : 0;
-  const rightProfile = col < GRID.cols - 1 ? verticalCutProfiles[row][col] : 0;
-  const bottomProfile = row < GRID.rows - 1 ? horizontalCutProfiles[row][col] : 0;
-  const leftProfile = col > 0 ? verticalCutProfiles[row][col - 1] : 0;
+  const topProfile = row > 0 ? cutBias(row - 1, col, 1) : 0;
+  const rightProfile = col < grid.cols - 1 ? cutBias(row, col, 2) : 0;
+  const bottomProfile = row < grid.rows - 1 ? cutBias(row, col, 1) : 0;
+  const leftProfile = col > 0 ? cutBias(row, col - 1, 2) : 0;
 
   return [
     `M ${x0} ${y0}`,
-    isTop ? outerTop(x0, y0, x1, col) : horizontalEdge(x0, x1, y0, horizontalCutSigns[row - 1][col], amp, topProfile),
-    isRight ? outerRight(x1, y0, y1, row) : verticalEdge(x1, y0, y1, verticalCutSigns[row][col], amp, rightProfile),
-    isBottom ? outerBottom(x1, x0, y1, col) : horizontalEdge(x1, x0, y1, horizontalCutSigns[row][col], amp, bottomProfile),
-    isLeft ? outerLeft(x0, y1, y0, row) : verticalEdge(x0, y1, y0, verticalCutSigns[row][col - 1], amp, leftProfile),
+    isTop ? outerTop(x0, y0, x1, col) : horizontalEdge(x0, x1, y0, cutSign(row - 1, col, 0), amp, topProfile),
+    isRight ? outerRight(x1, y0, y1, row) : verticalEdge(x1, y0, y1, cutSign(row, col, 1), amp, rightProfile),
+    isBottom ? outerBottom(x1, x0, y1, col) : horizontalEdge(x1, x0, y1, cutSign(row, col, 0), amp, bottomProfile),
+    isLeft ? outerLeft(x0, y1, y0, row) : verticalEdge(x0, y1, y0, cutSign(row, col - 1, 1), amp, leftProfile),
     "Z"
   ].join(" ");
 }
@@ -466,24 +601,24 @@ function buildPuzzle() {
 
   const boardW = rect.width;
   const boardH = rect.height;
-  const targetSize = Math.min(boardW, boardH) * 0.78;
-  const targetX = (boardW - targetSize) / 2;
-  const targetY = (boardH - targetSize) / 2;
-  const tileW = targetSize / GRID.cols;
-  const tileH = targetSize / GRID.rows;
+  const grid = itemGrid();
+  const layout = artLayout(rect);
+  const targetX = layout.x;
+  const targetY = layout.y;
+  const targetW = layout.width;
+  const targetH = layout.height;
+  const tileW = targetW / grid.cols;
+  const tileH = targetH / grid.rows;
 
   dom.slotLayer.innerHTML = "";
   dom.pieceLayer.innerHTML = "";
   state.pieces = [];
   dom.puzzleBoard.classList.remove("is-complete");
-  dom.ghostArt.style.left = `${targetX}px`;
-  dom.ghostArt.style.top = `${targetY}px`;
-  dom.ghostArt.style.width = `${targetSize}px`;
-  dom.ghostArt.style.height = `${targetSize}px`;
+  applyArtLayout(dom.ghostArt, layout);
 
-  for (let index = 0; index < GRID.cols * GRID.rows; index += 1) {
-    const col = index % GRID.cols;
-    const row = Math.floor(index / GRID.cols);
+  for (let index = 0; index < grid.cols * grid.rows; index += 1) {
+    const col = index % grid.cols;
+    const row = Math.floor(index / grid.cols);
     const cellX = col * tileW;
     const cellY = row * tileH;
     const pad = Math.min(tileW, tileH) * PIECE_PAD_RATIO;
@@ -500,9 +635,9 @@ function buildPuzzle() {
     slot.style.top = `${targetY + cellY}px`;
     dom.slotLayer.append(slot);
 
-    const start = startFractions[index];
+    const start = startFraction(index, grid.cols * grid.rows);
     const piece = document.createElementNS(SVG_NS, "svg");
-    const pieceShape = piecePath(col, row, tileW, tileH, pad);
+    const pieceShape = piecePath(col, row, tileW, tileH, pad, grid);
     const clipId = `piece-clip-${state.animal.id}-${index}`;
     const defs = document.createElementNS(SVG_NS, "defs");
     const clipPath = document.createElementNS(SVG_NS, "clipPath");
@@ -527,8 +662,8 @@ function buildPuzzle() {
     image.setAttribute("href", state.lineUrl);
     image.setAttribute("x", String(pad - cellX));
     image.setAttribute("y", String(pad - cellY));
-    image.setAttribute("width", String(targetSize));
-    image.setAttribute("height", String(targetSize));
+    image.setAttribute("width", String(targetW));
+    image.setAttribute("height", String(targetH));
     image.setAttribute("preserveAspectRatio", "none");
     image.setAttribute("clip-path", `url(#${clipId})`);
 
@@ -639,7 +774,7 @@ function checkPuzzleComplete() {
   playCompleteSound();
   window.setTimeout(() => {
     if (state.stage === "build") beginColoringMode();
-  }, 760);
+  }, 1150);
 }
 
 function beginColoringMode() {
@@ -655,6 +790,16 @@ function beginColoringMode() {
 
 function prepareColorCanvas() {
   const canvas = dom.colorCanvas;
+  const boardRect = dom.colorBoard.getBoundingClientRect();
+  if (boardRect.width < 20 || boardRect.height < 20) {
+    requestAnimationFrame(prepareColorCanvas);
+    return;
+  }
+
+  const layout = artLayout(boardRect);
+  applyArtLayout(dom.colorArt, layout);
+  applyArtLayout(canvas, layout);
+
   const rect = canvas.getBoundingClientRect();
   if (rect.width < 20 || rect.height < 20) {
     requestAnimationFrame(prepareColorCanvas);

@@ -153,9 +153,36 @@ button {
 .picker-view {
   position: relative;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   align-items: center;
   padding: clamp(12px, 3vw, 34px) 0;
   overflow: hidden;
+}
+
+.category-tabs {
+  justify-self: center;
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 10px 26px rgba(31, 49, 56, 0.07);
+}
+
+.category-tab {
+  min-width: 112px;
+  height: 38px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #33424a;
+  font-weight: 850;
+}
+
+.category-tab.is-active {
+  background: #172026;
+  color: #ffffff;
 }
 
 .gallery-wrap {
@@ -333,6 +360,10 @@ button {
   filter: grayscale(1) saturate(0) contrast(1.15);
   pointer-events: none;
   z-index: 1;
+  transform: scale(0.985);
+  transition:
+    filter 220ms ease,
+    transform 420ms cubic-bezier(0.18, 0.9, 0.22, 1.12);
 }
 
 .slot-layer,
@@ -347,6 +378,9 @@ button {
 
 .piece-layer {
   z-index: 3;
+  transition:
+    opacity 260ms ease,
+    visibility 0s linear 0s;
 }
 
 .slot {
@@ -423,12 +457,15 @@ button {
     contrast(1.18)
     brightness(0.88)
     drop-shadow(0 3px 7px rgba(31, 49, 56, 0.08));
+  transform: scale(1);
   z-index: 4;
+  animation: unifiedPop 560ms cubic-bezier(0.18, 0.9, 0.22, 1.12);
 }
 
 .puzzle-board.is-complete .piece-layer {
   opacity: 0;
   visibility: hidden;
+  transition-delay: 0s, 280ms;
   pointer-events: none;
 }
 
@@ -456,6 +493,20 @@ button {
   }
 }
 
+@keyframes unifiedPop {
+  0% {
+    transform: scale(0.985);
+  }
+
+  42% {
+    transform: scale(1.045);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
 .complete-pop {
   position: absolute;
   left: 50%;
@@ -469,8 +520,11 @@ button {
   background: rgba(255, 255, 255, 0.9);
   color: #2f8a68;
   box-shadow: var(--small-shadow);
+  opacity: 0;
   transform: translate(-50%, -50%) scale(0);
-  transition: transform 220ms ease;
+  transition:
+    opacity 160ms ease,
+    transform 260ms cubic-bezier(0.18, 0.9, 0.22, 1.18);
   pointer-events: none;
 }
 
@@ -481,7 +535,23 @@ button {
 }
 
 .complete-pop.is-visible {
+  opacity: 1;
   transform: translate(-50%, -50%) scale(1);
+  animation: checkPop 560ms cubic-bezier(0.18, 0.9, 0.22, 1.18);
+}
+
+@keyframes checkPop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.78);
+  }
+
+  45% {
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .color-art,
