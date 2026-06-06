@@ -293,8 +293,7 @@ button {
 
 .studio-view.is-hidden,
 .picker-view.is-hidden,
-.color-board.is-hidden,
-.game-board.is-hidden {
+.color-board.is-hidden {
   display: none;
 }
 
@@ -311,21 +310,8 @@ button {
   aspect-ratio: 1;
 }
 
-.app-shell[data-stage="game"] .studio-view {
-  padding-inline: clamp(12px, 2.5vw, 28px);
-}
-
-.app-shell[data-stage="game"] .board-shell {
-  width: min(1180px, 100%);
-  max-width: none;
-  height: min(68dvh, 620px);
-  min-height: 390px;
-  aspect-ratio: auto;
-}
-
 .puzzle-board,
-.color-board,
-.game-board {
+.color-board {
   position: absolute;
   inset: 0;
   border: 0;
@@ -335,10 +321,6 @@ button {
   overflow: visible;
   touch-action: none;
   user-select: none;
-}
-
-.game-board {
-  overflow: hidden;
 }
 
 .ghost-art {
@@ -383,6 +365,25 @@ button {
   pointer-events: all;
 }
 
+.piece-outline-halo,
+.piece-outline {
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity 160ms ease;
+}
+
+.piece-outline-halo {
+  stroke: rgba(255, 255, 255, 0.82);
+  stroke-width: 8px;
+}
+
+.piece-outline {
+  stroke: rgba(23, 32, 38, 0.68);
+  stroke-width: 3.6px;
+}
+
 .piece * {
   pointer-events: none;
 }
@@ -416,6 +417,11 @@ button {
     contrast(1.18)
     brightness(0.88)
     drop-shadow(0 0 0 rgba(31, 49, 56, 0));
+}
+
+.puzzle-board.is-complete .piece-outline-halo,
+.puzzle-board.is-complete .piece-outline {
+  opacity: 0;
 }
 
 @keyframes snapPulse {
@@ -477,14 +483,6 @@ button {
 #colorCanvas {
   touch-action: none;
   cursor: crosshair;
-}
-
-#gameCanvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  touch-action: none;
 }
 
 .finish-tray {
@@ -599,11 +597,6 @@ button {
     width: min(100%, 68dvh);
   }
 
-  .app-shell[data-stage="game"] .board-shell {
-    width: 100%;
-    height: min(66dvh, 560px);
-    min-height: 340px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -634,8 +627,4 @@ button {
     width: min(80%, 280px);
   }
 
-  .app-shell[data-stage="game"] .board-shell {
-    height: min(64dvh, 460px);
-    min-height: 300px;
-  }
 }

@@ -1,26 +1,37 @@
-const GRID = { cols: 3, rows: 2 };
+const GRID = { cols: 3, rows: 3 };
 const SVG_NS = "http://www.w3.org/2000/svg";
-const PIECE_PAD_RATIO = 0.18;
+const PIECE_PAD_RATIO = 0.23;
 const BRUSH_SIZE = 42;
 const COLOR_COMPLETE_RATIO = 0.68;
-const GAME_GRAVITY = 920;
-const GAME_LIFT = -1180;
-const GAME_SPEED = 190;
-const GAME_OBSTACLE_WIDTH = 46;
-const GAME_OBSTACLE_GAP = 178;
 const verticalCutSigns = [
   [1, -1],
-  [-1, 1]
+  [-1, 1],
+  [1, -1]
 ];
-const horizontalCutSigns = [1, -1, 1];
+const horizontalCutSigns = [
+  [-1, 1, -1],
+  [1, -1, 1]
+];
+const verticalCutProfiles = [
+  [-0.04, 0.06],
+  [0.05, -0.05],
+  [-0.03, 0.04]
+];
+const horizontalCutProfiles = [
+  [0.06, -0.04, 0.03],
+  [-0.05, 0.05, -0.06]
+];
 
 const startFractions = [
-  { x: 0.67, y: 0.54, r: 5 },
-  { x: 0.04, y: 0.56, r: -4 },
-  { x: 0.36, y: 0.04, r: 4 },
-  { x: 0.66, y: 0.08, r: -5 },
-  { x: 0.04, y: 0.18, r: 3 },
-  { x: 0.38, y: 0.53, r: -3 }
+  { x: 0.69, y: 0.59, r: 6 },
+  { x: 0.05, y: 0.57, r: -5 },
+  { x: 0.39, y: 0.04, r: 4 },
+  { x: 0.68, y: 0.08, r: -6 },
+  { x: 0.06, y: 0.28, r: 5 },
+  { x: 0.39, y: 0.62, r: -4 },
+  { x: 0.08, y: 0.04, r: -6 },
+  { x: 0.68, y: 0.35, r: 5 },
+  { x: 0.36, y: 0.34, r: -3 }
 ];
 
 const animals = [
@@ -62,11 +73,9 @@ const dom = {
   completePop: document.querySelector("#completePop"),
   colorArt: document.querySelector("#colorArt"),
   colorCanvas: document.querySelector("#colorCanvas"),
-  gameBoard: document.querySelector("#gameBoard"),
-  gameCanvas: document.querySelector("#gameCanvas"),
   finishTray: document.querySelector("#finishTray"),
   finishLibraryButton: document.querySelector("#finishLibraryButton"),
-  finishPlayButton: document.querySelector("#finishPlayButton")
+  finishRestartButton: document.querySelector("#finishRestartButton")
 };
 
 const state = {
@@ -90,7 +99,6 @@ const state = {
   galleryDrag: null,
   gallerySuppressClick: false,
   galleryScrollTimer: 0,
-  game: null,
   resizeTimer: 0
 };
 
@@ -134,7 +142,7 @@ function bindControls() {
   dom.galleryButton.addEventListener("click", showPicker);
   dom.fullscreenButton.addEventListener("click", toggleFullscreen);
   dom.finishLibraryButton.addEventListener("click", showPicker);
-  dom.finishPlayButton.addEventListener("click", startGame);
+  dom.finishRestartButton.addEventListener("click", restartCurrentAnimal);
   dom.brand.addEventListener("click", (event) => {
     event.preventDefault();
     showPicker();
@@ -144,18 +152,12 @@ function bindControls() {
   dom.colorCanvas.addEventListener("pointerup", endColorStroke);
   dom.colorCanvas.addEventListener("pointercancel", endColorStroke);
   dom.colorCanvas.addEventListener("pointerleave", endColorStroke);
-  dom.gameCanvas.addEventListener("pointerdown", beginGamePress);
-  window.addEventListener("pointerup", endGamePress);
-  window.addEventListener("pointercancel", endGamePress);
-  document.addEventListener("keydown", handleGameKeyDown);
-  document.addEventListener("keyup", handleGameKeyUp);
 
   window.addEventListener("resize", () => {
     clearTimeout(state.resizeTimer);
     state.resizeTimer = window.setTimeout(() => {
       if (state.stage === "build" && state.animal) buildPuzzle();
       if (state.stage === "color" && state.animal && !state.colorComplete) prepareColorCanvas();
-      if (state.stage === "game" && state.game) resizeGameCanvas();
     }, 180);
   });
 
@@ -294,8 +296,16 @@ function hideFinishTray() {
   dom.finishTray.setAttribute("aria-hidden", "true");
 }
 
+function restartCurrentAnimal() {
+  if (!state.animal) {
+    showPicker();
+    return;
+  }
+
+  selectAnimal(state.animal.id);
+}
+
 function showPicker() {
-  stopGame();
   state.stage = "pick";
   state.animal = null;
   state.pieces = [];
@@ -305,7 +315,6 @@ function showPicker() {
   setStage("pick");
   dom.pickerView.classList.remove("is-hidden");
   dom.studioView.classList.add("is-hidden");
-  dom.gameBoard.classList.add("is-hidden");
   dom.colorBoard.classList.remove("is-mask-ready");
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
@@ -325,7 +334,6 @@ function selectAnimal(id) {
   state.pieces = [];
   state.activePiece = null;
   state.colorComplete = false;
-  stopGame();
 
   dom.pickerView.classList.add("is-hidden");
   dom.studioView.classList.remove("is-hidden");
@@ -335,7 +343,6 @@ function selectAnimal(id) {
   dom.colorBoard.classList.remove("is-mask-ready");
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
-  dom.gameBoard.classList.add("is-hidden");
   hideFinishTray();
   dom.completePop.classList.remove("is-visible");
   dom.ghostArt.src = state.lineUrl;
@@ -355,54 +362,54 @@ function piecePath(col, row, width, height, pad) {
   const y0 = pad;
   const x1 = pad + width;
   const y1 = pad + height;
-  const amp = Math.min(width, height) * 0.16;
+  const amp = Math.min(width, height) * 0.2;
   const isTop = row === 0;
   const isRight = col === GRID.cols - 1;
   const isBottom = row === GRID.rows - 1;
   const isLeft = col === 0;
+  const topProfile = row > 0 ? horizontalCutProfiles[row - 1][col] : 0;
+  const rightProfile = col < GRID.cols - 1 ? verticalCutProfiles[row][col] : 0;
+  const bottomProfile = row < GRID.rows - 1 ? horizontalCutProfiles[row][col] : 0;
+  const leftProfile = col > 0 ? verticalCutProfiles[row][col - 1] : 0;
 
   return [
     `M ${x0} ${y0}`,
-    isTop ? outerTop(x0, y0, x1, col) : horizontalEdgeRight(x0, x1, y0, horizontalCutSigns[col], amp),
-    isRight ? outerRight(x1, y0, y1, row) : verticalEdgeDown(x1, y0, y1, verticalCutSigns[row][col], amp),
-    isBottom ? outerBottom(x1, x0, y1, col) : horizontalEdgeLeft(x1, x0, y1, horizontalCutSigns[col], amp),
-    isLeft ? outerLeft(x0, y1, y0, row) : verticalEdgeUp(x0, y1, y0, verticalCutSigns[row][col - 1], amp),
+    isTop ? outerTop(x0, y0, x1, col) : horizontalEdge(x0, x1, y0, horizontalCutSigns[row - 1][col], amp, topProfile),
+    isRight ? outerRight(x1, y0, y1, row) : verticalEdge(x1, y0, y1, verticalCutSigns[row][col], amp, rightProfile),
+    isBottom ? outerBottom(x1, x0, y1, col) : horizontalEdge(x1, x0, y1, horizontalCutSigns[row][col], amp, bottomProfile),
+    isLeft ? outerLeft(x0, y1, y0, row) : verticalEdge(x0, y1, y0, verticalCutSigns[row][col - 1], amp, leftProfile),
     "Z"
   ].join(" ");
 }
 
-function horizontalEdgeRight(fromX, toX, y, sign, amp) {
-  const width = toX - fromX;
+function horizontalEdge(fromX, toX, y, sign, amp, bias) {
+  const span = toX - fromX;
+  const center = 0.5 + bias;
+  const shoulder = 0.19;
+  const neck = 0.115;
+  const x = (point) => fromX + span * point;
+
   return [
-    `L ${fromX + width * 0.34} ${y}`,
-    `C ${fromX + width * 0.43} ${y + sign * amp} ${fromX + width * 0.57} ${y + sign * amp} ${fromX + width * 0.66} ${y}`,
+    `L ${x(center - shoulder)} ${y}`,
+    `C ${x(center - neck * 1.18)} ${y} ${x(center - neck * 1.06)} ${y + sign * amp * 0.42} ${x(center - neck * 0.78)} ${y + sign * amp * 0.55}`,
+    `C ${x(center - neck * 0.48)} ${y + sign * amp * 1.15} ${x(center + neck * 0.48)} ${y + sign * amp * 1.15} ${x(center + neck * 0.78)} ${y + sign * amp * 0.55}`,
+    `C ${x(center + neck * 1.06)} ${y + sign * amp * 0.42} ${x(center + neck * 1.18)} ${y} ${x(center + shoulder)} ${y}`,
     `L ${toX} ${y}`
   ].join(" ");
 }
 
-function horizontalEdgeLeft(fromX, toX, y, sign, amp) {
-  const width = fromX - toX;
-  return [
-    `L ${toX + width * 0.66} ${y}`,
-    `C ${toX + width * 0.57} ${y + sign * amp} ${toX + width * 0.43} ${y + sign * amp} ${toX + width * 0.34} ${y}`,
-    `L ${toX} ${y}`
-  ].join(" ");
-}
+function verticalEdge(x, fromY, toY, sign, amp, bias) {
+  const span = toY - fromY;
+  const center = 0.5 + bias;
+  const shoulder = 0.19;
+  const neck = 0.115;
+  const y = (point) => fromY + span * point;
 
-function verticalEdgeDown(x, fromY, toY, sign, amp) {
-  const height = toY - fromY;
   return [
-    `L ${x} ${fromY + height * 0.34}`,
-    `C ${x + sign * amp} ${fromY + height * 0.43} ${x + sign * amp} ${fromY + height * 0.57} ${x} ${fromY + height * 0.66}`,
-    `L ${x} ${toY}`
-  ].join(" ");
-}
-
-function verticalEdgeUp(x, fromY, toY, sign, amp) {
-  const height = fromY - toY;
-  return [
-    `L ${x} ${toY + height * 0.66}`,
-    `C ${x + sign * amp} ${toY + height * 0.57} ${x + sign * amp} ${toY + height * 0.43} ${x} ${toY + height * 0.34}`,
+    `L ${x} ${y(center - shoulder)}`,
+    `C ${x} ${y(center - neck * 1.18)} ${x + sign * amp * 0.42} ${y(center - neck * 1.06)} ${x + sign * amp * 0.55} ${y(center - neck * 0.78)}`,
+    `C ${x + sign * amp * 1.15} ${y(center - neck * 0.48)} ${x + sign * amp * 1.15} ${y(center + neck * 0.48)} ${x + sign * amp * 0.55} ${y(center + neck * 0.78)}`,
+    `C ${x + sign * amp * 0.42} ${y(center + neck * 1.06)} ${x} ${y(center + neck * 1.18)} ${x} ${y(center + shoulder)}`,
     `L ${x} ${toY}`
   ].join(" ");
 }
@@ -459,7 +466,7 @@ function buildPuzzle() {
 
   const boardW = rect.width;
   const boardH = rect.height;
-  const targetSize = Math.min(boardW, boardH) * 0.86;
+  const targetSize = Math.min(boardW, boardH) * 0.78;
   const targetX = (boardW - targetSize) / 2;
   const targetY = (boardH - targetSize) / 2;
   const tileW = targetSize / GRID.cols;
@@ -501,6 +508,8 @@ function buildPuzzle() {
     const clipPath = document.createElementNS(SVG_NS, "clipPath");
     const clipPathShape = document.createElementNS(SVG_NS, "path");
     const image = document.createElementNS(SVG_NS, "image");
+    const outlineHalo = document.createElementNS(SVG_NS, "path");
+    const outline = document.createElementNS(SVG_NS, "path");
 
     piece.setAttribute("class", "piece");
     piece.setAttribute("role", "button");
@@ -523,7 +532,15 @@ function buildPuzzle() {
     image.setAttribute("preserveAspectRatio", "none");
     image.setAttribute("clip-path", `url(#${clipId})`);
 
-    piece.append(defs, image);
+    outlineHalo.setAttribute("class", "piece-outline-halo");
+    outlineHalo.setAttribute("d", pieceShape);
+    outlineHalo.setAttribute("vector-effect", "non-scaling-stroke");
+
+    outline.setAttribute("class", "piece-outline");
+    outline.setAttribute("d", pieceShape);
+    outline.setAttribute("vector-effect", "non-scaling-stroke");
+
+    piece.append(defs, image, outlineHalo, outline);
 
     const model = {
       element: piece,
@@ -597,7 +614,7 @@ function dropPiece(event) {
     piece.rotation = 0;
     piece.snapped = true;
     piece.element.classList.add("is-snapped");
-    piece.element.style.zIndex = String(5 + piece.index);
+    piece.element.style.zIndex = String(1 + piece.index);
     setPieceTransform(piece);
     playSnapSound();
     checkPuzzleComplete();
@@ -759,228 +776,6 @@ function completeColoring() {
   playColorCompleteSound();
 }
 
-function startGame() {
-  if (!state.animal) return;
-
-  stopGame();
-  stopScratch();
-  hideFinishTray();
-  setStage("game");
-  dom.puzzleBoard.style.display = "none";
-  dom.colorBoard.classList.add("is-hidden");
-  dom.gameBoard.classList.remove("is-hidden");
-
-  const image = new Image();
-  image.src = state.colorUrl;
-  state.game = {
-    ctx: dom.gameCanvas.getContext("2d"),
-    dpr: 1,
-    width: 0,
-    height: 0,
-    image,
-    running: true,
-    pressing: false,
-    lastTime: 0,
-    popStart: performance.now(),
-    player: { x: 0, y: 0, vy: 0, size: 92 },
-    obstacles: [],
-    spawnIn: 0,
-    obstacleSeed: 0
-  };
-
-  resizeGameCanvas();
-  resetGameRound(false);
-  state.game.raf = requestAnimationFrame(runGameFrame);
-}
-
-function stopGame() {
-  if (!state.game) return;
-  cancelAnimationFrame(state.game.raf);
-  state.game.running = false;
-  state.game = null;
-}
-
-function resizeGameCanvas() {
-  const game = state.game;
-  if (!game) return;
-
-  const rect = dom.gameCanvas.getBoundingClientRect();
-  if (rect.width < 20 || rect.height < 20) return;
-
-  game.dpr = Math.max(1, window.devicePixelRatio || 1);
-  game.width = rect.width;
-  game.height = rect.height;
-  dom.gameCanvas.width = Math.round(rect.width * game.dpr);
-  dom.gameCanvas.height = Math.round(rect.height * game.dpr);
-  game.ctx.setTransform(game.dpr, 0, 0, game.dpr, 0, 0);
-  game.player.size = clamp(game.height * 0.18, 76, 118);
-  game.player.x = Math.max(74, game.width * 0.18);
-  game.player.y = clamp(game.player.y || game.height * 0.48, game.player.size / 2, game.height - game.player.size / 2);
-}
-
-function resetGameRound(withSound) {
-  const game = state.game;
-  if (!game) return;
-
-  game.obstacles = [];
-  game.spawnIn = 0.72;
-  game.player.x = Math.max(74, game.width * 0.18);
-  game.player.y = game.height * 0.48;
-  game.player.vy = 0;
-  game.popStart = performance.now();
-  if (withSound) playBumpSound();
-}
-
-function beginGamePress(event) {
-  if (state.stage !== "game" || !state.game) return;
-  event.preventDefault();
-  state.game.pressing = true;
-  playJumpSound();
-}
-
-function endGamePress() {
-  if (!state.game) return;
-  state.game.pressing = false;
-}
-
-function handleGameKeyDown(event) {
-  if (state.stage !== "game" || !state.game || (event.code !== "Space" && event.code !== "ArrowUp")) return;
-  event.preventDefault();
-  if (!state.game.pressing) playJumpSound();
-  state.game.pressing = true;
-}
-
-function handleGameKeyUp(event) {
-  if (!state.game || (event.code !== "Space" && event.code !== "ArrowUp")) return;
-  event.preventDefault();
-  state.game.pressing = false;
-}
-
-function runGameFrame(timestamp) {
-  const game = state.game;
-  if (!game || !game.running) return;
-
-  if (!game.lastTime) game.lastTime = timestamp;
-  const dt = Math.min(0.034, (timestamp - game.lastTime) / 1000);
-  game.lastTime = timestamp;
-
-  updateGame(game, dt);
-  drawGame(game, timestamp);
-  game.raf = requestAnimationFrame(runGameFrame);
-}
-
-function updateGame(game, dt) {
-  const player = game.player;
-  player.vy += (game.pressing ? GAME_LIFT : GAME_GRAVITY) * dt;
-  player.vy = clamp(player.vy, -430, 520);
-  player.y += player.vy * dt;
-
-  if (player.y < player.size * 0.42) {
-    player.y = player.size * 0.42;
-    player.vy = 80;
-  }
-
-  if (player.y > game.height - player.size * 0.42) {
-    resetGameRound(true);
-    return;
-  }
-
-  game.spawnIn -= dt;
-  if (game.spawnIn <= 0) {
-    addObstacle(game);
-    game.spawnIn = 1.45 + ((game.obstacleSeed % 4) * 0.12);
-  }
-
-  game.obstacles.forEach((obstacle) => {
-    obstacle.x -= GAME_SPEED * dt;
-  });
-  game.obstacles = game.obstacles.filter((obstacle) => obstacle.x + GAME_OBSTACLE_WIDTH > -10);
-
-  if (game.obstacles.some((obstacle) => hitsObstacle(game, obstacle))) {
-    resetGameRound(true);
-  }
-}
-
-function addObstacle(game) {
-  game.obstacleSeed += 1;
-  const wave = Math.sin(game.obstacleSeed * 1.74) * 0.28 + Math.cos(game.obstacleSeed * 0.8) * 0.16;
-  const center = clamp(game.height * (0.5 + wave), GAME_OBSTACLE_GAP * 0.62, game.height - GAME_OBSTACLE_GAP * 0.62);
-  game.obstacles.push({
-    x: game.width + 32,
-    center,
-    gap: clamp(GAME_OBSTACLE_GAP, game.height * 0.3, game.height * 0.44),
-    color: game.obstacleSeed % 2 === 0 ? "#62c6c4" : "#ff806e"
-  });
-}
-
-function hitsObstacle(game, obstacle) {
-  const player = game.player;
-  const radius = player.size * 0.28;
-  const gapTop = obstacle.center - obstacle.gap / 2;
-  const gapBottom = obstacle.center + obstacle.gap / 2;
-  const horizontalHit = player.x + radius > obstacle.x && player.x - radius < obstacle.x + GAME_OBSTACLE_WIDTH;
-  if (!horizontalHit) return false;
-  return player.y - radius < gapTop || player.y + radius > gapBottom;
-}
-
-function drawGame(game, timestamp) {
-  const ctx = game.ctx;
-  ctx.clearRect(0, 0, game.width, game.height);
-
-  ctx.fillStyle = "#f6f7f4";
-  ctx.fillRect(0, 0, game.width, game.height);
-
-  ctx.fillStyle = "rgba(23, 32, 38, 0.055)";
-  for (let index = 0; index < 9; index += 1) {
-    const x = ((timestamp * 0.025 + index * 120) % (game.width + 140)) - 80;
-    roundedRect(ctx, x, game.height * 0.78, 58, 8, 999);
-    ctx.fill();
-  }
-
-  game.obstacles.forEach((obstacle) => {
-    const gapTop = obstacle.center - obstacle.gap / 2;
-    const gapBottom = obstacle.center + obstacle.gap / 2;
-    ctx.fillStyle = obstacle.color;
-    roundedRect(ctx, obstacle.x, -12, GAME_OBSTACLE_WIDTH, gapTop + 12, 16);
-    ctx.fill();
-    roundedRect(ctx, obstacle.x, gapBottom, GAME_OBSTACLE_WIDTH, game.height - gapBottom + 12, 16);
-    ctx.fill();
-  });
-
-  drawGameAnimal(game, timestamp);
-}
-
-function drawGameAnimal(game, timestamp) {
-  const image = game.image.complete ? game.image : dom.colorArt;
-  const player = game.player;
-  const elapsed = Math.min(1, (timestamp - game.popStart) / 680);
-  const ease = 1 - Math.pow(1 - elapsed, 3);
-  const popScale = 1.32 - 0.32 * ease;
-  const size = player.size * popScale;
-  const tilt = clamp(player.vy / 850, -0.32, 0.34);
-
-  game.ctx.save();
-  game.ctx.translate(player.x, player.y);
-  game.ctx.rotate(tilt);
-  game.ctx.drawImage(image, -size / 2, -size / 2, size, size);
-  game.ctx.restore();
-}
-
-function roundedRect(ctx, x, y, width, height, radius) {
-  const r = Math.min(radius, Math.abs(width) / 2, Math.abs(height) / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + width - r, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
-  ctx.lineTo(x + width, y + height - r);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
-  ctx.lineTo(x + r, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
 function canvasPoint(event) {
   const rect = dom.colorCanvas.getBoundingClientRect();
   return {
@@ -1074,22 +869,6 @@ function playColorCompleteSound() {
   playTone(context, 587, 740, now, 0.12, 0.045, "sine");
   playTone(context, 740, 988, now + 0.1, 0.16, 0.05, "triangle");
   playTone(context, 988, 1318, now + 0.24, 0.24, 0.04, "sine");
-}
-
-function playJumpSound() {
-  const context = ensureAudioContext();
-  if (!context) return;
-
-  const now = context.currentTime;
-  playTone(context, 510, 720, now, 0.07, 0.018, "sine");
-}
-
-function playBumpSound() {
-  const context = ensureAudioContext();
-  if (!context) return;
-
-  const now = context.currentTime;
-  playTone(context, 180, 130, now, 0.11, 0.028, "triangle");
 }
 
 function playTone(context, fromFrequency, toFrequency, startTime, duration, volume, type) {
