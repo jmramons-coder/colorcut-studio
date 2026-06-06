@@ -21,24 +21,24 @@ const startFractions = [
 
 const animals = [
   {
-    id: "fox",
-    name: "Rainbow Fox",
-    color: () => foxSvg("color"),
-    line: () => foxSvg("line")
+    id: "red-panda",
+    name: "Red Panda",
+    src: "assets/red-panda.png"
   },
   {
-    id: "turtle",
-    name: "Mosaic Turtle",
-    color: () => turtleSvg("color"),
-    line: () => turtleSvg("line")
+    id: "sea-turtle",
+    name: "Sea Turtle",
+    src: "assets/sea-turtle.png"
   }
 ];
 
 const dom = {
+  appShell: document.querySelector(".app-shell"),
   pickerView: document.querySelector("#pickerView"),
   drawingGrid: document.querySelector("#drawingGrid"),
   studioView: document.querySelector("#studioView"),
   galleryButton: document.querySelector("#galleryButton"),
+  fullscreenButton: document.querySelector("#fullscreenButton"),
   brand: document.querySelector(".brand"),
   puzzleBoard: document.querySelector("#puzzleBoard"),
   colorBoard: document.querySelector("#colorBoard"),
@@ -65,6 +65,7 @@ const state = {
   deviceScale: 1,
   isColoring: false,
   lastColorPoint: null,
+  audioContext: null,
   scratch: null,
   resizeTimer: 0
 };
@@ -79,10 +80,9 @@ function renderPicker() {
 
   dom.drawingGrid.innerHTML = animals
     .map((animal) => {
-      const preview = svgToData(animal.color());
       return `
         <button class="drawing-card" type="button" data-animal="${animal.id}" aria-label="${animal.name}">
-          <img class="drawing-preview" src="${preview}" alt="" />
+          <img class="drawing-preview" src="${animal.src}" alt="" />
           <span class="drawing-name">${animal.name}${arrow}</span>
         </button>
       `;
@@ -98,6 +98,7 @@ function renderPicker() {
 
 function bindControls() {
   dom.galleryButton.addEventListener("click", showPicker);
+  dom.fullscreenButton.addEventListener("click", toggleFullscreen);
   dom.brand.addEventListener("click", (event) => {
     event.preventDefault();
     showPicker();
@@ -122,6 +123,9 @@ function bindControls() {
       if (state.stage === "color" && state.animal) prepareColorCanvas();
     }, 180);
   });
+
+  document.addEventListener("fullscreenchange", syncFullscreenButton);
+  document.addEventListener("webkitfullscreenchange", syncFullscreenButton);
 }
 
 function showPicker() {
@@ -141,8 +145,8 @@ function selectAnimal(id) {
   if (!animal) return;
 
   state.animal = animal;
-  state.lineUrl = svgToData(animal.line());
-  state.colorUrl = svgToData(animal.color());
+  state.lineUrl = animal.src;
+  state.colorUrl = animal.src;
   state.pieces = [];
   state.activePiece = null;
 
@@ -163,6 +167,27 @@ function setStage(stage) {
   dom.stepDots.forEach((dot) => {
     dot.classList.toggle("is-active", dot.dataset.step === stage);
   });
+}
+
+function toggleFullscreen() {
+  const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+  if (fullscreenElement) {
+    const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+    const exitPromise = exitFullscreen?.call(document);
+    exitPromise?.catch?.(() => {});
+    return;
+  }
+
+  const requestFullscreen =
+    dom.appShell.requestFullscreen || dom.appShell.webkitRequestFullscreen;
+  const requestPromise = requestFullscreen?.call(dom.appShell);
+  requestPromise?.catch?.(() => {});
+}
+
+function syncFullscreenButton() {
+  const isFullscreen = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+  dom.fullscreenButton.setAttribute("aria-label", isFullscreen ? "Exit fullscreen" : "Enter fullscreen");
+  dom.fullscreenButton.title = isFullscreen ? "Exit fullscreen" : "Enter fullscreen";
 }
 
 function buildPuzzle() {
@@ -292,6 +317,7 @@ function dropPiece(event) {
     piece.element.classList.add("is-snapped");
     piece.element.style.zIndex = String(5 + piece.index);
     setPieceTransform(piece);
+    playSnapSound();
     checkPuzzleComplete();
   } else {
     piece.element.style.zIndex = String(10 + piece.index);
@@ -310,6 +336,7 @@ function checkPuzzleComplete() {
   if (!state.pieces.length || !state.pieces.every((piece) => piece.snapped)) return;
 
   dom.completePop.classList.add("is-visible");
+  playCompleteSound();
   window.setTimeout(() => {
     if (state.stage === "build") beginColoringMode();
   }, 760);
@@ -342,7 +369,9 @@ function prepareColorCanvas() {
   const image = new Image();
   image.onload = () => {
     context.clearRect(0, 0, canvas.width, canvas.height);
+    context.filter = "grayscale(1) saturate(0) contrast(1.18)";
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    context.filter = "none";
   };
   image.src = state.lineUrl;
 }
@@ -415,6 +444,56 @@ function eraseLine(from, to) {
   context.restore();
 }
 
+function ensureAudioContext() {
+  if (state.audioContext) {
+    state.audioContext.resume?.();
+    return state.audioContext;
+  }
+
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return null;
+
+  state.audioContext = new AudioContext();
+  state.audioContext.resume?.();
+  return state.audioContext;
+}
+
+function playSnapSound() {
+  const context = ensureAudioContext();
+  if (!context) return;
+
+  const now = context.currentTime;
+  playTone(context, 540, 920, now, 0.11, 0.06, "triangle");
+}
+
+function playCompleteSound() {
+  const context = ensureAudioContext();
+  if (!context) return;
+
+  const now = context.currentTime;
+  playTone(context, 523, 660, now, 0.12, 0.045, "sine");
+  playTone(context, 659, 784, now + 0.1, 0.14, 0.045, "sine");
+  playTone(context, 784, 1047, now + 0.21, 0.22, 0.055, "triangle");
+}
+
+function playTone(context, fromFrequency, toFrequency, startTime, duration, volume, type) {
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(fromFrequency, startTime);
+  oscillator.frequency.exponentialRampToValueAtTime(toFrequency, startTime + duration);
+
+  gain.gain.setValueAtTime(0.0001, startTime);
+  gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.018);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(startTime);
+  oscillator.stop(startTime + duration + 0.02);
+}
+
 function startScratch() {
   const scratch = ensureScratch();
   if (!scratch) return;
@@ -443,10 +522,9 @@ function stopScratch() {
 function ensureScratch() {
   if (state.scratch) return state.scratch;
 
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) return null;
+  const context = ensureAudioContext();
+  if (!context) return null;
 
-  const context = new AudioContext();
   const sampleRate = context.sampleRate;
   const buffer = context.createBuffer(1, sampleRate, sampleRate);
   const channel = buffer.getChannelData(0);
