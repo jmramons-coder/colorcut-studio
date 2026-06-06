@@ -2,6 +2,12 @@ const GRID = { cols: 3, rows: 2 };
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PIECE_PAD_RATIO = 0.18;
 const BRUSH_SIZE = 42;
+const COLOR_COMPLETE_RATIO = 0.68;
+const GAME_GRAVITY = 920;
+const GAME_LIFT = -1180;
+const GAME_SPEED = 190;
+const GAME_OBSTACLE_WIDTH = 46;
+const GAME_OBSTACLE_GAP = 178;
 const verticalCutSigns = [
   [1, -1],
   [-1, 1]
@@ -55,7 +61,12 @@ const dom = {
   pieceLayer: document.querySelector("#pieceLayer"),
   completePop: document.querySelector("#completePop"),
   colorArt: document.querySelector("#colorArt"),
-  colorCanvas: document.querySelector("#colorCanvas")
+  colorCanvas: document.querySelector("#colorCanvas"),
+  gameBoard: document.querySelector("#gameBoard"),
+  gameCanvas: document.querySelector("#gameCanvas"),
+  finishTray: document.querySelector("#finishTray"),
+  finishLibraryButton: document.querySelector("#finishLibraryButton"),
+  finishPlayButton: document.querySelector("#finishPlayButton")
 };
 
 const state = {
@@ -67,11 +78,19 @@ const state = {
   colorUrl: "",
   brushSize: BRUSH_SIZE,
   colorContext: null,
+  maskPixelCount: 0,
+  colorComplete: false,
+  colorCheckTimer: 0,
   deviceScale: 1,
   isColoring: false,
   lastColorPoint: null,
   audioContext: null,
   scratch: null,
+  galleryActiveIndex: 0,
+  galleryDrag: null,
+  gallerySuppressClick: false,
+  galleryScrollTimer: 0,
+  game: null,
   resizeTimer: 0
 };
 
@@ -84,7 +103,7 @@ function renderPicker() {
     .map((animal) => {
       return `
         <button class="drawing-card" type="button" data-animal="${animal.id}" aria-label="${animal.name}">
-          <img class="drawing-preview" src="${animal.src}" alt="" />
+          <img class="drawing-preview" src="${animal.src}" alt="" draggable="false" />
           <span class="drawing-name">${animal.name}</span>
         </button>
       `;
@@ -92,15 +111,30 @@ function renderPicker() {
     .join("");
 
   dom.drawingGrid.addEventListener("click", (event) => {
+    if (state.gallerySuppressClick) {
+      state.gallerySuppressClick = false;
+      return;
+    }
     const card = event.target.closest("[data-animal]");
     if (!card) return;
     selectAnimal(card.dataset.animal);
   });
+  dom.drawingGrid.addEventListener("pointerdown", beginGalleryDrag);
+  dom.drawingGrid.addEventListener("pointermove", continueGalleryDrag);
+  dom.drawingGrid.addEventListener("pointerup", endGalleryDrag);
+  dom.drawingGrid.addEventListener("pointercancel", endGalleryDrag);
+  dom.drawingGrid.addEventListener("mousedown", beginGalleryMouseDrag);
+  window.addEventListener("mousemove", continueGalleryMouseDrag);
+  window.addEventListener("mouseup", endGalleryMouseDrag);
+  dom.drawingGrid.addEventListener("wheel", handleGalleryWheel, { passive: false });
+  dom.drawingGrid.addEventListener("scroll", handleGalleryScroll, { passive: true });
 }
 
 function bindControls() {
   dom.galleryButton.addEventListener("click", showPicker);
   dom.fullscreenButton.addEventListener("click", toggleFullscreen);
+  dom.finishLibraryButton.addEventListener("click", showPicker);
+  dom.finishPlayButton.addEventListener("click", startGame);
   dom.brand.addEventListener("click", (event) => {
     event.preventDefault();
     showPicker();
@@ -110,12 +144,18 @@ function bindControls() {
   dom.colorCanvas.addEventListener("pointerup", endColorStroke);
   dom.colorCanvas.addEventListener("pointercancel", endColorStroke);
   dom.colorCanvas.addEventListener("pointerleave", endColorStroke);
+  dom.gameCanvas.addEventListener("pointerdown", beginGamePress);
+  window.addEventListener("pointerup", endGamePress);
+  window.addEventListener("pointercancel", endGamePress);
+  document.addEventListener("keydown", handleGameKeyDown);
+  document.addEventListener("keyup", handleGameKeyUp);
 
   window.addEventListener("resize", () => {
     clearTimeout(state.resizeTimer);
     state.resizeTimer = window.setTimeout(() => {
       if (state.stage === "build" && state.animal) buildPuzzle();
-      if (state.stage === "color" && state.animal) prepareColorCanvas();
+      if (state.stage === "color" && state.animal && !state.colorComplete) prepareColorCanvas();
+      if (state.stage === "game" && state.game) resizeGameCanvas();
     }, 180);
   });
 
@@ -123,17 +163,153 @@ function bindControls() {
   document.addEventListener("webkitfullscreenchange", syncFullscreenButton);
 }
 
+function beginGalleryDrag(event) {
+  ensureAudioContext();
+  if (event.button !== undefined && event.button !== 0) return;
+  if (event.pointerType === "mouse") return;
+
+  startGalleryDrag(event.clientX, event.pointerId);
+  dom.drawingGrid.setPointerCapture?.(event.pointerId);
+}
+
+function continueGalleryDrag(event) {
+  const drag = state.galleryDrag;
+  if (!drag || event.pointerId !== drag.pointerId) return;
+
+  moveGalleryDrag(event.clientX, event);
+}
+
+function endGalleryDrag(event) {
+  const drag = state.galleryDrag;
+  if (!drag || event.pointerId !== drag.pointerId) return;
+
+  dom.drawingGrid.releasePointerCapture?.(event.pointerId);
+  finishGalleryDrag(drag);
+}
+
+function beginGalleryMouseDrag(event) {
+  ensureAudioContext();
+  if (event.button !== 0 || state.galleryDrag) return;
+  startGalleryDrag(event.clientX, null);
+}
+
+function continueGalleryMouseDrag(event) {
+  const drag = state.galleryDrag;
+  if (!drag || drag.pointerId !== null) return;
+  moveGalleryDrag(event.clientX, event);
+}
+
+function endGalleryMouseDrag() {
+  const drag = state.galleryDrag;
+  if (!drag || drag.pointerId !== null) return;
+  finishGalleryDrag(drag);
+}
+
+function startGalleryDrag(clientX, pointerId) {
+  state.galleryDrag = {
+    pointerId,
+    startX: clientX,
+    scrollLeft: dom.drawingGrid.scrollLeft,
+    moved: false
+  };
+}
+
+function moveGalleryDrag(clientX, event) {
+  const drag = state.galleryDrag;
+  if (!drag) return;
+
+  const delta = clientX - drag.startX;
+  if (Math.abs(delta) > 5) {
+    drag.moved = true;
+    dom.drawingGrid.classList.add("is-dragging");
+    event.preventDefault();
+  }
+
+  if (drag.moved) {
+    dom.drawingGrid.scrollLeft = drag.scrollLeft - delta;
+  }
+}
+
+function finishGalleryDrag(drag) {
+  dom.drawingGrid.classList.remove("is-dragging");
+  state.galleryDrag = null;
+
+  if (drag.moved) {
+    state.gallerySuppressClick = true;
+    window.setTimeout(() => {
+      state.gallerySuppressClick = false;
+    }, 220);
+    handleGalleryScroll();
+  }
+}
+
+function handleGalleryWheel(event) {
+  ensureAudioContext();
+  const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+  if (!delta) return;
+  dom.drawingGrid.scrollLeft += delta;
+  event.preventDefault();
+}
+
+function handleGalleryScroll() {
+  window.clearTimeout(state.galleryScrollTimer);
+  state.galleryScrollTimer = window.setTimeout(() => {
+    if (state.stage !== "pick") return;
+    const activeIndex = closestGalleryIndex();
+    if (activeIndex !== state.galleryActiveIndex) {
+      state.galleryActiveIndex = activeIndex;
+      playArrivalSound();
+    }
+  }, 90);
+}
+
+function closestGalleryIndex() {
+  const cards = Array.from(dom.drawingGrid.querySelectorAll(".drawing-card"));
+  if (!cards.length) return 0;
+
+  const railRect = dom.drawingGrid.getBoundingClientRect();
+  const railCenter = railRect.left + railRect.width / 2;
+  let closestIndex = 0;
+  let closestDistance = Infinity;
+
+  cards.forEach((card, index) => {
+    const rect = card.getBoundingClientRect();
+    const distance = Math.abs(rect.left + rect.width / 2 - railCenter);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestIndex = index;
+    }
+  });
+
+  return closestIndex;
+}
+
+function showFinishTray() {
+  dom.finishTray.classList.add("is-visible");
+  dom.finishTray.setAttribute("aria-hidden", "false");
+}
+
+function hideFinishTray() {
+  dom.finishTray.classList.remove("is-visible");
+  dom.finishTray.setAttribute("aria-hidden", "true");
+}
+
 function showPicker() {
+  stopGame();
   state.stage = "pick";
   state.animal = null;
   state.pieces = [];
   state.activePiece = null;
+  state.colorComplete = false;
   stopScratch();
   setStage("pick");
   dom.pickerView.classList.remove("is-hidden");
   dom.studioView.classList.add("is-hidden");
+  dom.gameBoard.classList.add("is-hidden");
   dom.colorBoard.classList.remove("is-mask-ready");
   dom.colorArt.classList.remove("is-visible");
+  dom.colorArt.classList.remove("is-celebrating");
+  hideFinishTray();
   dom.completePop.classList.remove("is-visible");
   dom.puzzleBoard.classList.remove("is-complete");
 }
@@ -148,6 +324,8 @@ function selectAnimal(id) {
   state.colorUrl = animal.src;
   state.pieces = [];
   state.activePiece = null;
+  state.colorComplete = false;
+  stopGame();
 
   dom.pickerView.classList.add("is-hidden");
   dom.studioView.classList.remove("is-hidden");
@@ -156,6 +334,9 @@ function selectAnimal(id) {
   dom.colorBoard.classList.add("is-hidden");
   dom.colorBoard.classList.remove("is-mask-ready");
   dom.colorArt.classList.remove("is-visible");
+  dom.colorArt.classList.remove("is-celebrating");
+  dom.gameBoard.classList.add("is-hidden");
+  hideFinishTray();
   dom.completePop.classList.remove("is-visible");
   dom.ghostArt.src = state.lineUrl;
   dom.colorArt.src = state.colorUrl;
@@ -166,6 +347,7 @@ function selectAnimal(id) {
 
 function setStage(stage) {
   state.stage = stage;
+  dom.appShell.dataset.stage = stage;
 }
 
 function piecePath(col, row, width, height, pad) {
@@ -449,6 +631,8 @@ function beginColoringMode() {
   dom.colorBoard.classList.remove("is-hidden");
   dom.colorBoard.classList.remove("is-mask-ready");
   dom.colorArt.classList.remove("is-visible");
+  dom.colorArt.classList.remove("is-celebrating");
+  hideFinishTray();
   prepareColorCanvas();
 }
 
@@ -463,6 +647,8 @@ function prepareColorCanvas() {
   state.deviceScale = Math.max(1, window.devicePixelRatio || 1);
   canvas.width = Math.round(rect.width * state.deviceScale);
   canvas.height = Math.round(rect.height * state.deviceScale);
+  state.maskPixelCount = 0;
+  state.colorComplete = false;
 
   const context = canvas.getContext("2d", { willReadFrequently: true });
   state.colorContext = context;
@@ -470,10 +656,12 @@ function prepareColorCanvas() {
   context.globalCompositeOperation = "source-over";
   dom.colorBoard.classList.remove("is-mask-ready");
   dom.colorArt.classList.remove("is-visible");
+  dom.colorArt.classList.remove("is-celebrating");
+  hideFinishTray();
 
   const image = new Image();
   image.onload = () => {
-    drawGrayMask(context, image, canvas.width, canvas.height);
+    state.maskPixelCount = drawGrayMask(context, image, canvas.width, canvas.height);
     dom.colorBoard.classList.add("is-mask-ready");
     dom.colorArt.classList.add("is-visible");
   };
@@ -486,9 +674,11 @@ function drawGrayMask(context, image, width, height) {
 
   const imageData = context.getImageData(0, 0, width, height);
   const data = imageData.data;
+  let maskPixels = 0;
   for (let index = 0; index < data.length; index += 4) {
     const alpha = data[index + 3];
     if (alpha === 0) continue;
+    maskPixels += 1;
 
     const luminance = data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
     const gray = clamp((luminance - 128) * 1.16 + 104, 24, 214);
@@ -499,6 +689,7 @@ function drawGrayMask(context, image, width, height) {
   }
 
   context.putImageData(imageData, 0, 0);
+  return maskPixels;
 }
 
 function beginColorStroke(event) {
@@ -520,6 +711,7 @@ function continueColorStroke(event) {
   eraseLine(state.lastColorPoint, point);
   updateScratchTone(state.lastColorPoint, point);
   state.lastColorPoint = point;
+  scheduleColorCompleteCheck();
 }
 
 function endColorStroke(event) {
@@ -530,6 +722,263 @@ function endColorStroke(event) {
   state.isColoring = false;
   state.lastColorPoint = null;
   stopScratch();
+  scheduleColorCompleteCheck();
+}
+
+function scheduleColorCompleteCheck() {
+  if (state.colorComplete || state.stage !== "color") return;
+  window.clearTimeout(state.colorCheckTimer);
+  state.colorCheckTimer = window.setTimeout(checkColorComplete, 120);
+}
+
+function checkColorComplete() {
+  if (state.colorComplete || state.stage !== "color" || !state.colorContext || !state.maskPixelCount) {
+    return;
+  }
+
+  const canvas = dom.colorCanvas;
+  const pixels = state.colorContext.getImageData(0, 0, canvas.width, canvas.height).data;
+  let remaining = 0;
+  for (let index = 3; index < pixels.length; index += 4) {
+    if (pixels[index] > 8) remaining += 1;
+  }
+
+  const revealed = 1 - remaining / state.maskPixelCount;
+  if (revealed >= COLOR_COMPLETE_RATIO) {
+    completeColoring();
+  }
+}
+
+function completeColoring() {
+  state.colorComplete = true;
+  window.clearTimeout(state.colorCheckTimer);
+  stopScratch();
+  state.colorContext.clearRect(0, 0, dom.colorCanvas.width, dom.colorCanvas.height);
+  dom.colorArt.classList.add("is-celebrating");
+  showFinishTray();
+  playColorCompleteSound();
+}
+
+function startGame() {
+  if (!state.animal) return;
+
+  stopGame();
+  stopScratch();
+  hideFinishTray();
+  setStage("game");
+  dom.puzzleBoard.style.display = "none";
+  dom.colorBoard.classList.add("is-hidden");
+  dom.gameBoard.classList.remove("is-hidden");
+
+  const image = new Image();
+  image.src = state.colorUrl;
+  state.game = {
+    ctx: dom.gameCanvas.getContext("2d"),
+    dpr: 1,
+    width: 0,
+    height: 0,
+    image,
+    running: true,
+    pressing: false,
+    lastTime: 0,
+    popStart: performance.now(),
+    player: { x: 0, y: 0, vy: 0, size: 92 },
+    obstacles: [],
+    spawnIn: 0,
+    obstacleSeed: 0
+  };
+
+  resizeGameCanvas();
+  resetGameRound(false);
+  state.game.raf = requestAnimationFrame(runGameFrame);
+}
+
+function stopGame() {
+  if (!state.game) return;
+  cancelAnimationFrame(state.game.raf);
+  state.game.running = false;
+  state.game = null;
+}
+
+function resizeGameCanvas() {
+  const game = state.game;
+  if (!game) return;
+
+  const rect = dom.gameCanvas.getBoundingClientRect();
+  if (rect.width < 20 || rect.height < 20) return;
+
+  game.dpr = Math.max(1, window.devicePixelRatio || 1);
+  game.width = rect.width;
+  game.height = rect.height;
+  dom.gameCanvas.width = Math.round(rect.width * game.dpr);
+  dom.gameCanvas.height = Math.round(rect.height * game.dpr);
+  game.ctx.setTransform(game.dpr, 0, 0, game.dpr, 0, 0);
+  game.player.size = clamp(game.height * 0.18, 76, 118);
+  game.player.x = Math.max(74, game.width * 0.18);
+  game.player.y = clamp(game.player.y || game.height * 0.48, game.player.size / 2, game.height - game.player.size / 2);
+}
+
+function resetGameRound(withSound) {
+  const game = state.game;
+  if (!game) return;
+
+  game.obstacles = [];
+  game.spawnIn = 0.72;
+  game.player.x = Math.max(74, game.width * 0.18);
+  game.player.y = game.height * 0.48;
+  game.player.vy = 0;
+  game.popStart = performance.now();
+  if (withSound) playBumpSound();
+}
+
+function beginGamePress(event) {
+  if (state.stage !== "game" || !state.game) return;
+  event.preventDefault();
+  state.game.pressing = true;
+  playJumpSound();
+}
+
+function endGamePress() {
+  if (!state.game) return;
+  state.game.pressing = false;
+}
+
+function handleGameKeyDown(event) {
+  if (state.stage !== "game" || !state.game || (event.code !== "Space" && event.code !== "ArrowUp")) return;
+  event.preventDefault();
+  if (!state.game.pressing) playJumpSound();
+  state.game.pressing = true;
+}
+
+function handleGameKeyUp(event) {
+  if (!state.game || (event.code !== "Space" && event.code !== "ArrowUp")) return;
+  event.preventDefault();
+  state.game.pressing = false;
+}
+
+function runGameFrame(timestamp) {
+  const game = state.game;
+  if (!game || !game.running) return;
+
+  if (!game.lastTime) game.lastTime = timestamp;
+  const dt = Math.min(0.034, (timestamp - game.lastTime) / 1000);
+  game.lastTime = timestamp;
+
+  updateGame(game, dt);
+  drawGame(game, timestamp);
+  game.raf = requestAnimationFrame(runGameFrame);
+}
+
+function updateGame(game, dt) {
+  const player = game.player;
+  player.vy += (game.pressing ? GAME_LIFT : GAME_GRAVITY) * dt;
+  player.vy = clamp(player.vy, -430, 520);
+  player.y += player.vy * dt;
+
+  if (player.y < player.size * 0.42) {
+    player.y = player.size * 0.42;
+    player.vy = 80;
+  }
+
+  if (player.y > game.height - player.size * 0.42) {
+    resetGameRound(true);
+    return;
+  }
+
+  game.spawnIn -= dt;
+  if (game.spawnIn <= 0) {
+    addObstacle(game);
+    game.spawnIn = 1.45 + ((game.obstacleSeed % 4) * 0.12);
+  }
+
+  game.obstacles.forEach((obstacle) => {
+    obstacle.x -= GAME_SPEED * dt;
+  });
+  game.obstacles = game.obstacles.filter((obstacle) => obstacle.x + GAME_OBSTACLE_WIDTH > -10);
+
+  if (game.obstacles.some((obstacle) => hitsObstacle(game, obstacle))) {
+    resetGameRound(true);
+  }
+}
+
+function addObstacle(game) {
+  game.obstacleSeed += 1;
+  const wave = Math.sin(game.obstacleSeed * 1.74) * 0.28 + Math.cos(game.obstacleSeed * 0.8) * 0.16;
+  const center = clamp(game.height * (0.5 + wave), GAME_OBSTACLE_GAP * 0.62, game.height - GAME_OBSTACLE_GAP * 0.62);
+  game.obstacles.push({
+    x: game.width + 32,
+    center,
+    gap: clamp(GAME_OBSTACLE_GAP, game.height * 0.3, game.height * 0.44),
+    color: game.obstacleSeed % 2 === 0 ? "#62c6c4" : "#ff806e"
+  });
+}
+
+function hitsObstacle(game, obstacle) {
+  const player = game.player;
+  const radius = player.size * 0.28;
+  const gapTop = obstacle.center - obstacle.gap / 2;
+  const gapBottom = obstacle.center + obstacle.gap / 2;
+  const horizontalHit = player.x + radius > obstacle.x && player.x - radius < obstacle.x + GAME_OBSTACLE_WIDTH;
+  if (!horizontalHit) return false;
+  return player.y - radius < gapTop || player.y + radius > gapBottom;
+}
+
+function drawGame(game, timestamp) {
+  const ctx = game.ctx;
+  ctx.clearRect(0, 0, game.width, game.height);
+
+  ctx.fillStyle = "#f6f7f4";
+  ctx.fillRect(0, 0, game.width, game.height);
+
+  ctx.fillStyle = "rgba(23, 32, 38, 0.055)";
+  for (let index = 0; index < 9; index += 1) {
+    const x = ((timestamp * 0.025 + index * 120) % (game.width + 140)) - 80;
+    roundedRect(ctx, x, game.height * 0.78, 58, 8, 999);
+    ctx.fill();
+  }
+
+  game.obstacles.forEach((obstacle) => {
+    const gapTop = obstacle.center - obstacle.gap / 2;
+    const gapBottom = obstacle.center + obstacle.gap / 2;
+    ctx.fillStyle = obstacle.color;
+    roundedRect(ctx, obstacle.x, -12, GAME_OBSTACLE_WIDTH, gapTop + 12, 16);
+    ctx.fill();
+    roundedRect(ctx, obstacle.x, gapBottom, GAME_OBSTACLE_WIDTH, game.height - gapBottom + 12, 16);
+    ctx.fill();
+  });
+
+  drawGameAnimal(game, timestamp);
+}
+
+function drawGameAnimal(game, timestamp) {
+  const image = game.image.complete ? game.image : dom.colorArt;
+  const player = game.player;
+  const elapsed = Math.min(1, (timestamp - game.popStart) / 680);
+  const ease = 1 - Math.pow(1 - elapsed, 3);
+  const popScale = 1.32 - 0.32 * ease;
+  const size = player.size * popScale;
+  const tilt = clamp(player.vy / 850, -0.32, 0.34);
+
+  game.ctx.save();
+  game.ctx.translate(player.x, player.y);
+  game.ctx.rotate(tilt);
+  game.ctx.drawImage(image, -size / 2, -size / 2, size, size);
+  game.ctx.restore();
+}
+
+function roundedRect(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, Math.abs(width) / 2, Math.abs(height) / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }
 
 function canvasPoint(event) {
@@ -599,6 +1048,14 @@ function playPickSound() {
   playTone(context, 430, 680, now, 0.08, 0.035, "sine");
 }
 
+function playArrivalSound() {
+  const context = ensureAudioContext();
+  if (!context) return;
+
+  const now = context.currentTime;
+  playTone(context, 360, 520, now, 0.07, 0.025, "triangle");
+}
+
 function playCompleteSound() {
   const context = ensureAudioContext();
   if (!context) return;
@@ -607,6 +1064,32 @@ function playCompleteSound() {
   playTone(context, 523, 660, now, 0.12, 0.045, "sine");
   playTone(context, 659, 784, now + 0.1, 0.14, 0.045, "sine");
   playTone(context, 784, 1047, now + 0.21, 0.22, 0.055, "triangle");
+}
+
+function playColorCompleteSound() {
+  const context = ensureAudioContext();
+  if (!context) return;
+
+  const now = context.currentTime;
+  playTone(context, 587, 740, now, 0.12, 0.045, "sine");
+  playTone(context, 740, 988, now + 0.1, 0.16, 0.05, "triangle");
+  playTone(context, 988, 1318, now + 0.24, 0.24, 0.04, "sine");
+}
+
+function playJumpSound() {
+  const context = ensureAudioContext();
+  if (!context) return;
+
+  const now = context.currentTime;
+  playTone(context, 510, 720, now, 0.07, 0.018, "sine");
+}
+
+function playBumpSound() {
+  const context = ensureAudioContext();
+  if (!context) return;
+
+  const now = context.currentTime;
+  playTone(context, 180, 130, now, 0.11, 0.028, "triangle");
 }
 
 function playTone(context, fromFrequency, toFrequency, startTime, duration, volume, type) {
