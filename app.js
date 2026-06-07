@@ -165,9 +165,48 @@ const state = {
   resizeTimer: 0
 };
 
+installBrowserInteractionGuards();
 renderPicker();
 bindControls();
 setStage("pick");
+
+function installBrowserInteractionGuards() {
+  let lastTouchEnd = 0;
+  const guardedEvents = [
+    "contextmenu",
+    "dblclick",
+    "dragstart",
+    "gesturestart",
+    "gesturechange",
+    "gestureend",
+    "selectstart"
+  ];
+  const preventBrowserDefault = (event) => {
+    if (event.cancelable) event.preventDefault();
+  };
+
+  guardedEvents.forEach((eventName) => {
+    document.addEventListener(eventName, preventBrowserDefault, { capture: true, passive: false });
+  });
+
+  document.addEventListener(
+    "touchmove",
+    (event) => {
+      if (event.touches.length > 1) preventBrowserDefault(event);
+    },
+    { passive: false }
+  );
+
+  document.addEventListener(
+    "touchend",
+    (event) => {
+      const now = performance.now();
+      if (now - lastTouchEnd < 320) preventBrowserDefault(event);
+      lastTouchEnd = now;
+    },
+    { passive: false }
+  );
+}
 
 function renderPicker() {
   renderCategoryTabs();
