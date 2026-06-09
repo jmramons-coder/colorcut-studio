@@ -4,6 +4,8 @@ const PIECE_PAD_RATIO = 0.23;
 const PIECE_OFFSCREEN_RATIO = 0.46;
 const BRUSH_SIZE = 42;
 const COLOR_COMPLETE_RATIO = 0.68;
+const PLUS_CHECKOUT_URL = "";
+const EARLY_ACCESS_URL = "mailto:hello@colorcut.studio?subject=ColorCut%20Plus%20early%20access";
 
 const categories = [
   { id: "animals", name: "Animals" },
@@ -123,6 +125,7 @@ const dom = {
   categoryTabs: document.querySelector("#categoryTabs"),
   drawingGrid: document.querySelector("#drawingGrid"),
   studioView: document.querySelector("#studioView"),
+  parentButton: document.querySelector("#parentButton"),
   galleryButton: document.querySelector("#galleryButton"),
   fullscreenButton: document.querySelector("#fullscreenButton"),
   brand: document.querySelector(".brand"),
@@ -137,7 +140,17 @@ const dom = {
   colorCanvas: document.querySelector("#colorCanvas"),
   finishTray: document.querySelector("#finishTray"),
   finishLibraryButton: document.querySelector("#finishLibraryButton"),
-  finishRestartButton: document.querySelector("#finishRestartButton")
+  finishRestartButton: document.querySelector("#finishRestartButton"),
+  parentModal: document.querySelector("#parentModal"),
+  parentBackdrop: document.querySelector("#parentBackdrop"),
+  parentCloseButton: document.querySelector("#parentCloseButton"),
+  parentGateStep: document.querySelector("#parentGateStep"),
+  parentPanelStep: document.querySelector("#parentPanelStep"),
+  parentGateQuestion: document.querySelector("#parentGateQuestion"),
+  parentGateAnswer: document.querySelector("#parentGateAnswer"),
+  parentGateSubmit: document.querySelector("#parentGateSubmit"),
+  parentGateError: document.querySelector("#parentGateError"),
+  parentCheckoutButton: document.querySelector("#parentCheckoutButton")
 };
 
 const state = {
@@ -162,10 +175,13 @@ const state = {
   galleryDrag: null,
   gallerySuppressClick: false,
   galleryScrollTimer: 0,
-  resizeTimer: 0
+  resizeTimer: 0,
+  parentGateAnswer: 0,
+  parentUnlocked: false
 };
 
 installBrowserInteractionGuards();
+registerServiceWorker();
 renderPicker();
 bindControls();
 setStage("pick");
@@ -206,6 +222,14 @@ function installBrowserInteractionGuards() {
     },
     { passive: false }
   );
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {});
+  });
 }
 
 function renderPicker() {
@@ -272,11 +296,19 @@ function renderDrawingCards() {
 }
 
 function bindControls() {
+  dom.parentButton.addEventListener("click", showParentModal);
   dom.galleryButton.addEventListener("click", showPicker);
   dom.fullscreenButton.addEventListener("click", toggleFullscreen);
   dom.spreadButton.addEventListener("click", spreadLoosePieces);
   dom.finishLibraryButton.addEventListener("click", showPicker);
   dom.finishRestartButton.addEventListener("click", restartCurrentAnimal);
+  dom.parentBackdrop.addEventListener("click", hideParentModal);
+  dom.parentCloseButton.addEventListener("click", hideParentModal);
+  dom.parentGateSubmit.addEventListener("click", checkParentGate);
+  dom.parentGateAnswer.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") checkParentGate();
+  });
+  dom.parentCheckoutButton.addEventListener("click", openPlusCheckout);
   dom.brand.addEventListener("click", (event) => {
     event.preventDefault();
     showPicker();
@@ -297,6 +329,58 @@ function bindControls() {
 
   document.addEventListener("fullscreenchange", syncFullscreenButton);
   document.addEventListener("webkitfullscreenchange", syncFullscreenButton);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") hideParentModal();
+  });
+}
+
+function showParentModal() {
+  dom.parentModal.hidden = false;
+  dom.parentModal.setAttribute("aria-hidden", "false");
+  dom.parentModal.classList.toggle("is-unlocked", state.parentUnlocked);
+  if (state.parentUnlocked) {
+    dom.parentCheckoutButton.focus();
+    return;
+  }
+
+  resetParentGate();
+  window.setTimeout(() => dom.parentGateAnswer.focus(), 40);
+}
+
+function hideParentModal() {
+  if (dom.parentModal.hidden) return;
+  dom.parentModal.hidden = true;
+  dom.parentModal.setAttribute("aria-hidden", "true");
+  dom.parentGateError.textContent = "";
+}
+
+function resetParentGate() {
+  const first = 4 + Math.floor(Math.random() * 6);
+  const second = 3 + Math.floor(Math.random() * 7);
+  state.parentGateAnswer = first + second;
+  dom.parentGateQuestion.textContent = `${first} + ${second} = ?`;
+  dom.parentGateAnswer.value = "";
+  dom.parentGateError.textContent = "";
+  dom.parentModal.classList.remove("is-unlocked");
+}
+
+function checkParentGate() {
+  const answer = Number(dom.parentGateAnswer.value);
+  if (answer !== state.parentGateAnswer) {
+    dom.parentGateError.textContent = "Try again.";
+    dom.parentGateAnswer.select();
+    return;
+  }
+
+  state.parentUnlocked = true;
+  dom.parentGateError.textContent = "";
+  dom.parentModal.classList.add("is-unlocked");
+  dom.parentCheckoutButton.focus();
+}
+
+function openPlusCheckout() {
+  const target = PLUS_CHECKOUT_URL || EARLY_ACCESS_URL;
+  window.open(target, "_blank", "noopener,noreferrer");
 }
 
 function beginGalleryDrag(event) {

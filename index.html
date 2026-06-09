@@ -5,9 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>ColorCut Studio</title>
     <link rel="icon" href="assets/app-icon.svg" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#f6f7f4" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="ColorCut" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="app-body">
     <div class="app-shell">
       <header class="app-header">
         <button class="brand" type="button" aria-label="ColorCut Studio home">
@@ -21,6 +25,12 @@
         </button>
 
         <div class="header-actions">
+          <button class="icon-button" id="parentButton" type="button" aria-label="Parents" title="Parents">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3 4.7 5.8v5.4c0 4.6 2.9 8.4 7.3 9.8 4.4-1.4 7.3-5.2 7.3-9.8V5.8L12 3Zm0 2.6 4.9 1.9v3.7c0 3.2-1.8 5.9-4.9 7.1-3.1-1.2-4.9-3.9-4.9-7.1V7.5L12 5.6Zm-2.9 6.2 1.5-1.5 1.1 1.1 2.9-3 1.5 1.5-4.4 4.6-2.6-2.7Z" />
+            </svg>
+          </button>
+
           <button class="icon-button" id="galleryButton" type="button" aria-label="Choose another drawing" title="Choose another drawing">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4.2 5.2c0-.72.58-1.3 1.3-1.3h2.7c.72 0 1.3.58 1.3 1.3v15H4.2v-15Zm6.8-1.3h3.7v16.3H11V3.9Zm6.1 1 3.1-.58 2.7 14.62-3.1.58L17.1 4.9Z" />
@@ -85,6 +95,63 @@
           </div>
         </section>
       </main>
+
+      <div class="parent-modal" id="parentModal" role="dialog" aria-modal="true" aria-labelledby="parentModalTitle" aria-hidden="true" hidden>
+        <button class="parent-backdrop" id="parentBackdrop" type="button" aria-label="Close parent panel"></button>
+        <section class="parent-sheet" aria-label="Parent area">
+          <button class="parent-close" id="parentCloseButton" type="button" aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6.4 4.9 5.6 5.6 5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6 1.5-1.5Z" />
+            </svg>
+          </button>
+
+          <div class="parent-gate" id="parentGateStep">
+            <p class="modal-eyebrow">Parents</p>
+            <h2 id="parentModalTitle">Grown-up check</h2>
+            <p class="modal-copy">Answer this quick question to open parent information and purchase links.</p>
+            <label class="parent-question" for="parentGateAnswer">
+              <span id="parentGateQuestion">8 + 5 = ?</span>
+              <input id="parentGateAnswer" type="number" inputmode="numeric" autocomplete="off" />
+            </label>
+            <div class="parent-actions">
+              <button class="parent-primary" id="parentGateSubmit" type="button">Open</button>
+              <p class="parent-error" id="parentGateError" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <div class="parent-panel" id="parentPanelStep">
+            <p class="modal-eyebrow">ColorCut Plus</p>
+            <h2>Ad-free puzzle coloring for calm iPad play.</h2>
+            <div class="parent-value-grid" aria-label="ColorCut Plus benefits">
+              <div>
+                <strong>$4.99/mo</strong>
+                <span>Parent subscription target</span>
+              </div>
+              <div>
+                <strong>$29/yr</strong>
+                <span>Annual target</span>
+              </div>
+              <div>
+                <strong>80+</strong>
+                <span>Premium puzzle goal</span>
+              </div>
+            </div>
+            <ul class="parent-benefits">
+              <li>No ads, no social feed, no child accounts.</li>
+              <li>More animal, landmark, dinosaur, ocean, and space packs.</li>
+              <li>Offline play, printable coloring sheets, and classroom mode.</li>
+            </ul>
+            <div class="parent-actions is-panel">
+              <button class="parent-primary" id="parentCheckoutButton" type="button">Join early access</button>
+              <a class="parent-secondary" href="parents.html">Parent page</a>
+            </div>
+            <div class="parent-policy-links" aria-label="Parent legal links">
+              <a href="privacy.html">Privacy</a>
+              <a href="terms.html">Terms</a>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
 
     <script src="app.js"></script>
