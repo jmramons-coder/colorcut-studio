@@ -8,8 +8,10 @@ const PLUS_CHECKOUT_URL = "";
 const EARLY_ACCESS_URL = "mailto:hello@colorcut.studio?subject=ColorCut%20Plus%20early%20access";
 
 const categories = [
-  { id: "animals", name: "Animals" },
-  { id: "landmarks", name: "Landmarks" }
+  { id: "animals", name: "Animals", tier: "free" },
+  { id: "landmarks", name: "Landmarks", tier: "free" },
+  { id: "dinosaurs", name: "Dinosaurs", tier: "plus" },
+  { id: "space", name: "Space", tier: "plus" }
 ];
 
 const difficultyOptions = [
@@ -122,6 +124,46 @@ const libraryItems = [
     aspect: 3 / 2,
     grid: { cols: 4, rows: 4 },
     targetRatio: 0.86
+  },
+  {
+    id: "t-rex",
+    name: "T-Rex",
+    category: "dinosaurs",
+    src: "assets/t-rex.png",
+    aspect: 941 / 1672,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.88,
+    tier: "plus"
+  },
+  {
+    id: "triceratops",
+    name: "Triceratops",
+    category: "dinosaurs",
+    src: "assets/triceratops.png",
+    aspect: 1470 / 1070,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.88,
+    tier: "plus"
+  },
+  {
+    id: "rocket",
+    name: "Rocket",
+    category: "space",
+    src: "assets/rocket.png",
+    aspect: 1054 / 1492,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.88,
+    tier: "plus"
+  },
+  {
+    id: "astronaut",
+    name: "Astronaut",
+    category: "space",
+    src: "assets/astronaut.png",
+    aspect: 2 / 3,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.88,
+    tier: "plus"
   }
 ];
 
@@ -248,7 +290,10 @@ function renderPicker() {
   dom.categoryTabs.addEventListener("click", (event) => {
     const button = event.target.closest("[data-category]");
     if (!button || button.dataset.category === state.category) return;
-    state.category = button.dataset.category;
+    const category = categories.find((item) => item.id === button.dataset.category);
+    if (!category) return;
+
+    state.category = category.id;
     state.galleryActiveIndex = 0;
     renderCategoryTabs();
     renderDrawingCards();
@@ -283,6 +328,12 @@ function renderPicker() {
     }
     const card = event.target.closest("[data-animal]");
     if (!card) return;
+    if (card.dataset.locked === "true") {
+      ensureAudioContext();
+      playPickSound();
+      showParentModal();
+      return;
+    }
     selectAnimal(card.dataset.animal);
   });
   dom.drawingGrid.addEventListener("pointerdown", beginGalleryDrag);
@@ -300,8 +351,9 @@ function renderCategoryTabs() {
   dom.categoryTabs.innerHTML = categories
     .map((category) => {
       const active = category.id === state.category;
+      const locked = category.tier === "plus";
       return `
-        <button class="category-tab${active ? " is-active" : ""}" type="button" data-category="${category.id}" role="tab" aria-selected="${active}">
+        <button class="category-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-category="${category.id}" role="tab" aria-selected="${active}" aria-label="${category.name}${locked ? ", ColorCut Plus preview" : ""}">
           ${category.name}
         </button>
       `;
@@ -328,8 +380,19 @@ function renderDrawingCards() {
   dom.drawingGrid.innerHTML = libraryItems
     .filter((item) => item.category === state.category)
     .map((animal) => {
+      const locked = animal.tier === "plus";
       return `
-        <button class="drawing-card" type="button" data-animal="${animal.id}" aria-label="${animal.name}">
+        <button class="drawing-card${locked ? " is-locked" : ""}" type="button" data-animal="${animal.id}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", ColorCut Plus" : ""}">
+          ${
+            locked
+              ? `<span class="drawing-lock" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z" />
+                  </svg>
+                  <span>Plus</span>
+                </span>`
+              : ""
+          }
           <img class="drawing-preview" src="${animal.src}" alt="" draggable="false" />
           <span class="drawing-name">${animal.name}</span>
         </button>

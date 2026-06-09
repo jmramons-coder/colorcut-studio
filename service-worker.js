@@ -1,4 +1,4 @@
-const CACHE_NAME = "colorcut-studio-v2";
+const CACHE_NAME = "colorcut-studio-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -16,7 +16,11 @@ const APP_SHELL = [
   "./assets/eiffel-tower.png",
   "./assets/taj-mahal.png",
   "./assets/statue-of-liberty.png",
-  "./assets/sydney-opera-house.png"
+  "./assets/sydney-opera-house.png",
+  "./assets/t-rex.png",
+  "./assets/triceratops.png",
+  "./assets/rocket.png",
+  "./assets/astronaut.png"
 ];
 
 self.addEventListener("install", (event) => {
