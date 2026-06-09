@@ -191,16 +191,20 @@ button {
 .picker-view {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   align-items: center;
   padding: clamp(12px, 3vw, 34px) 0;
   overflow: hidden;
 }
 
-.category-tabs {
+.category-tabs,
+.difficulty-tabs {
   justify-self: center;
   display: inline-flex;
   gap: 4px;
+}
+
+.category-tabs {
   padding: 5px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.58);
@@ -221,6 +225,68 @@ button {
 .category-tab.is-active {
   background: #172026;
   color: #ffffff;
+}
+
+.difficulty-tabs {
+  margin-top: 12px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.difficulty-tab {
+  min-width: 92px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 4px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #35434b;
+  line-height: 1;
+}
+
+.difficulty-tab span,
+.difficulty-tab small {
+  display: block;
+}
+
+.difficulty-tab span {
+  font-size: 0.9rem;
+  font-weight: 950;
+}
+
+.difficulty-tab small {
+  margin-top: 3px;
+  color: #6b767d;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.difficulty-tab.is-active {
+  background: #172026;
+  color: #ffffff;
+}
+
+.difficulty-tab.is-active small {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.difficulty-tab.is-locked {
+  position: relative;
+}
+
+.difficulty-tab.is-locked::after {
+  content: "";
+  position: absolute;
+  right: 11px;
+  top: 9px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--sun);
+  box-shadow: 0 0 0 2px #ffffff;
 }
 
 .gallery-wrap {
@@ -309,6 +375,7 @@ button {
 
 .drawing-card:focus-visible,
 .icon-button:focus-visible,
+.difficulty-tab:focus-visible,
 .parent-close:focus-visible,
 .parent-primary:focus-visible,
 .parent-secondary:focus-visible {

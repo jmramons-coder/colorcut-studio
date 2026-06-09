@@ -12,6 +12,12 @@ const categories = [
   { id: "landmarks", name: "Landmarks" }
 ];
 
+const difficultyOptions = [
+  { id: "easy", name: "Easy", label: "4 pieces", grid: { cols: 2, rows: 2 }, tier: "free" },
+  { id: "classic", name: "Classic", label: "Standard", grid: null, tier: "free" },
+  { id: "plus", name: "Plus", label: "25 pieces", grid: { cols: 5, rows: 5 }, tier: "plus" }
+];
+
 const startPatterns = {
   9: [
     { x: 0.69, y: 0.59, r: 6 },
@@ -123,6 +129,7 @@ const dom = {
   appShell: document.querySelector(".app-shell"),
   pickerView: document.querySelector("#pickerView"),
   categoryTabs: document.querySelector("#categoryTabs"),
+  difficultyTabs: document.querySelector("#difficultyTabs"),
   drawingGrid: document.querySelector("#drawingGrid"),
   studioView: document.querySelector("#studioView"),
   parentButton: document.querySelector("#parentButton"),
@@ -157,6 +164,7 @@ const state = {
   stage: "pick",
   animal: null,
   category: "animals",
+  difficulty: "classic",
   pieces: [],
   activePiece: null,
   lineUrl: "",
@@ -234,6 +242,7 @@ function registerServiceWorker() {
 
 function renderPicker() {
   renderCategoryTabs();
+  renderDifficultyTabs();
   renderDrawingCards();
 
   dom.categoryTabs.addEventListener("click", (event) => {
@@ -246,6 +255,25 @@ function renderPicker() {
     dom.drawingGrid.scrollLeft = 0;
     ensureAudioContext();
     playArrivalSound();
+  });
+
+  dom.difficultyTabs.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-difficulty]");
+    if (!button || button.dataset.difficulty === state.difficulty) return;
+
+    const option = difficultyOptions.find((item) => item.id === button.dataset.difficulty);
+    if (!option) return;
+
+    ensureAudioContext();
+    playPickSound();
+
+    if (option.tier === "plus") {
+      showParentModal();
+      return;
+    }
+
+    state.difficulty = option.id;
+    renderDifficultyTabs();
   });
 
   dom.drawingGrid.addEventListener("click", (event) => {
@@ -275,6 +303,21 @@ function renderCategoryTabs() {
       return `
         <button class="category-tab${active ? " is-active" : ""}" type="button" data-category="${category.id}" role="tab" aria-selected="${active}">
           ${category.name}
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function renderDifficultyTabs() {
+  dom.difficultyTabs.innerHTML = difficultyOptions
+    .map((option) => {
+      const active = option.id === state.difficulty;
+      const locked = option.tier === "plus";
+      return `
+        <button class="difficulty-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-difficulty="${option.id}" role="tab" aria-selected="${active}" aria-label="${option.name}, ${option.label}${locked ? ", ColorCut Plus" : ""}">
+          <span>${option.name}</span>
+          <small>${option.label}</small>
         </button>
       `;
     })
@@ -577,6 +620,8 @@ function setStage(stage) {
 }
 
 function itemGrid() {
+  const difficulty = difficultyOptions.find((option) => option.id === state.difficulty);
+  if (difficulty?.grid) return difficulty.grid;
   return state.animal?.grid || DEFAULT_GRID;
 }
 
