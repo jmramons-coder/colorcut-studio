@@ -2,6 +2,7 @@ const DEFAULT_GRID = { cols: 3, rows: 3 };
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PIECE_PAD_RATIO = 0.23;
 const PIECE_OFFSCREEN_RATIO = 0.46;
+const MOBILE_PIECE_OFFSCREEN_RATIO = 0.28;
 const MOBILE_LOOSE_BOTTOM_RESERVE = 148;
 const BRUSH_SIZE = 42;
 const COLOR_COMPLETE_RATIO = 0.68;
@@ -774,13 +775,18 @@ function loosePiecePosition(index, total, pieceWidth, pieceHeight, boardWidth, b
 }
 
 function loosePieceBottomReserve(boardWidth, boardHeight) {
-  if (Math.min(window.innerWidth || boardWidth, boardWidth) > 820) return 0;
+  if (!isMobileBoard(boardWidth)) return 0;
   return Math.min(MOBILE_LOOSE_BOTTOM_RESERVE, Math.max(84, boardHeight * 0.21));
 }
 
+function isMobileBoard(boardWidth) {
+  return Math.min(window.innerWidth || boardWidth, boardWidth) <= 820;
+}
+
 function pieceDragBounds(pieceWidth, pieceHeight, boardWidth, boardHeight, options = {}) {
-  const overflowX = Math.min(pieceWidth * PIECE_OFFSCREEN_RATIO, boardWidth * 0.42);
-  const overflowY = Math.min(pieceHeight * PIECE_OFFSCREEN_RATIO, boardHeight * 0.42);
+  const offscreenRatio = isMobileBoard(boardWidth) ? MOBILE_PIECE_OFFSCREEN_RATIO : PIECE_OFFSCREEN_RATIO;
+  const overflowX = Math.min(pieceWidth * offscreenRatio, boardWidth * 0.42);
+  const overflowY = Math.min(pieceHeight * offscreenRatio, boardHeight * 0.42);
   const reserveBottom = options.reserveBottom || 0;
 
   return {
