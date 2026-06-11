@@ -829,7 +829,7 @@ function piecePath(col, row, width, height, pad, grid) {
 
 function horizontalEdge(fromX, toX, y, sign, amp, bias) {
   const span = toX - fromX;
-  const center = 0.5 + bias;
+  const center = 0.5 + (span >= 0 ? bias : -bias);
   const shoulder = 0.19;
   const neck = 0.115;
   const x = (point) => fromX + span * point;
@@ -845,7 +845,7 @@ function horizontalEdge(fromX, toX, y, sign, amp, bias) {
 
 function verticalEdge(x, fromY, toY, sign, amp, bias) {
   const span = toY - fromY;
-  const center = 0.5 + bias;
+  const center = 0.5 + (span >= 0 ? bias : -bias);
   const shoulder = 0.19;
   const neck = 0.115;
   const y = (point) => fromY + span * point;
