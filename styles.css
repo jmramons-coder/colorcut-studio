@@ -182,7 +182,7 @@ button {
   display: grid;
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .picker-view,
@@ -197,7 +197,7 @@ button {
   grid-template-rows: auto auto minmax(0, 1fr);
   align-items: center;
   padding: clamp(12px, 3vw, 34px) 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .category-tabs,
@@ -366,9 +366,9 @@ button {
   cursor: grab;
   touch-action: pan-x;
   padding:
-    clamp(40px, 7vw, 72px)
-    max(calc((100vw - 390px) / 2), 22px)
-    clamp(54px, 8vw, 84px);
+    clamp(58px, 9vw, 96px)
+    max(calc((100vw - 390px) / 2), 34px)
+    clamp(70px, 10vw, 108px);
 }
 
 .drawing-grid.is-dragging {
@@ -418,7 +418,7 @@ button {
 }
 
 .drawing-preview {
-  width: min(82%, 380px);
+  width: min(78%, 360px);
   aspect-ratio: 1;
   object-fit: contain;
   align-self: center;
@@ -1428,8 +1428,8 @@ button {
 
   .drawing-grid {
     gap: 18px;
-    padding-block: 28px 42px;
-    padding-inline: max(calc((100vw - 300px) / 2), 18px);
+    padding-block: 44px 58px;
+    padding-inline: max(calc((100vw - 300px) / 2), 30px);
   }
 
   .drawing-card {
@@ -1561,7 +1561,7 @@ button {
 
   .drawing-grid {
     align-items: start;
-    padding-block: 20px 30px;
+    padding-block: 34px 44px;
   }
 
   .drawing-card {

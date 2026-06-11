@@ -1,6 +1,6 @@
 const DEFAULT_GRID = { cols: 3, rows: 3 };
 const SVG_NS = "http://www.w3.org/2000/svg";
-const PIECE_PAD_RATIO = 0.23;
+const PIECE_PAD_RATIO = 0.32;
 const PIECE_OFFSCREEN_RATIO = 0.46;
 const MOBILE_PIECE_OFFSCREEN_RATIO = 0.28;
 const MOBILE_LOOSE_BOTTOM_RESERVE = 148;
@@ -381,8 +381,10 @@ function renderDifficultyTabs() {
 function renderDrawingCards() {
   dom.drawingGrid.innerHTML = libraryItems
     .filter((item) => item.category === state.category)
-    .map((animal) => {
+    .map((animal, index) => {
       const locked = animal.tier === "plus";
+      const loading = index === 0 ? "eager" : "lazy";
+      const priority = index === 0 ? ' fetchpriority="high"' : "";
       return `
         <button class="drawing-card${locked ? " is-locked" : ""}" type="button" data-animal="${animal.id}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", ColorCut Plus" : ""}">
           ${
@@ -395,7 +397,7 @@ function renderDrawingCards() {
                 </span>`
               : ""
           }
-          <img class="drawing-preview" src="${animal.src}" alt="" draggable="false" />
+          <img class="drawing-preview" src="${animal.src}" alt="" loading="${loading}" decoding="async"${priority} draggable="false" />
           <span class="drawing-name">${animal.name}</span>
         </button>
       `;
@@ -828,35 +830,131 @@ function piecePath(col, row, width, height, pad, grid) {
 }
 
 function horizontalEdge(fromX, toX, y, sign, amp, bias) {
-  const span = toX - fromX;
-  const center = 0.5 + (span >= 0 ? bias : -bias);
+  const startX = Math.min(fromX, toX);
+  const endX = Math.max(fromX, toX);
+  const center = 0.5 + bias;
   const shoulder = 0.19;
   const neck = 0.115;
-  const x = (point) => fromX + span * point;
+  const span = endX - startX;
+  const x = (point) => startX + span * point;
+  const segments = [
+    lineSegment(startX, y, x(center - shoulder), y),
+    curveSegment(
+      x(center - shoulder),
+      y,
+      x(center - neck * 1.18),
+      y,
+      x(center - neck * 1.06),
+      y + sign * amp * 0.42,
+      x(center - neck * 0.78),
+      y + sign * amp * 0.55
+    ),
+    curveSegment(
+      x(center - neck * 0.78),
+      y + sign * amp * 0.55,
+      x(center - neck * 0.48),
+      y + sign * amp * 1.15,
+      x(center + neck * 0.48),
+      y + sign * amp * 1.15,
+      x(center + neck * 0.78),
+      y + sign * amp * 0.55
+    ),
+    curveSegment(
+      x(center + neck * 0.78),
+      y + sign * amp * 0.55,
+      x(center + neck * 1.06),
+      y + sign * amp * 0.42,
+      x(center + neck * 1.18),
+      y,
+      x(center + shoulder),
+      y
+    ),
+    lineSegment(x(center + shoulder), y, endX, y)
+  ];
 
-  return [
-    `L ${x(center - shoulder)} ${y}`,
-    `C ${x(center - neck * 1.18)} ${y} ${x(center - neck * 1.06)} ${y + sign * amp * 0.42} ${x(center - neck * 0.78)} ${y + sign * amp * 0.55}`,
-    `C ${x(center - neck * 0.48)} ${y + sign * amp * 1.15} ${x(center + neck * 0.48)} ${y + sign * amp * 1.15} ${x(center + neck * 0.78)} ${y + sign * amp * 0.55}`,
-    `C ${x(center + neck * 1.06)} ${y + sign * amp * 0.42} ${x(center + neck * 1.18)} ${y} ${x(center + shoulder)} ${y}`,
-    `L ${toX} ${y}`
-  ].join(" ");
+  return edgeSegmentsToPath(segments, fromX > toX);
 }
 
 function verticalEdge(x, fromY, toY, sign, amp, bias) {
-  const span = toY - fromY;
-  const center = 0.5 + (span >= 0 ? bias : -bias);
+  const startY = Math.min(fromY, toY);
+  const endY = Math.max(fromY, toY);
+  const center = 0.5 + bias;
   const shoulder = 0.19;
   const neck = 0.115;
-  const y = (point) => fromY + span * point;
+  const span = endY - startY;
+  const y = (point) => startY + span * point;
+  const segments = [
+    lineSegment(x, startY, x, y(center - shoulder)),
+    curveSegment(
+      x,
+      y(center - shoulder),
+      x,
+      y(center - neck * 1.18),
+      x + sign * amp * 0.42,
+      y(center - neck * 1.06),
+      x + sign * amp * 0.55,
+      y(center - neck * 0.78)
+    ),
+    curveSegment(
+      x + sign * amp * 0.55,
+      y(center - neck * 0.78),
+      x + sign * amp * 1.15,
+      y(center - neck * 0.48),
+      x + sign * amp * 1.15,
+      y(center + neck * 0.48),
+      x + sign * amp * 0.55,
+      y(center + neck * 0.78)
+    ),
+    curveSegment(
+      x + sign * amp * 0.55,
+      y(center + neck * 0.78),
+      x + sign * amp * 0.42,
+      y(center + neck * 1.06),
+      x,
+      y(center + neck * 1.18),
+      x,
+      y(center + shoulder)
+    ),
+    lineSegment(x, y(center + shoulder), x, endY)
+  ];
 
-  return [
-    `L ${x} ${y(center - shoulder)}`,
-    `C ${x} ${y(center - neck * 1.18)} ${x + sign * amp * 0.42} ${y(center - neck * 1.06)} ${x + sign * amp * 0.55} ${y(center - neck * 0.78)}`,
-    `C ${x + sign * amp * 1.15} ${y(center - neck * 0.48)} ${x + sign * amp * 1.15} ${y(center + neck * 0.48)} ${x + sign * amp * 0.55} ${y(center + neck * 0.78)}`,
-    `C ${x + sign * amp * 0.42} ${y(center + neck * 1.06)} ${x} ${y(center + neck * 1.18)} ${x} ${y(center + shoulder)}`,
-    `L ${x} ${toY}`
-  ].join(" ");
+  return edgeSegmentsToPath(segments, fromY > toY);
+}
+
+function lineSegment(x0, y0, x1, y1) {
+  return {
+    type: "L",
+    start: { x: x0, y: y0 },
+    end: { x: x1, y: y1 }
+  };
+}
+
+function curveSegment(x0, y0, cx1, cy1, cx2, cy2, x1, y1) {
+  return {
+    type: "C",
+    start: { x: x0, y: y0 },
+    control1: { x: cx1, y: cy1 },
+    control2: { x: cx2, y: cy2 },
+    end: { x: x1, y: y1 }
+  };
+}
+
+function edgeSegmentsToPath(segments, reverse = false) {
+  const ordered = reverse ? [...segments].reverse() : segments;
+  return ordered
+    .map((segment) => {
+      if (segment.type === "L") {
+        const point = reverse ? segment.start : segment.end;
+        return `L ${point.x} ${point.y}`;
+      }
+
+      if (reverse) {
+        return `C ${segment.control2.x} ${segment.control2.y} ${segment.control1.x} ${segment.control1.y} ${segment.start.x} ${segment.start.y}`;
+      }
+
+      return `C ${segment.control1.x} ${segment.control1.y} ${segment.control2.x} ${segment.control2.y} ${segment.end.x} ${segment.end.y}`;
+    })
+    .join(" ");
 }
 
 function outerTop(x0, y, x1, variant) {
