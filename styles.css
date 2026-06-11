@@ -441,6 +441,26 @@ button {
   transform: translateY(-4px);
 }
 
+.drawing-card.is-photo {
+  min-height: clamp(330px, 46vw, 486px);
+}
+
+.drawing-card.is-photo .drawing-preview {
+  width: min(84%, 390px);
+  border-radius: 10px;
+  box-shadow:
+    0 26px 44px rgba(29, 43, 49, 0.18),
+    0 8px 14px rgba(29, 43, 49, 0.1);
+  filter: none;
+}
+
+.drawing-card.is-photo:hover .drawing-preview {
+  box-shadow:
+    0 34px 54px rgba(29, 43, 49, 0.22),
+    0 10px 16px rgba(29, 43, 49, 0.12);
+  filter: none;
+}
+
 .drawing-card.is-locked .drawing-preview {
   transform: scale(0.98);
 }
@@ -1572,6 +1592,10 @@ button {
 
   .drawing-preview {
     width: min(80%, 280px);
+  }
+
+  .drawing-card.is-photo .drawing-preview {
+    width: min(86%, 292px);
   }
 
   .drawing-lock {

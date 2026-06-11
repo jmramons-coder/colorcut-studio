@@ -12,6 +12,7 @@ const EARLY_ACCESS_URL = "mailto:hello@colorcut.studio?subject=ColorCut%20Plus%2
 const categories = [
   { id: "animals", name: "Animals", tier: "free" },
   { id: "landmarks", name: "Landmarks", tier: "free" },
+  { id: "nature", name: "Nature", tier: "free" },
   { id: "dinosaurs", name: "Dinosaurs", tier: "plus" },
   { id: "space", name: "Space", tier: "plus" }
 ];
@@ -126,6 +127,46 @@ const libraryItems = [
     aspect: 3 / 2,
     grid: { cols: 4, rows: 4 },
     targetRatio: 0.86
+  },
+  {
+    id: "alpine-mirror-lake",
+    name: "Alpine Mirror Lake",
+    category: "nature",
+    src: "assets/alpine-mirror-lake.jpg",
+    aspect: 1,
+    grid: { cols: 4, rows: 4 },
+    targetRatio: 0.86,
+    style: "photo"
+  },
+  {
+    id: "aurora-pine-forest",
+    name: "Aurora Pine Forest",
+    category: "nature",
+    src: "assets/aurora-pine-forest.jpg",
+    aspect: 1,
+    grid: { cols: 4, rows: 4 },
+    targetRatio: 0.86,
+    style: "photo"
+  },
+  {
+    id: "tropical-coral-reef",
+    name: "Tropical Coral Reef",
+    category: "nature",
+    src: "assets/tropical-coral-reef.jpg",
+    aspect: 1,
+    grid: { cols: 4, rows: 4 },
+    targetRatio: 0.86,
+    style: "photo"
+  },
+  {
+    id: "desert-canyon-glow",
+    name: "Desert Canyon Glow",
+    category: "nature",
+    src: "assets/desert-canyon-glow.jpg",
+    aspect: 1,
+    grid: { cols: 4, rows: 4 },
+    targetRatio: 0.86,
+    style: "photo"
   },
   {
     id: "t-rex",
@@ -385,8 +426,9 @@ function renderDrawingCards() {
       const locked = animal.tier === "plus";
       const loading = index === 0 ? "eager" : "lazy";
       const priority = index === 0 ? ' fetchpriority="high"' : "";
+      const styleClass = animal.style ? ` is-${animal.style}` : "";
       return `
-        <button class="drawing-card${locked ? " is-locked" : ""}" type="button" data-animal="${animal.id}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", ColorCut Plus" : ""}">
+        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", ColorCut Plus" : ""}">
           ${
             locked
               ? `<span class="drawing-lock" aria-hidden="true">
