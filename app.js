@@ -2,6 +2,7 @@ const DEFAULT_GRID = { cols: 3, rows: 3 };
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PIECE_PAD_RATIO = 0.23;
 const PIECE_OFFSCREEN_RATIO = 0.46;
+const MOBILE_LOOSE_BOTTOM_RESERVE = 148;
 const BRUSH_SIZE = 42;
 const COLOR_COMPLETE_RATIO = 0.68;
 const PLUS_CHECKOUT_URL = "";
@@ -746,7 +747,9 @@ function startFraction(index, total) {
 
 function loosePiecePosition(index, total, pieceWidth, pieceHeight, boardWidth, boardHeight, layout) {
   const margin = Math.max(14, Math.min(boardWidth, boardHeight) * 0.035);
-  const bounds = pieceDragBounds(pieceWidth, pieceHeight, boardWidth, boardHeight);
+  const bounds = pieceDragBounds(pieceWidth, pieceHeight, boardWidth, boardHeight, {
+    reserveBottom: loosePieceBottomReserve(boardWidth, boardHeight)
+  });
   const centerX = layout.x + layout.width / 2;
   const centerY = layout.y + layout.height / 2;
   const angle = -Math.PI / 2 + (index / Math.max(1, total)) * Math.PI * 2 + ((index % 3) - 1) * 0.08;
@@ -770,15 +773,21 @@ function loosePiecePosition(index, total, pieceWidth, pieceHeight, boardWidth, b
   };
 }
 
-function pieceDragBounds(pieceWidth, pieceHeight, boardWidth, boardHeight) {
+function loosePieceBottomReserve(boardWidth, boardHeight) {
+  if (Math.min(window.innerWidth || boardWidth, boardWidth) > 820) return 0;
+  return Math.min(MOBILE_LOOSE_BOTTOM_RESERVE, Math.max(84, boardHeight * 0.21));
+}
+
+function pieceDragBounds(pieceWidth, pieceHeight, boardWidth, boardHeight, options = {}) {
   const overflowX = Math.min(pieceWidth * PIECE_OFFSCREEN_RATIO, boardWidth * 0.42);
   const overflowY = Math.min(pieceHeight * PIECE_OFFSCREEN_RATIO, boardHeight * 0.42);
+  const reserveBottom = options.reserveBottom || 0;
 
   return {
     minX: -overflowX,
     maxX: boardWidth - pieceWidth + overflowX,
     minY: -overflowY,
-    maxY: boardHeight - pieceHeight + overflowY
+    maxY: boardHeight - pieceHeight + overflowY - reserveBottom
   };
 }
 
@@ -1045,7 +1054,9 @@ function dragPiece(event) {
 
   const rect = dom.puzzleBoard.getBoundingClientRect();
   const point = boardPoint(event, dom.puzzleBoard);
-  const bounds = pieceDragBounds(piece.width, piece.height, rect.width, rect.height);
+  const bounds = pieceDragBounds(piece.width, piece.height, rect.width, rect.height, {
+    reserveBottom: loosePieceBottomReserve(rect.width, rect.height)
+  });
   piece.x = clampWithFallback(point.x - piece.dragOffsetX, bounds.minX, bounds.maxX);
   piece.y = clampWithFallback(point.y - piece.dragOffsetY, bounds.minY, bounds.maxY);
   setPieceTransform(piece);
