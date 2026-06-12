@@ -2971,3 +2971,29 @@ button {
     font-size: 0.76rem;
   }
 }
+
+.finish-button:not(.is-primary) img {
+  width: 96%;
+  height: 96%;
+  transform: scale(1.16);
+  filter:
+    drop-shadow(0 2px 0 rgba(255, 255, 255, 0.34))
+    drop-shadow(0 3px 2px rgba(116, 48, 38, 0.18));
+}
+
+.finish-button.is-primary svg {
+  width: 56px;
+  height: 56px;
+  fill: none;
+  stroke: #7a3033;
+  stroke-width: 3.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter:
+    drop-shadow(0 2px 0 rgba(255, 255, 255, 0.36))
+    drop-shadow(0 2px 1px rgba(116, 48, 38, 0.16));
+}
+
+.finish-button.is-primary svg path {
+  fill: none;
+}
