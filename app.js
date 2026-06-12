@@ -271,6 +271,8 @@ const dom = {
   categoryTabs: document.querySelector("#categoryTabs"),
   difficultyTabs: document.querySelector("#difficultyTabs"),
   drawingGrid: document.querySelector("#drawingGrid"),
+  galleryPrevButton: document.querySelector("#galleryPrevButton"),
+  galleryNextButton: document.querySelector("#galleryNextButton"),
   studioView: document.querySelector("#studioView"),
   parentButton: document.querySelector("#parentButton"),
   profileButton: document.querySelector("#profileButton"),
@@ -507,6 +509,8 @@ function renderPicker() {
   window.addEventListener("mouseup", endGalleryMouseDrag);
   dom.drawingGrid.addEventListener("wheel", handleGalleryWheel, { passive: false });
   dom.drawingGrid.addEventListener("scroll", handleGalleryScroll, { passive: true });
+  dom.galleryPrevButton?.addEventListener("click", () => scrollGalleryByStep(-1));
+  dom.galleryNextButton?.addEventListener("click", () => scrollGalleryByStep(1));
 }
 
 function renderCategoryTabs() {
@@ -1030,6 +1034,25 @@ function handleGalleryScroll() {
       playArrivalSound();
     }
   }, 90);
+}
+
+function scrollGalleryByStep(direction) {
+  ensureAudioContext();
+  const cards = Array.from(dom.drawingGrid.querySelectorAll(".drawing-card"));
+  if (!cards.length) return;
+
+  const currentIndex = closestGalleryIndex();
+  const nextIndex = Math.max(0, Math.min(cards.length - 1, currentIndex + direction));
+  const target = cards[nextIndex];
+  const railRect = dom.drawingGrid.getBoundingClientRect();
+  const cardRect = target.getBoundingClientRect();
+  const offset = cardRect.left + cardRect.width / 2 - (railRect.left + railRect.width / 2);
+  dom.drawingGrid.scrollBy({ left: offset, behavior: "smooth" });
+
+  if (nextIndex !== state.galleryActiveIndex) {
+    state.galleryActiveIndex = nextIndex;
+    playPickSound();
+  }
 }
 
 function closestGalleryIndex() {

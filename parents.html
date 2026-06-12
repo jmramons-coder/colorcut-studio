@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="info-body">
+    <aside class="promo-banner" aria-label="Early access offer">
+      <span>Join the waitlist and get ColorCut Plus free for 6 months.</span>
+      <a href="mailto:hello@colorcut.studio?subject=ColorCut%20Plus%20waitlist">Join waitlist</a>
+    </aside>
     <div class="site-shell">
       <header class="site-header">
         <a class="site-brand" href="index.html" aria-label="Open ColorCut">
@@ -46,10 +50,14 @@
           </div>
           <div class="site-preview" aria-hidden="true">
             <span class="preview-device">
-              <img src="assets/red-panda.webp" alt="" />
+              <span class="preview-card-stack">
+                <img class="preview-card preview-card-main" src="assets/red-panda.webp" alt="" />
+                <img class="preview-card preview-card-side-one" src="assets/tiger.webp" alt="" />
+                <img class="preview-card preview-card-side-two" src="assets/deer.webp" alt="" />
+              </span>
             </span>
             <img class="preview-sticker preview-sticker-one" src="assets/icon-library-puzzles.webp" alt="" />
-            <img class="preview-sticker preview-sticker-two" src="assets/sea-turtle.webp" alt="" />
+            <img class="preview-sticker preview-sticker-two" src="assets/elephant.webp" alt="" />
           </div>
         </section>
 
@@ -76,8 +84,9 @@
 
         <section class="site-section" aria-labelledby="pricing-title">
           <h2 id="pricing-title">Free first, Plus when families want more.</h2>
-          <div class="site-grid">
-            <article class="site-card">
+          <div class="pricing-grid">
+            <article class="pricing-card">
+              <span class="pricing-tag">Start</span>
               <h3>Free</h3>
               <span class="price">$0</span>
               <p>A generous starter set so families can feel the full puzzle and coloring loop.</p>
@@ -86,8 +95,10 @@
                 <li>Puzzle assembly and coloring</li>
                 <li>Local-only profile stats</li>
               </ul>
+              <a class="pricing-action" href="index.html">Play now</a>
             </article>
-            <article class="site-card">
+            <article class="pricing-card is-featured">
+              <span class="pricing-tag">Best for families</span>
               <h3>ColorCut Plus</h3>
               <span class="price">$4.99/mo</span>
               <p>The main subscription target once payment is connected.</p>
@@ -98,8 +109,10 @@
                 <li>Weekly packs</li>
                 <li>Offline play and printables</li>
               </ul>
+              <a class="pricing-action" href="mailto:hello@colorcut.studio?subject=ColorCut%20Plus%20waitlist">Join waitlist</a>
             </article>
-            <article class="site-card">
+            <article class="pricing-card">
+              <span class="pricing-tag">Later</span>
               <h3>Classroom</h3>
               <span class="price">$49/yr</span>
               <p>A teacher-friendly annual license after the parent product validates.</p>
@@ -108,6 +121,7 @@
                 <li>Quiet mode</li>
                 <li>Printable sheets</li>
               </ul>
+              <a class="pricing-action" href="mailto:hello@colorcut.studio?subject=ColorCut%20classroom">Ask for schools</a>
             </article>
           </div>
         </section>
@@ -116,18 +130,21 @@
           <h2 id="packs-title">Packs designed for different ages.</h2>
           <div class="pack-grid">
             <article class="pack-card">
-              <div class="pack-art" aria-hidden="true">
-                <img src="assets/koala.webp" alt="" />
-                <img src="assets/giraffe.webp" alt="" />
-                <img src="assets/penguin.webp" alt="" />
+              <div class="pack-art pack-art-young" aria-hidden="true">
+                <span class="pack-sticker pack-sticker-one"><img src="assets/koala.webp" alt="" /></span>
+                <span class="pack-sticker pack-sticker-two"><img src="assets/giraffe.webp" alt="" /></span>
+                <span class="pack-sticker pack-sticker-three"><img src="assets/penguin.webp" alt="" /></span>
               </div>
               <h3>Free animals</h3>
               <p>Friendly sticker-style characters for younger kids learning the interaction.</p>
             </article>
             <article class="pack-card">
-              <div class="pack-art" aria-hidden="true">
-                <img src="assets/alpine-mirror-lake.webp" alt="" />
-                <img src="assets/t-rex.webp" alt="" />
+              <div class="pack-art pack-art-older" aria-hidden="true">
+                <span class="pack-page pack-page-one"><img src="assets/alpine-mirror-lake.webp" alt="" /></span>
+                <span class="pack-page pack-page-two"><img src="assets/aurora-pine-forest.webp" alt="" /></span>
+                <span class="pack-page pack-page-three"><img src="assets/desert-canyon-glow.webp" alt="" /></span>
+                <span class="pack-character pack-character-dino"><img src="assets/t-rex.webp" alt="" /></span>
+                <span class="pack-character pack-character-astro"><img src="assets/astronaut.webp" alt="" /></span>
               </div>
               <h3>Older-kid packs</h3>
               <p>Nature, dinosaur, and space sets add more detail and harder cuts.</p>
@@ -137,16 +154,16 @@
 
         <section class="site-section" aria-labelledby="privacy-title">
           <h2 id="privacy-title">Privacy-first by design</h2>
-          <div class="site-grid">
-            <article class="site-card">
+          <div class="privacy-panel">
+            <article>
               <h3>No ads</h3>
               <p>No targeted ads, no social feed, and no third-party ad SDKs.</p>
             </article>
-            <article class="site-card">
+            <article>
               <h3>No child accounts</h3>
               <p>The app works without names, emails, profiles, chat, or uploads.</p>
             </article>
-            <article class="site-card">
+            <article>
               <h3>Parent-gated purchases</h3>
               <p>Plus previews, payment, and outbound links belong behind a grown-up check inside the app.</p>
             </article>
@@ -163,5 +180,9 @@
         </nav>
       </footer>
     </div>
+    <aside class="sticky-playbar" aria-label="Try ColorCut">
+      <span>Ready to try a calm puzzle?</span>
+      <a href="index.html">Play now</a>
+    </aside>
   </body>
 </html>
