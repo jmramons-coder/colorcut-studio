@@ -345,6 +345,7 @@ const state = {
   galleryDrag: null,
   gallerySuppressClick: false,
   galleryScrollTimer: 0,
+  gallerySilentScroll: false,
   galleryLoopCount: 0,
   resizeTimer: 0,
   parentGateAnswer: 0,
@@ -598,7 +599,7 @@ function renderDrawingCards() {
     })
     .join("");
   scheduleImageWarmup(visibleItems.slice(0, 3).map((item) => item.src));
-  requestAnimationFrame(() => centerGalleryCard(state.galleryLoopCount + state.galleryActiveIndex, "auto"));
+  jumpGalleryToCard(state.galleryLoopCount + state.galleryActiveIndex);
 }
 
 function scheduleImageWarmup(srcList) {
@@ -1066,8 +1067,9 @@ function handleGalleryScroll() {
     const activeIndex = closestGalleryIndex() % Math.max(state.galleryLoopCount, 1);
     if (activeIndex !== state.galleryActiveIndex) {
       state.galleryActiveIndex = activeIndex;
-      playArrivalSound();
+      if (!state.gallerySilentScroll) playArrivalSound();
     }
+    state.gallerySilentScroll = false;
   }, 90);
 }
 
@@ -1108,6 +1110,23 @@ function centerGalleryCard(index, behavior = "smooth") {
   const cardRect = target.getBoundingClientRect();
   const offset = cardRect.left + cardRect.width / 2 - (railRect.left + railRect.width / 2);
   dom.drawingGrid.scrollBy({ left: offset, behavior });
+}
+
+function jumpGalleryToCard(index) {
+  const cards = Array.from(dom.drawingGrid.querySelectorAll(".drawing-card"));
+  const target = cards[index];
+  if (!target) return;
+
+  state.gallerySilentScroll = true;
+  const previousBehavior = dom.drawingGrid.style.scrollBehavior;
+  const previousSnap = dom.drawingGrid.style.scrollSnapType;
+  dom.drawingGrid.style.scrollBehavior = "auto";
+  dom.drawingGrid.style.scrollSnapType = "none";
+  dom.drawingGrid.scrollLeft = target.offsetLeft + target.offsetWidth / 2 - dom.drawingGrid.clientWidth / 2;
+  requestAnimationFrame(() => {
+    dom.drawingGrid.style.scrollBehavior = previousBehavior;
+    dom.drawingGrid.style.scrollSnapType = previousSnap;
+  });
 }
 
 function closestGalleryIndex() {
