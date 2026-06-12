@@ -516,7 +516,8 @@ function renderCategoryTabs() {
       const locked = category.tier === "plus";
       return `
         <button class="category-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-category="${category.id}" role="tab" aria-selected="${active}" aria-label="${category.name}${locked ? ", ColorCut Plus preview" : ""}">
-          ${category.name}
+          ${categoryIcon(category.id)}
+          <span>${category.name}</span>
         </button>
       `;
     })
@@ -530,12 +531,33 @@ function renderDifficultyTabs() {
       const locked = option.tier === "plus";
       return `
         <button class="difficulty-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-difficulty="${option.id}" role="tab" aria-selected="${active}" aria-label="${option.name}, ${option.label}${locked ? ", ColorCut Plus" : ""}">
+          ${difficultyIcon(option.id)}
           <span>${option.name}</span>
           <small>${option.label}</small>
         </button>
       `;
     })
     .join("");
+}
+
+function categoryIcon(id) {
+  const icons = {
+    animals: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.3 11.2c-1.2 0-2.2-1.1-2.2-2.5s1-2.5 2.2-2.5 2.2 1.1 2.2 2.5-1 2.5-2.2 2.5Zm9.4 0c-1.2 0-2.2-1.1-2.2-2.5s1-2.5 2.2-2.5 2.2 1.1 2.2 2.5-1 2.5-2.2 2.5ZM12 19.3c-3 0-5.4-1.5-5.4-3.5 0-2.2 2.2-4.7 5.4-4.7s5.4 2.5 5.4 4.7c0 2-2.4 3.5-5.4 3.5Z"/></svg>`,
+    landmarks: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.2 5.4 8v1.9h13.2V8L12 4.2Zm-4.7 7.1v6.2H5.4v2.1h13.2v-2.1h-1.9v-6.2h-2v6.2h-1.8v-6.2h-1.8v6.2H9.3v-6.2h-2Z"/></svg>`,
+    nature: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 19.6c-4.5 0-7.5-2.4-7.5-6.2 0-4.6 4.5-7.9 12.9-8.8 1.2 8.2-1.7 15-5.4 15Zm-.8-3.4c1.6-3.3 3.3-5.6 5.4-7.6-3.2 1.1-5.8 3.3-7.7 6.4l2.3 1.2Z"/></svg>`,
+    dinosaurs: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 15.8c0-4.2 3.2-7.4 7.7-7.4h2.5l1.8-2.2 2 .9-1.3 3.2 2.1 1.8-1.1 1.8-2.7-.8c-.6 3.8-3.5 6.5-7.1 6.5-2.3 0-3.9-1.4-3.9-3.8Zm3.1-.1c0 1 .7 1.5 1.6 1.5 1.5 0 2.7-1.1 3.1-2.9H9.1c-.5.3-.8.8-.8 1.4Z"/></svg>`,
+    space: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.1 4.2c2.3 1 3.8 2.9 4.5 5.3l2.2 1.2-1.5 2.2c-.2 2.1-1 3.9-2.5 5.3l-2.5-.8-3.2 3.1-1.3-1.3 1.2-3.6-3.6 1.2-1.3-1.3 3.1-3.2-.8-2.5c1.4-1.5 3.2-2.3 5.3-2.5l2.2-1.5-1.8-1.6Zm1.5 5.2a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8Z"/></svg>`
+  };
+  return icons[id] || icons.animals;
+}
+
+function difficultyIcon(id) {
+  const icons = {
+    easy: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h4v4H7V7Zm6 0h4v4h-4V7ZM7 13h4v4H7v-4Zm6 0h4v4h-4v-4Z"/></svg>`,
+    classic: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h4v4H5V5Zm5 0h4v4h-4V5Zm5 0h4v4h-4V5ZM5 10h4v4H5v-4Zm5 0h4v4h-4v-4Zm5 0h4v4h-4v-4ZM5 15h4v4H5v-4Zm5 0h4v4h-4v-4Zm5 0h4v4h-4v-4Z"/></svg>`,
+    plus: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h3v3H4V4Zm4.3 0h3v3h-3V4Zm4.4 0h3v3h-3V4ZM17 4h3v3h-3V4ZM4 8.3h3v3H4v-3Zm4.3 0h3v3h-3v-3Zm4.4 0h3v3h-3v-3Zm4.3 0h3v3h-3v-3ZM4 12.7h3v3H4v-3Zm4.3 0h3v3h-3v-3Zm4.4 0h3v3h-3v-3Zm4.3 0h3v3h-3v-3ZM4 17h3v3H4v-3Zm4.3 0h3v3h-3v-3Zm4.4 0h3v3h-3v-3ZM17 17h3v3h-3v-3Z"/></svg>`
+  };
+  return icons[id] || icons.classic;
 }
 
 function renderDrawingCards() {
