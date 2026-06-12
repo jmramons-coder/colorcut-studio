@@ -4865,3 +4865,180 @@ body.info-body .process-check::after {
     transform: translateY(-10px) scale(1.28);
   }
 }
+
+body.info-body .site-hero h1 {
+  max-width: 650px;
+  font-size: clamp(2.75rem, 5.2vw, 5rem);
+  line-height: 0.94;
+}
+
+body.info-body .site-hero p {
+  max-width: 520px;
+  color: #41515a;
+  font-size: clamp(1rem, 0.35vw + 0.96rem, 1.16rem);
+}
+
+body.info-body .site-kicker {
+  color: #356d6c;
+  letter-spacing: 0.06em;
+}
+
+body.info-body .promo-banner a,
+body.info-body .sticky-playbar a,
+body.info-body .site-button,
+body.info-body .pricing-action,
+body.info-body .parent-primary {
+  border: 3px solid var(--button-rim);
+  background:
+    radial-gradient(circle at 18px 11px, var(--button-glow) 0 8px, transparent 9px),
+    linear-gradient(180deg, var(--button-gold-light) 0%, var(--button-gold) 44%, var(--button-orange) 100%);
+  color: var(--button-icon);
+  box-shadow:
+    inset 0 4px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -6px 0 rgba(151, 58, 39, 0.26),
+    0 5px 0 var(--button-rim-dark),
+    0 12px 18px rgba(97, 48, 34, 0.18);
+}
+
+body.info-body .promo-banner a,
+body.info-body .sticky-playbar a {
+  min-height: 42px;
+  padding: 0 18px;
+}
+
+body.info-body .pricing-action,
+body.info-body .parent-primary {
+  min-height: 48px;
+  border-radius: 999px;
+  font-weight: 950;
+}
+
+body.info-body .site-button.is-secondary {
+  border-color: rgba(117, 174, 169, 0.82);
+  background:
+    radial-gradient(circle at 18px 11px, rgba(255, 255, 255, 0.82) 0 8px, transparent 9px),
+    linear-gradient(180deg, #effbf8 0%, #bfeee7 52%, #91d7cf 100%);
+  color: #356d6c;
+  box-shadow:
+    inset 0 4px 0 rgba(255, 255, 255, 0.44),
+    inset 0 -6px 0 rgba(84, 162, 155, 0.2),
+    0 5px 0 #69a9a3,
+    0 12px 18px rgba(80, 148, 143, 0.16);
+}
+
+body.info-body .promo-banner {
+  min-height: 54px;
+  padding-block: 6px;
+  font-size: 0.94rem;
+}
+
+body.info-body .sticky-playbar {
+  min-height: 66px;
+  padding: 10px 12px 10px 20px;
+}
+
+body.info-body .site-proof {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, max-content));
+  gap: 12px;
+  margin-top: 30px;
+}
+
+body.info-body .site-proof span {
+  position: relative;
+  min-height: 74px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 17px 10px 11px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 19px;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.96) 0 10px, transparent 11px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(232, 250, 245, 0.94));
+  color: #20343b;
+  box-shadow:
+    0 13px 0 rgba(121, 197, 180, 0.16),
+    0 20px 28px rgba(31, 49, 56, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  font-weight: 950;
+  transform: rotate(-1deg);
+}
+
+body.info-body .site-proof span:nth-child(2) {
+  transform: rotate(1.2deg);
+}
+
+body.info-body .site-proof span:nth-child(3) {
+  transform: rotate(-0.4deg);
+}
+
+body.info-body .site-proof strong,
+body.info-body .site-proof small {
+  display: block;
+}
+
+body.info-body .site-proof strong {
+  font-size: 0.98rem;
+  line-height: 1.05;
+}
+
+body.info-body .site-proof small {
+  margin-top: 4px;
+  color: #5d7279;
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.05;
+}
+
+body.info-body .site-proof span::before {
+  content: attr(data-icon);
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.92) 0 5px, transparent 6px),
+    linear-gradient(180deg, #d9fff2, #6fe1ac);
+  color: #174f43;
+  box-shadow:
+    inset 0 -4px 0 rgba(20, 132, 93, 0.16),
+    0 5px 10px rgba(39, 55, 63, 0.09);
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+@media (min-width: 1024px) {
+  body.info-body .site-header {
+    min-height: 64px;
+  }
+
+  body.info-body .site-hero {
+    min-height: calc(100dvh - 54px - 64px - 78px);
+    padding: clamp(16px, 2.4vw, 34px) 0 16px;
+  }
+
+  body.info-body .site-preview {
+    min-height: min(48dvh, 400px);
+  }
+}
+
+@media (max-width: 820px) {
+  body.info-body .site-proof {
+    grid-template-columns: 1fr;
+    width: min(100%, 360px);
+  }
+
+  body.info-body .site-proof span {
+    width: max-content;
+    max-width: 100%;
+    transform: none;
+  }
+
+  body.info-body .promo-banner {
+    min-height: 50px;
+  }
+}
