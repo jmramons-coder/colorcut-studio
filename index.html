@@ -169,19 +169,33 @@
           </button>
 
           <div class="profile-head">
-            <div class="profile-avatar" id="profileAvatarPreview" aria-hidden="true">C</div>
-            <div>
-              <p class="modal-eyebrow">Local profile</p>
-              <h2 id="profileTitle">Puzzle progress</h2>
+            <div class="avatar-carousel" aria-label="Choose avatar">
+              <button class="avatar-arrow" id="avatarPrevButton" type="button" aria-label="Previous avatar">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m14.8 5.2 1.7 1.7L11.4 12l5.1 5.1-1.7 1.7L8 12l6.8-6.8Z" />
+                </svg>
+              </button>
+              <div class="profile-avatar" id="profileAvatarPreview" aria-hidden="true">C</div>
+              <button class="avatar-arrow" id="avatarNextButton" type="button" aria-label="Next avatar">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m9.2 18.8-1.7-1.7 5.1-5.1-5.1-5.1 1.7-1.7L16 12l-6.8 6.8Z" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="profile-name-row">
+              <h2 id="profileTitle">Color Maker</h2>
+              <button class="profile-edit-name" id="profileEditNameButton" type="button" aria-label="Edit profile name">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m5 16.8 9.7-9.7 2.2 2.2-9.7 9.7H5v-2.2Zm11.1-11.1.9-.9a1.6 1.6 0 0 1 2.2 0 1.6 1.6 0 0 1 0 2.2l-.9.9-2.2-2.2Z" />
+                </svg>
+              </button>
             </div>
           </div>
 
           <label class="profile-name-field" for="profileNameInput">
-            <span>Name</span>
             <input id="profileNameInput" type="text" maxlength="18" autocomplete="off" />
           </label>
-
-          <div class="avatar-picker" id="avatarPicker" aria-label="Choose avatar"></div>
 
           <div class="profile-stats" id="profileStats"></div>
           <div class="profile-detail" id="profileDetail"></div>

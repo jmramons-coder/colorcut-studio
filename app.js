@@ -259,8 +259,10 @@ const dom = {
   profileBackdrop: document.querySelector("#profileBackdrop"),
   profileCloseButton: document.querySelector("#profileCloseButton"),
   profileAvatarPreview: document.querySelector("#profileAvatarPreview"),
+  profileEditNameButton: document.querySelector("#profileEditNameButton"),
   profileNameInput: document.querySelector("#profileNameInput"),
-  avatarPicker: document.querySelector("#avatarPicker"),
+  avatarPrevButton: document.querySelector("#avatarPrevButton"),
+  avatarNextButton: document.querySelector("#avatarNextButton"),
   profileStats: document.querySelector("#profileStats"),
   profileDetail: document.querySelector("#profileDetail"),
   profilePuzzleGrid: document.querySelector("#profilePuzzleGrid")
@@ -294,6 +296,7 @@ const state = {
   parentUnlocked: false,
   profile: loadProfile(),
   profileSelectedPuzzleId: null,
+  profileEditingName: false,
   activityStartedAt: 0
 };
 
@@ -528,13 +531,19 @@ function bindControls() {
   dom.parentCloseButton.addEventListener("click", hideParentModal);
   dom.profileBackdrop.addEventListener("click", hideProfileModal);
   dom.profileCloseButton.addEventListener("click", hideProfileModal);
+  dom.profileEditNameButton.addEventListener("click", showProfileNameEditor);
   dom.profileNameInput.addEventListener("input", updateProfileName);
+  dom.profileNameInput.addEventListener("blur", hideProfileNameEditor);
+  dom.profileNameInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") dom.profileNameInput.blur();
+  });
   dom.parentGateSubmit.addEventListener("click", checkParentGate);
   dom.parentGateAnswer.addEventListener("keydown", (event) => {
     if (event.key === "Enter") checkParentGate();
   });
   dom.parentCheckoutButton.addEventListener("click", openPlusCheckout);
-  dom.avatarPicker.addEventListener("click", updateProfileAvatar);
+  dom.avatarPrevButton.addEventListener("click", () => cycleProfileAvatar(-1));
+  dom.avatarNextButton.addEventListener("click", () => cycleProfileAvatar(1));
   dom.profilePuzzleGrid.addEventListener("click", selectProfilePuzzle);
   dom.profileDetail.addEventListener("click", handleProfileDetailClick);
   dom.brand.addEventListener("click", (event) => {
@@ -566,17 +575,17 @@ function bindControls() {
 }
 
 function showProfileModal() {
-  state.profileSelectedPuzzleId ||= firstCompletedPuzzleId() || firstFreePuzzleId();
+  state.profileEditingName = false;
   renderProfilePanel();
   dom.profileModal.hidden = false;
   dom.profileModal.setAttribute("aria-hidden", "false");
-  window.setTimeout(() => dom.profileNameInput.focus(), 40);
 }
 
 function hideProfileModal() {
   if (dom.profileModal.hidden) return;
   dom.profileModal.hidden = true;
   dom.profileModal.setAttribute("aria-hidden", "true");
+  state.profileEditingName = false;
 }
 
 function renderProfileButton() {
@@ -587,9 +596,13 @@ function renderProfileButton() {
 
 function renderProfilePanel() {
   const avatar = avatarById(state.profile.avatar);
-  const totals = profileTotals();
+  const selectedItem = selectedProfilePuzzle();
+  const totals = selectedItem ? profilePuzzleTotals(selectedItem.id) : profileTotals();
+  const mode = selectedItem ? "Puzzle stats" : "All puzzles";
 
   dom.profileNameInput.value = state.profile.name;
+  dom.profileModal.classList.toggle("is-editing-name", state.profileEditingName);
+  document.querySelector("#profileTitle").textContent = state.profile.name;
   dom.profileAvatarPreview.textContent = avatar.label;
   dom.profileAvatarPreview.style.setProperty("--avatar-color", avatar.color);
   dom.profileStats.innerHTML = `
@@ -607,21 +620,26 @@ function renderProfilePanel() {
     </div>
   `;
 
-  dom.avatarPicker.innerHTML = avatarOptions
-    .map((option) => `
-      <button class="avatar-choice${option.id === state.profile.avatar ? " is-active" : ""}" type="button" data-avatar="${option.id}" aria-label="Avatar ${option.label}">
-        <span style="--avatar-color: ${option.color}">${option.label}</span>
-      </button>
-    `)
-    .join("");
-
   renderProfileDetail();
   renderProfilePuzzleGrid();
   renderProfileButton();
+  dom.profileStats.setAttribute("aria-label", mode);
 }
 
 function renderProfileDetail() {
-  const item = libraryItems.find((puzzle) => puzzle.id === state.profileSelectedPuzzleId) || libraryItems[0];
+  const item = selectedProfilePuzzle();
+  if (!item) {
+    const totals = profileTotals();
+    dom.profileDetail.innerHTML = `
+      <div class="profile-detail-copy">
+        <span>All puzzles</span>
+        <strong>${state.profile.name}</strong>
+        <small>${totals.completed ? `${totals.completed} completed · ${totals.plays} total plays` : "Complete a puzzle to start building your profile."}</small>
+      </div>
+    `;
+    return;
+  }
+
   const stats = puzzleStats(item.id);
   const locked = item.tier === "plus";
   const completed = stats.plays > 0;
@@ -639,16 +657,19 @@ function renderProfileDetail() {
 }
 
 function renderProfilePuzzleGrid() {
+  const hasFilter = Boolean(state.profileSelectedPuzzleId);
   dom.profilePuzzleGrid.innerHTML = libraryItems
     .map((item) => {
       const stats = puzzleStats(item.id);
       const locked = item.tier === "plus";
       const selected = item.id === state.profileSelectedPuzzleId;
+      const dimmed = hasFilter && !selected;
+      const styleClass = item.style ? ` is-${item.style}` : "";
       return `
-        <button class="profile-puzzle${selected ? " is-selected" : ""}${locked ? " is-locked" : ""}${stats.plays ? " is-complete" : ""}" type="button" data-profile-puzzle="${item.id}" aria-label="${item.name}">
+        <button class="profile-puzzle${styleClass}${selected ? " is-selected" : ""}${dimmed ? " is-dimmed" : ""}${locked ? " is-locked" : ""}${stats.plays ? " is-complete" : ""}" type="button" data-profile-puzzle="${item.id}" aria-label="${item.name}">
           <img src="${item.src}" alt="" loading="lazy" decoding="async" draggable="false" />
           <span>${item.name}</span>
-          <small>${locked ? "Plus" : stats.plays ? `${stats.plays} done` : "Open"}</small>
+          <small>${locked ? "Plus" : stats.plays ? `x${stats.plays}` : "0"}</small>
         </button>
       `;
     })
@@ -659,12 +680,28 @@ function updateProfileName() {
   const name = sanitizeProfileName(dom.profileNameInput.value);
   state.profile.name = name || "Color Maker";
   saveProfile();
+  renderProfileButton();
+  document.querySelector("#profileTitle").textContent = state.profile.name;
 }
 
-function updateProfileAvatar(event) {
-  const button = event.target.closest("[data-avatar]");
-  if (!button) return;
-  state.profile.avatar = button.dataset.avatar;
+function showProfileNameEditor() {
+  state.profileEditingName = true;
+  renderProfilePanel();
+  window.setTimeout(() => {
+    dom.profileNameInput.focus();
+    dom.profileNameInput.select();
+  }, 20);
+}
+
+function hideProfileNameEditor() {
+  state.profileEditingName = false;
+  renderProfilePanel();
+}
+
+function cycleProfileAvatar(step) {
+  const index = avatarOptions.findIndex((avatar) => avatar.id === state.profile.avatar);
+  const nextIndex = (index + step + avatarOptions.length) % avatarOptions.length;
+  state.profile.avatar = avatarOptions[nextIndex].id;
   saveProfile();
   renderProfilePanel();
   playPickSound();
@@ -673,9 +710,10 @@ function updateProfileAvatar(event) {
 function selectProfilePuzzle(event) {
   const button = event.target.closest("[data-profile-puzzle]");
   if (!button) return;
-  state.profileSelectedPuzzleId = button.dataset.profilePuzzle;
+  state.profileSelectedPuzzleId = state.profileSelectedPuzzleId === button.dataset.profilePuzzle ? null : button.dataset.profilePuzzle;
   renderProfileDetail();
   renderProfilePuzzleGrid();
+  renderProfilePanel();
   playArrivalSound();
 }
 
@@ -693,6 +731,11 @@ function firstCompletedPuzzleId() {
 
 function firstFreePuzzleId() {
   return libraryItems.find((item) => item.tier !== "plus")?.id || libraryItems[0]?.id || null;
+}
+
+function selectedProfilePuzzle() {
+  if (!state.profileSelectedPuzzleId) return null;
+  return libraryItems.find((item) => item.id === state.profileSelectedPuzzleId) || null;
 }
 
 function puzzleStats(id) {
@@ -713,6 +756,15 @@ function profileTotals() {
       if (!stats.bestTime) return best;
       return best ? Math.min(best, stats.bestTime) : stats.bestTime;
     }, 0)
+  };
+}
+
+function profilePuzzleTotals(id) {
+  const stats = puzzleStats(id);
+  return {
+    completed: stats.plays ? 1 : 0,
+    plays: stats.plays || 0,
+    bestTime: stats.bestTime || 0
   };
 }
 

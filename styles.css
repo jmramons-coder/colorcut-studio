@@ -430,7 +430,8 @@ button {
 .difficulty-tab:focus-visible,
 .parent-close:focus-visible,
 .profile-close:focus-visible,
-.avatar-choice:focus-visible,
+.avatar-arrow:focus-visible,
+.profile-edit-name:focus-visible,
 .profile-puzzle:focus-visible,
 .profile-play-button:focus-visible,
 .parent-primary:focus-visible,
@@ -1211,6 +1212,258 @@ button {
   box-shadow: 0 0 0 2px #ffffff;
 }
 
+.profile-modal {
+  top: 68px;
+  z-index: 90;
+  align-items: end;
+  padding: 0;
+  pointer-events: none;
+}
+
+.profile-modal:not([hidden]) {
+  pointer-events: auto;
+}
+
+.profile-backdrop {
+  top: 0;
+  background: rgba(246, 247, 244, 0.42);
+  backdrop-filter: blur(5px);
+}
+
+.profile-sheet {
+  width: 100%;
+  max-height: min(760px, calc(100dvh - 68px));
+  padding: clamp(20px, 4vw, 34px) clamp(18px, 5vw, 54px) max(24px, env(safe-area-inset-bottom));
+  border-radius: 18px 18px 0 0;
+  background: rgba(246, 247, 244, 0.98);
+  box-shadow: 0 -18px 52px rgba(31, 49, 56, 0.12);
+  animation: profileDrawerUp 260ms cubic-bezier(0.18, 0.9, 0.22, 1);
+}
+
+@keyframes profileDrawerUp {
+  from {
+    transform: translateY(24px);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.profile-head {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 4px 44px 0;
+  text-align: center;
+}
+
+.avatar-carousel {
+  display: inline-grid;
+  grid-template-columns: 38px auto 38px;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatar-arrow,
+.profile-edit-name {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #172026;
+}
+
+.avatar-arrow {
+  width: 38px;
+  height: 38px;
+}
+
+.avatar-arrow svg,
+.profile-edit-name svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.profile-avatar {
+  width: clamp(84px, 18vw, 118px);
+  height: clamp(84px, 18vw, 118px);
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  box-shadow:
+    0 18px 38px rgba(31, 49, 56, 0.14),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.08);
+}
+
+.profile-name-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.profile-name-row h2 {
+  margin: 0;
+  color: rgba(23, 32, 38, 0.86);
+  font-size: clamp(1.25rem, 3.4vw, 1.75rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.profile-edit-name {
+  width: 32px;
+  height: 32px;
+  color: rgba(23, 32, 38, 0.62);
+}
+
+.profile-edit-name svg {
+  width: 17px;
+  height: 17px;
+}
+
+.profile-name-field {
+  display: none;
+  justify-items: center;
+  margin-top: 10px;
+}
+
+.profile-modal.is-editing-name .profile-name-field {
+  display: grid;
+}
+
+.profile-name-field input {
+  width: min(280px, 76vw);
+  height: 42px;
+  text-align: center;
+}
+
+.profile-stats {
+  width: min(560px, 100%);
+  margin: 22px auto 0;
+  gap: 10px;
+}
+
+.profile-stats div {
+  padding: 12px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 8px 20px rgba(31, 49, 56, 0.06);
+  text-align: center;
+}
+
+.profile-stats strong {
+  font-size: clamp(1.1rem, 3vw, 1.45rem);
+}
+
+.profile-detail {
+  width: min(560px, 100%);
+  margin: 12px auto 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+}
+
+.profile-detail-copy {
+  width: 100%;
+}
+
+.profile-detail-copy span {
+  color: rgba(23, 32, 38, 0.45);
+  font-size: 0.68rem;
+}
+
+.profile-detail-copy strong {
+  color: rgba(23, 32, 38, 0.82);
+}
+
+.profile-play-button {
+  display: none;
+}
+
+.profile-puzzle-grid {
+  width: min(980px, 100%);
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: clamp(12px, 2.5vw, 20px);
+  margin: clamp(20px, 4vw, 32px) auto 0;
+}
+
+.profile-puzzle {
+  display: grid;
+  grid-template-rows: 112px auto auto;
+  gap: 6px;
+  padding: 8px 7px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #172026;
+  text-align: center;
+  overflow: visible;
+  transition:
+    opacity 160ms ease,
+    transform 180ms ease;
+}
+
+.profile-puzzle:hover,
+.profile-puzzle.is-selected {
+  transform: translateY(-3px);
+}
+
+.profile-puzzle.is-dimmed {
+  opacity: 0.34;
+}
+
+.profile-puzzle img {
+  width: 100%;
+  height: 112px;
+  padding: 8px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow:
+    0 13px 26px rgba(31, 49, 56, 0.13),
+    0 3px 8px rgba(31, 49, 56, 0.08);
+}
+
+.profile-puzzle.is-photo img {
+  object-fit: cover;
+}
+
+.profile-puzzle.is-locked img {
+  opacity: 0.48;
+  filter: grayscale(1);
+}
+
+.profile-puzzle span {
+  color: rgba(23, 32, 38, 0.46);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.profile-puzzle small {
+  justify-self: center;
+  min-width: 28px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: rgba(23, 32, 38, 0.54);
+  box-shadow: 0 5px 12px rgba(31, 49, 56, 0.06);
+}
+
+.profile-puzzle.is-selected small {
+  background: #172026;
+  color: #ffffff;
+}
+
+.profile-puzzle.is-complete::after {
+  display: none;
+}
+
 .modal-eyebrow {
   margin: 0 0 8px;
   color: #66737a;
@@ -1895,8 +2148,9 @@ button {
   }
 
   .profile-modal {
+    top: 60px;
     align-items: end;
-    padding: 10px max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    padding: 0;
   }
 
   .parent-sheet,
@@ -1905,6 +2159,11 @@ button {
     max-height: min(620px, calc(100dvh - 20px));
     padding: 22px 18px;
     border-radius: 8px 8px 0 0;
+  }
+
+  .profile-sheet {
+    max-height: calc(100dvh - 60px);
+    border-radius: 16px 16px 0 0;
   }
 
   .profile-stats {
@@ -1925,7 +2184,17 @@ button {
   }
 
   .profile-puzzle-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .profile-puzzle {
+    grid-template-rows: 92px auto auto;
+    padding-inline: 4px;
+  }
+
+  .profile-puzzle img {
+    height: 92px;
   }
 
   .parent-actions {
