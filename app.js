@@ -553,9 +553,9 @@ function categoryIcon(id) {
 
 function difficultyIcon(id) {
   const icons = {
-    easy: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h4v4H7V7Zm6 0h4v4h-4V7ZM7 13h4v4H7v-4Zm6 0h4v4h-4v-4Z"/></svg>`,
-    classic: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h4v4H5V5Zm5 0h4v4h-4V5Zm5 0h4v4h-4V5ZM5 10h4v4H5v-4Zm5 0h4v4h-4v-4Zm5 0h4v4h-4v-4ZM5 15h4v4H5v-4Zm5 0h4v4h-4v-4Zm5 0h4v4h-4v-4Z"/></svg>`,
-    plus: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h3v3H4V4Zm4.3 0h3v3h-3V4Zm4.4 0h3v3h-3V4ZM17 4h3v3h-3V4ZM4 8.3h3v3H4v-3Zm4.3 0h3v3h-3v-3Zm4.4 0h3v3h-3v-3Zm4.3 0h3v3h-3v-3ZM4 12.7h3v3H4v-3Zm4.3 0h3v3h-3v-3Zm4.4 0h3v3h-3v-3Zm4.3 0h3v3h-3v-3ZM4 17h3v3H4v-3Zm4.3 0h3v3h-3v-3Zm4.4 0h3v3h-3v-3ZM17 17h3v3h-3v-3Z"/></svg>`
+    easy: `<svg class="tab-icon difficulty-icon difficulty-icon-easy" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 6.2h4.4c.3 0 .5.2.5.5v2.1c.7-.2 1.5.3 1.5 1.1s-.8 1.3-1.5 1.1v4.2c0 .3-.2.5-.5.5H7.2c-.3 0-.5-.2-.5-.5v-3.5c0-.5.5-.8.9-.5.7.4 1.5-.1 1.5-.9s-.8-1.3-1.5-.9c-.4.3-.9 0-.9-.5V6.7c0-.3.2-.5.5-.5Z"/></svg>`,
+    classic: `<svg class="tab-icon difficulty-icon difficulty-icon-classic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 8.2h4.3c.3 0 .5.2.5.5v1.6c.7-.2 1.4.3 1.4 1.1s-.7 1.3-1.4 1.1v3.8c0 .3-.2.5-.5.5H6.5c-.3 0-.5-.2-.5-.5v-3.1c0-.5.5-.8.9-.5.7.4 1.5-.1 1.5-.9s-.8-1.3-1.5-.9c-.4.3-.9 0-.9-.5V8.7c0-.3.2-.5.5-.5Z"/><path d="M12.9 5.4h4.2c.3 0 .5.2.5.5v3.3c0 .5-.5.8-.9.5-.7-.4-1.5.1-1.5.9s.8 1.3 1.5.9c.4-.3.9 0 .9.5v3.2c0 .3-.2.5-.5.5h-4.2c-.3 0-.5-.2-.5-.5v-1.8c-.8.3-1.6-.3-1.6-1.1s.8-1.4 1.6-1.1V5.9c0-.3.2-.5.5-.5Z"/></svg>`,
+    plus: `<svg class="tab-icon difficulty-icon difficulty-icon-plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.1 8.3h4c.3 0 .5.2.5.5v1.4c.7-.2 1.4.3 1.4 1s-.7 1.2-1.4 1v3.5c0 .3-.2.5-.5.5h-4c-.3 0-.5-.2-.5-.5v-2.8c0-.5.5-.8.9-.5.7.4 1.4-.1 1.4-.8s-.7-1.2-1.4-.8c-.4.3-.9 0-.9-.5v-3c0-.3.2-.5.5-.5Z"/><path d="M10.5 5.5h4c.3 0 .5.2.5.5v3c0 .5-.5.8-.9.5-.7-.4-1.4.1-1.4.8s.7 1.2 1.4.8c.4-.3.9 0 .9.5v3c0 .3-.2.5-.5.5h-4c-.3 0-.5-.2-.5-.5v-1.5c-.7.2-1.4-.3-1.4-1s.7-1.2 1.4-1V6c0-.3.2-.5.5-.5Z"/><path d="M15 8.7h3.9c.3 0 .5.2.5.5v3c.7-.2 1.4.3 1.4 1s-.7 1.2-1.4 1v2.9c0 .3-.2.5-.5.5H15c-.3 0-.5-.2-.5-.5v-1.6c-.7.2-1.4-.3-1.4-1s.7-1.2 1.4-1V9.2c0-.3.2-.5.5-.5Z"/></svg>`
   };
   return icons[id] || icons.classic;
 }
