@@ -384,9 +384,9 @@ button {
   cursor: grab;
   touch-action: pan-x;
   padding:
-    clamp(58px, 9vw, 96px)
-    max(calc((100vw - 390px) / 2), 34px)
-    clamp(70px, 10vw, 108px);
+    clamp(76px, 10vw, 116px)
+    max(calc((100vw - 390px) / 2), 56px)
+    clamp(86px, 11vw, 128px);
 }
 
 .drawing-grid.is-dragging {
@@ -441,7 +441,7 @@ button {
 }
 
 .drawing-preview {
-  width: min(78%, 360px);
+  width: min(74%, 340px);
   aspect-ratio: 1;
   object-fit: contain;
   align-self: center;
@@ -469,7 +469,7 @@ button {
 }
 
 .drawing-card.is-photo .drawing-preview {
-  width: min(84%, 390px);
+  width: min(80%, 368px);
   border-radius: 10px;
   box-shadow:
     0 26px 44px rgba(29, 43, 49, 0.18),
@@ -1959,8 +1959,8 @@ button {
 
   .drawing-grid {
     gap: 18px;
-    padding-block: 44px 58px;
-    padding-inline: max(calc((100vw - 300px) / 2), 30px);
+    padding-block: 58px 72px;
+    padding-inline: max(calc((100vw - 300px) / 2), 42px);
   }
 
   .drawing-card {
@@ -2092,7 +2092,7 @@ button {
 
   .drawing-grid {
     align-items: start;
-    padding-block: 34px 44px;
+    padding-block: 48px 58px;
   }
 
   .drawing-card {
@@ -2102,11 +2102,11 @@ button {
   }
 
   .drawing-preview {
-    width: min(80%, 280px);
+    width: min(74%, 260px);
   }
 
   .drawing-card.is-photo .drawing-preview {
-    width: min(86%, 292px);
+    width: min(82%, 276px);
   }
 
   .drawing-lock {

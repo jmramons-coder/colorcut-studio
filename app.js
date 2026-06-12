@@ -70,7 +70,7 @@ const libraryItems = [
     id: "red-panda",
     name: "Red Panda",
     category: "animals",
-    src: "assets/red-panda.png",
+    src: "assets/red-panda.webp",
     aspect: 1,
     grid: { cols: 3, rows: 3 },
     targetRatio: 0.78
@@ -79,7 +79,7 @@ const libraryItems = [
     id: "sea-turtle",
     name: "Sea Turtle",
     category: "animals",
-    src: "assets/sea-turtle.png",
+    src: "assets/sea-turtle.webp",
     aspect: 1,
     grid: { cols: 3, rows: 3 },
     targetRatio: 0.78
@@ -88,7 +88,7 @@ const libraryItems = [
     id: "tiger",
     name: "Tiger",
     category: "animals",
-    src: "assets/tiger.png",
+    src: "assets/tiger.webp",
     aspect: 1,
     grid: { cols: 3, rows: 3 },
     targetRatio: 0.78
@@ -97,7 +97,7 @@ const libraryItems = [
     id: "deer",
     name: "Deer",
     category: "animals",
-    src: "assets/deer.png",
+    src: "assets/deer.webp",
     aspect: 1,
     grid: { cols: 3, rows: 3 },
     targetRatio: 0.78
@@ -106,7 +106,7 @@ const libraryItems = [
     id: "eiffel-tower",
     name: "Eiffel Tower",
     category: "landmarks",
-    src: "assets/eiffel-tower.png",
+    src: "assets/eiffel-tower.webp",
     aspect: 2 / 3,
     grid: { cols: 4, rows: 4 },
     targetRatio: 0.84
@@ -115,7 +115,7 @@ const libraryItems = [
     id: "taj-mahal",
     name: "Taj Mahal",
     category: "landmarks",
-    src: "assets/taj-mahal.png",
+    src: "assets/taj-mahal.webp",
     aspect: 3 / 2,
     grid: { cols: 4, rows: 4 },
     targetRatio: 0.86
@@ -124,7 +124,7 @@ const libraryItems = [
     id: "statue-of-liberty",
     name: "Statue of Liberty",
     category: "landmarks",
-    src: "assets/statue-of-liberty.png",
+    src: "assets/statue-of-liberty.webp",
     aspect: 941 / 1672,
     grid: { cols: 4, rows: 4 },
     targetRatio: 0.86
@@ -133,7 +133,7 @@ const libraryItems = [
     id: "sydney-opera-house",
     name: "Sydney Opera House",
     category: "landmarks",
-    src: "assets/sydney-opera-house.png",
+    src: "assets/sydney-opera-house.webp",
     aspect: 3 / 2,
     grid: { cols: 4, rows: 4 },
     targetRatio: 0.86
@@ -142,7 +142,7 @@ const libraryItems = [
     id: "alpine-mirror-lake",
     name: "Alpine Mirror Lake",
     category: "nature",
-    src: "assets/alpine-mirror-lake.jpg",
+    src: "assets/alpine-mirror-lake.webp",
     aspect: 1,
     grid: { cols: 4, rows: 4 },
     targetRatio: 0.86,
@@ -152,7 +152,7 @@ const libraryItems = [
     id: "aurora-pine-forest",
     name: "Aurora Pine Forest",
     category: "nature",
-    src: "assets/aurora-pine-forest.jpg",
+    src: "assets/aurora-pine-forest.webp",
     aspect: 1,
     grid: { cols: 4, rows: 4 },
     targetRatio: 0.86,
@@ -162,7 +162,7 @@ const libraryItems = [
     id: "tropical-coral-reef",
     name: "Tropical Coral Reef",
     category: "nature",
-    src: "assets/tropical-coral-reef.jpg",
+    src: "assets/tropical-coral-reef.webp",
     aspect: 1,
     grid: { cols: 4, rows: 4 },
     targetRatio: 0.86,
@@ -172,7 +172,7 @@ const libraryItems = [
     id: "desert-canyon-glow",
     name: "Desert Canyon Glow",
     category: "nature",
-    src: "assets/desert-canyon-glow.jpg",
+    src: "assets/desert-canyon-glow.webp",
     aspect: 1,
     grid: { cols: 4, rows: 4 },
     targetRatio: 0.86,
@@ -182,7 +182,7 @@ const libraryItems = [
     id: "t-rex",
     name: "T-Rex",
     category: "dinosaurs",
-    src: "assets/t-rex.png",
+    src: "assets/t-rex.webp",
     aspect: 941 / 1672,
     grid: { cols: 5, rows: 5 },
     targetRatio: 0.88,
@@ -192,7 +192,7 @@ const libraryItems = [
     id: "triceratops",
     name: "Triceratops",
     category: "dinosaurs",
-    src: "assets/triceratops.png",
+    src: "assets/triceratops.webp",
     aspect: 1470 / 1070,
     grid: { cols: 5, rows: 5 },
     targetRatio: 0.88,
@@ -202,7 +202,7 @@ const libraryItems = [
     id: "rocket",
     name: "Rocket",
     category: "space",
-    src: "assets/rocket.png",
+    src: "assets/rocket.webp",
     aspect: 1054 / 1492,
     grid: { cols: 5, rows: 5 },
     targetRatio: 0.88,
@@ -212,7 +212,7 @@ const libraryItems = [
     id: "astronaut",
     name: "Astronaut",
     category: "space",
-    src: "assets/astronaut.png",
+    src: "assets/astronaut.webp",
     aspect: 2 / 3,
     grid: { cols: 5, rows: 5 },
     targetRatio: 0.88,
@@ -297,7 +297,8 @@ const state = {
   profile: loadProfile(),
   profileSelectedPuzzleId: null,
   profileEditingName: false,
-  activityStartedAt: 0
+  activityStartedAt: 0,
+  imagePromises: new Map()
 };
 
 installBrowserInteractionGuards();
@@ -492,13 +493,14 @@ function renderDifficultyTabs() {
 }
 
 function renderDrawingCards() {
-  dom.drawingGrid.innerHTML = libraryItems
-    .filter((item) => item.category === state.category)
+  const visibleItems = libraryItems.filter((item) => item.category === state.category);
+  dom.drawingGrid.innerHTML = visibleItems
     .map((animal, index) => {
       const locked = animal.tier === "plus";
       const loading = index === 0 ? "eager" : "lazy";
       const priority = index === 0 ? ' fetchpriority="high"' : "";
       const styleClass = animal.style ? ` is-${animal.style}` : "";
+      const dimensions = imageDimensions(animal);
       return `
         <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", ColorCut Plus" : ""}">
           ${
@@ -511,12 +513,22 @@ function renderDrawingCards() {
                 </span>`
               : ""
           }
-          <img class="drawing-preview" src="${animal.src}" alt="" loading="${loading}" decoding="async"${priority} draggable="false" />
+          <img class="drawing-preview" src="${animal.src}" width="${dimensions.width}" height="${dimensions.height}" alt="" loading="${loading}" decoding="async"${priority} draggable="false" />
           <span class="drawing-name">${animal.name}</span>
         </button>
       `;
     })
     .join("");
+  scheduleImageWarmup(visibleItems.slice(0, 3).map((item) => item.src));
+}
+
+function scheduleImageWarmup(srcList) {
+  const run = () => srcList.forEach((src) => warmImage(src));
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(run, { timeout: 900 });
+    return;
+  }
+  window.setTimeout(run, 120);
 }
 
 function bindControls() {
@@ -668,9 +680,10 @@ function renderProfilePuzzleGrid() {
       const selected = item.id === state.profileSelectedPuzzleId;
       const dimmed = hasFilter && !selected;
       const styleClass = item.style ? ` is-${item.style}` : "";
+      const dimensions = imageDimensions(item);
       return `
         <button class="profile-puzzle${styleClass}${selected ? " is-selected" : ""}${dimmed ? " is-dimmed" : ""}${locked ? " is-locked" : ""}${stats.plays ? " is-complete" : ""}" type="button" data-profile-puzzle="${item.id}" aria-label="${item.name}">
-          <img src="${item.src}" alt="" loading="lazy" decoding="async" draggable="false" />
+          <img src="${item.src}" width="${dimensions.width}" height="${dimensions.height}" alt="" loading="lazy" decoding="async" draggable="false" />
           <span>${item.name}</span>
           <small>${locked ? "Plus" : stats.plays ? `x${stats.plays}` : "0"}</small>
         </button>
@@ -684,6 +697,22 @@ function updateProfileName() {
   state.profile.name = name || "Color Maker";
   saveProfile();
   renderProfileButton();
+}
+
+function imageDimensions(item) {
+  const maxSide = 960;
+  const aspect = item.aspect || 1;
+  if (aspect >= 1) {
+    return {
+      width: maxSide,
+      height: Math.round(maxSide / aspect)
+    };
+  }
+
+  return {
+    width: Math.round(maxSide * aspect),
+    height: maxSide
+  };
 }
 
 function showProfileNameEditor() {
@@ -1025,7 +1054,24 @@ function selectAnimal(id) {
   dom.colorArt.src = state.colorUrl;
   setStage("build");
 
-  requestAnimationFrame(buildPuzzle);
+  warmImage(state.lineUrl).finally(() => requestAnimationFrame(buildPuzzle));
+}
+
+function warmImage(src) {
+  if (state.imagePromises.has(src)) return state.imagePromises.get(src);
+
+  const promise = new Promise((resolve) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => {
+      image.decode?.().then(resolve).catch(resolve) || resolve();
+    };
+    image.onerror = resolve;
+    image.src = src;
+  });
+
+  state.imagePromises.set(src, promise);
+  return promise;
 }
 
 function setStage(stage) {
