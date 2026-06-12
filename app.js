@@ -28,9 +28,10 @@ const categories = [
 ];
 
 const difficultyOptions = [
-  { id: "easy", name: "Easy", label: "4 pieces", grid: { cols: 2, rows: 2 }, tier: "free" },
-  { id: "classic", name: "Classic", label: "Standard", grid: null, tier: "free" },
-  { id: "plus", name: "Plus", label: "25 pieces", grid: { cols: 5, rows: 5 }, tier: "plus" }
+  { id: "pieces4", name: "Easy", label: "4 pieces", pieces: 4, grid: { cols: 2, rows: 2 }, tier: "free" },
+  { id: "pieces8", name: "Focus", label: "8 pieces", pieces: 8, grid: { cols: 4, rows: 2 }, tier: "free" },
+  { id: "pieces16", name: "Classic", label: "16 pieces", pieces: 16, grid: { cols: 4, rows: 4 }, tier: "free" },
+  { id: "plus", name: "Plus", label: "25 pieces", pieces: 25, grid: { cols: 5, rows: 5 }, tier: "plus" }
 ];
 
 const startPatterns = {
@@ -329,7 +330,7 @@ const state = {
   stage: "pick",
   animal: null,
   category: "animals",
-  difficulty: "classic",
+  difficulty: "pieces16",
   pieces: [],
   activePiece: null,
   activeSlot: null,
@@ -482,20 +483,12 @@ function renderPicker() {
   dom.difficultyTabs.addEventListener("click", (event) => {
     const button = event.target.closest("[data-difficulty]");
     if (!button || button.dataset.difficulty === state.difficulty) return;
-
-    const option = difficultyOptions.find((item) => item.id === button.dataset.difficulty);
-    if (!option) return;
-
-    ensureAudioContext();
-    playPickSound();
-
-    if (option.tier === "plus") {
-      showParentModal();
-      return;
-    }
-
-    state.difficulty = option.id;
-    renderDifficultyTabs();
+    selectDifficulty(button.dataset.difficulty);
+  });
+  dom.difficultyTabs.addEventListener("change", (event) => {
+    if (!event.target.matches("[data-difficulty-range]")) return;
+    const index = clamp(Number(event.target.value), 0, difficultyOptions.length - 1);
+    selectDifficulty(difficultyOptions[index]?.id);
   });
 
   dom.drawingGrid.addEventListener("click", (event) => {
@@ -542,19 +535,78 @@ function renderCategoryTabs() {
 }
 
 function renderDifficultyTabs() {
-  dom.difficultyTabs.innerHTML = difficultyOptions
-    .map((option) => {
-      const active = option.id === state.difficulty;
-      const locked = option.tier === "plus";
-      return `
-        <button class="difficulty-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-difficulty="${option.id}" role="tab" aria-selected="${active}" aria-label="${option.name}, ${option.label}${locked ? ", ColorPals Plus" : ""}">
-          ${difficultyIcon(option.id)}
-          <span>${option.name}</span>
-          <small>${option.label}</small>
-        </button>
-      `;
-    })
-    .join("");
+  const activeIndex = activeDifficultyIndex();
+  const activeOption = difficultyOptions[activeIndex] || difficultyOptions[0];
+  const progress = activeIndex / Math.max(1, difficultyOptions.length - 1);
+  dom.difficultyTabs.innerHTML = `
+    <div class="difficulty-slider" style="--difficulty-progress: ${progress};" role="group" aria-label="Puzzle size">
+      <div class="difficulty-slider-display">
+        <span class="difficulty-piece-preview" style="--piece-preview-cols: ${piecePreviewColumns(activeOption)};" aria-hidden="true">
+          ${piecePreviewDots(activeOption)}
+        </span>
+        <span class="difficulty-slider-copy">
+          <strong>${activeOption.pieces} pieces</strong>
+          <small>${activeOption.tier === "plus" ? "Plus challenge" : activeOption.name}</small>
+        </span>
+      </div>
+      <label class="difficulty-range-wrap">
+        <span class="sr-only">Puzzle pieces</span>
+        <input class="difficulty-range" data-difficulty-range type="range" min="0" max="${difficultyOptions.length - 1}" step="1" value="${activeIndex}" aria-label="Puzzle pieces" />
+      </label>
+      <div class="difficulty-steps" aria-hidden="true">
+        ${difficultyOptions
+          .map((option, index) => {
+            const active = index === activeIndex;
+            const locked = option.tier === "plus";
+            return `
+              <button class="difficulty-step${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-difficulty="${option.id}" tabindex="-1">
+                <span>${option.pieces}</span>
+                ${locked ? lockIcon() : ""}
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function selectDifficulty(id) {
+  const option = difficultyOptions.find((item) => item.id === id);
+  if (!option) return;
+
+  ensureAudioContext();
+  playPickSound();
+
+  if (option.tier === "plus") {
+    showParentModal();
+    renderDifficultyTabs();
+    return;
+  }
+
+  state.difficulty = option.id;
+  renderDifficultyTabs();
+}
+
+function activeDifficultyIndex() {
+  return Math.max(0, difficultyOptions.findIndex((option) => option.id === state.difficulty));
+}
+
+function piecePreviewColumns(option) {
+  return option.grid?.cols || Math.ceil(Math.sqrt(option.pieces || 1));
+}
+
+function piecePreviewDots(option) {
+  const previewCount = Math.min(option.pieces || 1, 16);
+  return Array.from({ length: previewCount }, (_, index) => `<i style="--dot-index: ${index};"></i>`).join("");
+}
+
+function lockIcon() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z" />
+    </svg>
+  `;
 }
 
 function categoryIcon(id) {
@@ -721,6 +773,17 @@ function renderProfilePanel() {
   dom.profileTitle.contentEditable = state.profileEditingName ? "plaintext-only" : "false";
   dom.profileAvatarPreview.textContent = avatar.label;
   dom.profileAvatarPreview.style.setProperty("--avatar-color", avatar.color);
+  renderProfileStats(totals);
+
+  renderProfileDetail();
+  renderProfilePuzzleGrid();
+  renderProfileButton();
+  dom.profileStats.setAttribute("aria-label", mode);
+}
+
+function renderProfileStats(totals = selectedProfilePuzzle() ? profilePuzzleTotals(selectedProfilePuzzle().id) : profileTotals()) {
+  const selectedItem = selectedProfilePuzzle();
+  const mode = selectedItem ? "Puzzle stats" : "All puzzles";
   dom.profileStats.innerHTML = `
     <div>
       <strong>${totals.completed}</strong>
@@ -735,10 +798,6 @@ function renderProfilePanel() {
       <span>Best time</span>
     </div>
   `;
-
-  renderProfileDetail();
-  renderProfilePuzzleGrid();
-  renderProfileButton();
   dom.profileStats.setAttribute("aria-label", mode);
 }
 
@@ -852,9 +911,25 @@ function selectProfilePuzzle(event) {
   if (!button) return;
   state.profileSelectedPuzzleId = state.profileSelectedPuzzleId === button.dataset.profilePuzzle ? null : button.dataset.profilePuzzle;
   renderProfileDetail();
-  renderProfilePuzzleGrid();
-  renderProfilePanel();
+  renderProfileStats();
+  updateProfilePuzzleSelection();
   playArrivalSound();
+}
+
+function updateProfilePuzzleSelection() {
+  const hasFilter = Boolean(state.profileSelectedPuzzleId);
+  dom.profilePuzzleGrid.querySelectorAll("[data-profile-puzzle]").forEach((button) => {
+    const item = libraryItems.find((puzzle) => puzzle.id === button.dataset.profilePuzzle);
+    const stats = puzzleStats(button.dataset.profilePuzzle);
+    const selected = button.dataset.profilePuzzle === state.profileSelectedPuzzleId;
+    const locked = item?.tier === "plus";
+    button.classList.toggle("is-selected", selected);
+    button.classList.toggle("is-dimmed", hasFilter && !selected);
+    button.classList.toggle("is-undone", !locked && !stats.plays);
+    button.classList.toggle("is-complete", Boolean(stats.plays));
+    const count = button.querySelector("small");
+    if (count) count.textContent = locked ? "Plus" : stats.plays ? `x${stats.plays}` : "0";
+  });
 }
 
 function handleProfileDetailClick(event) {
