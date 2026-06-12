@@ -168,6 +168,28 @@
         </section>
       </div>
 
+      <div class="waitlist-modal" id="waitlistModal" role="dialog" aria-modal="true" aria-labelledby="waitlistTitle" aria-hidden="true" hidden>
+        <button class="waitlist-backdrop" id="waitlistBackdrop" type="button" aria-label="Close waitlist"></button>
+        <section class="waitlist-sheet" aria-label="ColorCut waitlist">
+          <button class="waitlist-close" id="waitlistCloseButton" type="button" aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6.4 4.9 5.6 5.6 5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6 1.5-1.5Z" />
+            </svg>
+          </button>
+          <p class="modal-eyebrow">Early access</p>
+          <h2 id="waitlistTitle">Get 6 months of Plus free.</h2>
+          <p class="modal-copy">Join the waitlist and we will save your early-access spot.</p>
+          <form class="waitlist-form" id="waitlistForm">
+            <label for="waitlistEmail">Email</label>
+            <div>
+              <input id="waitlistEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required />
+              <button class="parent-primary" type="submit">Join</button>
+            </div>
+            <p class="waitlist-status" id="waitlistStatus" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+      </div>
+
       <div class="profile-modal" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileTitle" aria-hidden="true" hidden>
         <button class="profile-backdrop" id="profileBackdrop" type="button" aria-label="Close profile"></button>
         <section class="profile-sheet" aria-label="Profile">

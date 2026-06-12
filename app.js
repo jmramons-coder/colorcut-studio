@@ -6,9 +6,9 @@ const MOBILE_PIECE_OFFSCREEN_RATIO = 0.28;
 const MOBILE_LOOSE_BOTTOM_RESERVE = 148;
 const BRUSH_SIZE = 42;
 const COLOR_COMPLETE_RATIO = 0.68;
-const PLUS_CHECKOUT_URL = "";
-const EARLY_ACCESS_URL = "mailto:hello@colorcut.studio?subject=ColorCut%20Plus%20early%20access";
 const PROFILE_STORAGE_KEY = "colorcut-profile-v1";
+const WAITLIST_STORAGE_KEY = "colorcut-waitlist-email";
+const GALLERY_LOOP_COPIES = 3;
 
 const avatarOptions = [
   { id: "core", label: "C", color: "#172026" },
@@ -302,6 +302,12 @@ const dom = {
   parentGateSubmit: document.querySelector("#parentGateSubmit"),
   parentGateError: document.querySelector("#parentGateError"),
   parentCheckoutButton: document.querySelector("#parentCheckoutButton"),
+  waitlistModal: document.querySelector("#waitlistModal"),
+  waitlistBackdrop: document.querySelector("#waitlistBackdrop"),
+  waitlistCloseButton: document.querySelector("#waitlistCloseButton"),
+  waitlistForm: document.querySelector("#waitlistForm"),
+  waitlistEmail: document.querySelector("#waitlistEmail"),
+  waitlistStatus: document.querySelector("#waitlistStatus"),
   profileModal: document.querySelector("#profileModal"),
   profileBackdrop: document.querySelector("#profileBackdrop"),
   profileCloseButton: document.querySelector("#profileCloseButton"),
@@ -339,6 +345,7 @@ const state = {
   galleryDrag: null,
   gallerySuppressClick: false,
   galleryScrollTimer: 0,
+  galleryLoopCount: 0,
   resizeTimer: 0,
   parentGateAnswer: 0,
   parentUnlocked: false,
@@ -461,7 +468,6 @@ function renderPicker() {
     state.galleryActiveIndex = 0;
     renderCategoryTabs();
     renderDrawingCards();
-    dom.drawingGrid.scrollLeft = 0;
     ensureAudioContext();
     playArrivalSound();
   });
@@ -566,12 +572,15 @@ function difficultyIcon(id) {
 
 function renderDrawingCards() {
   const visibleItems = libraryItems.filter((item) => item.category === state.category);
-  dom.drawingGrid.innerHTML = visibleItems
-    .map((animal) => {
+  const loopItems = visibleItems.length > 1 ? Array.from({ length: GALLERY_LOOP_COPIES }, () => visibleItems).flat() : visibleItems;
+  state.galleryLoopCount = visibleItems.length;
+  dom.drawingGrid.innerHTML = loopItems
+    .map((animal, index) => {
       const locked = animal.tier === "plus";
       const styleClass = animal.style ? ` is-${animal.style}` : "";
+      const clone = visibleItems.length > 1 && (index < visibleItems.length || index >= visibleItems.length * 2);
       return `
-        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", ColorCut Plus" : ""}">
+        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" data-loop-index="${index % Math.max(visibleItems.length, 1)}" aria-label="${animal.name}${locked ? ", ColorCut Plus" : ""}"${clone ? " aria-hidden=\"true\" tabindex=\"-1\"" : ""}>
           ${
             locked
               ? `<span class="drawing-lock" aria-hidden="true">
@@ -589,6 +598,7 @@ function renderDrawingCards() {
     })
     .join("");
   scheduleImageWarmup(visibleItems.slice(0, 3).map((item) => item.src));
+  requestAnimationFrame(() => centerGalleryCard(state.galleryLoopCount + state.galleryActiveIndex, "auto"));
 }
 
 function scheduleImageWarmup(srcList) {
@@ -625,7 +635,10 @@ function bindControls() {
   dom.parentGateAnswer.addEventListener("keydown", (event) => {
     if (event.key === "Enter") checkParentGate();
   });
-  dom.parentCheckoutButton.addEventListener("click", openPlusCheckout);
+  dom.parentCheckoutButton.addEventListener("click", showWaitlistModal);
+  dom.waitlistBackdrop.addEventListener("click", hideWaitlistModal);
+  dom.waitlistCloseButton.addEventListener("click", hideWaitlistModal);
+  dom.waitlistForm.addEventListener("submit", saveWaitlistEmail);
   dom.avatarPrevButton.addEventListener("click", () => cycleProfileAvatar(-1));
   dom.avatarNextButton.addEventListener("click", () => cycleProfileAvatar(1));
   dom.profilePuzzleGrid.addEventListener("click", selectProfilePuzzle);
@@ -931,9 +944,30 @@ function checkParentGate() {
   dom.parentCheckoutButton.focus();
 }
 
-function openPlusCheckout() {
-  const target = PLUS_CHECKOUT_URL || EARLY_ACCESS_URL;
-  window.open(target, "_blank", "noopener,noreferrer");
+function showWaitlistModal() {
+  dom.waitlistModal.hidden = false;
+  dom.waitlistModal.setAttribute("aria-hidden", "false");
+  dom.waitlistStatus.textContent = "";
+  window.setTimeout(() => dom.waitlistEmail.focus(), 40);
+}
+
+function hideWaitlistModal() {
+  if (dom.waitlistModal.hidden) return;
+  dom.waitlistModal.hidden = true;
+  dom.waitlistModal.setAttribute("aria-hidden", "true");
+}
+
+function saveWaitlistEmail(event) {
+  event.preventDefault();
+  const email = dom.waitlistEmail.value.trim();
+  if (!email) return;
+  try {
+    localStorage.setItem(WAITLIST_STORAGE_KEY, email);
+  } catch {
+    // The form still confirms the signup locally if storage is unavailable.
+  }
+  dom.waitlistStatus.textContent = "You're on the list. We'll keep Plus free for 6 months when early access opens.";
+  dom.waitlistForm.reset();
 }
 
 function beginGalleryDrag(event) {
@@ -1028,7 +1062,8 @@ function handleGalleryScroll() {
   window.clearTimeout(state.galleryScrollTimer);
   state.galleryScrollTimer = window.setTimeout(() => {
     if (state.stage !== "pick") return;
-    const activeIndex = closestGalleryIndex();
+    keepGalleryInLoop();
+    const activeIndex = closestGalleryIndex() % Math.max(state.galleryLoopCount, 1);
     if (activeIndex !== state.galleryActiveIndex) {
       state.galleryActiveIndex = activeIndex;
       playArrivalSound();
@@ -1041,18 +1076,38 @@ function scrollGalleryByStep(direction) {
   const cards = Array.from(dom.drawingGrid.querySelectorAll(".drawing-card"));
   if (!cards.length) return;
 
+  const base = Math.max(state.galleryLoopCount, 1);
   const currentIndex = closestGalleryIndex();
-  const nextIndex = Math.max(0, Math.min(cards.length - 1, currentIndex + direction));
-  const target = cards[nextIndex];
+  const currentLoopIndex = Number(cards[currentIndex]?.dataset.loopIndex || 0);
+  const nextLoopIndex = (currentLoopIndex + direction + base) % base;
+  const nextIndex = base + nextLoopIndex;
+  centerGalleryCard(nextIndex, "smooth");
+
+  state.galleryActiveIndex = nextLoopIndex;
+  playPickSound();
+}
+
+function keepGalleryInLoop() {
+  const base = state.galleryLoopCount;
+  if (base <= 1) return;
+
+  const index = closestGalleryIndex();
+  if (index < base) {
+    centerGalleryCard(index + base, "auto");
+  } else if (index >= base * 2) {
+    centerGalleryCard(index - base, "auto");
+  }
+}
+
+function centerGalleryCard(index, behavior = "smooth") {
+  const cards = Array.from(dom.drawingGrid.querySelectorAll(".drawing-card"));
+  const target = cards[index];
+  if (!target) return;
+
   const railRect = dom.drawingGrid.getBoundingClientRect();
   const cardRect = target.getBoundingClientRect();
   const offset = cardRect.left + cardRect.width / 2 - (railRect.left + railRect.width / 2);
-  dom.drawingGrid.scrollBy({ left: offset, behavior: "smooth" });
-
-  if (nextIndex !== state.galleryActiveIndex) {
-    state.galleryActiveIndex = nextIndex;
-    playPickSound();
-  }
+  dom.drawingGrid.scrollBy({ left: offset, behavior });
 }
 
 function closestGalleryIndex() {

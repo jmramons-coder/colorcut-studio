@@ -12,7 +12,7 @@
   <body class="info-body">
     <aside class="promo-banner" aria-label="Early access offer">
       <span>Join the waitlist and get ColorCut Plus free for 6 months.</span>
-      <a href="mailto:hello@colorcut.studio?subject=ColorCut%20Plus%20waitlist">Join waitlist</a>
+      <a href="#waitlist" data-waitlist-open>Join waitlist</a>
     </aside>
     <div class="site-shell">
       <header class="site-header">
@@ -40,7 +40,7 @@
             </p>
             <div class="site-cta-row">
               <a class="site-button" href="index.html">Try the free app</a>
-              <a class="site-button is-secondary" href="mailto:hello@colorcut.studio?subject=ColorCut%20Plus%20early%20access">Join early access</a>
+              <a class="site-button is-secondary" href="#waitlist" data-waitlist-open>Join early access</a>
             </div>
             <div class="site-proof" aria-label="ColorCut highlights">
               <span>No ads</span>
@@ -50,10 +50,15 @@
           </div>
           <div class="site-preview" aria-hidden="true">
             <span class="preview-device">
-              <span class="preview-card-stack">
-                <img class="preview-card preview-card-main" src="assets/red-panda.webp" alt="" />
-                <img class="preview-card preview-card-side-one" src="assets/tiger.webp" alt="" />
-                <img class="preview-card preview-card-side-two" src="assets/deer.webp" alt="" />
+              <span class="process-demo">
+                <span class="process-ghost"></span>
+                <span class="process-piece process-piece-one"></span>
+                <span class="process-piece process-piece-two"></span>
+                <span class="process-piece process-piece-three"></span>
+                <span class="process-piece process-piece-four"></span>
+                <span class="process-color"></span>
+                <span class="process-scratch"></span>
+                <span class="process-check"></span>
               </span>
             </span>
             <img class="preview-sticker preview-sticker-one" src="assets/icon-library-puzzles.webp" alt="" />
@@ -109,7 +114,7 @@
                 <li>Weekly packs</li>
                 <li>Offline play and printables</li>
               </ul>
-              <a class="pricing-action" href="mailto:hello@colorcut.studio?subject=ColorCut%20Plus%20waitlist">Join waitlist</a>
+              <a class="pricing-action" href="#waitlist" data-waitlist-open>Join waitlist</a>
             </article>
             <article class="pricing-card">
               <span class="pricing-tag">Later</span>
@@ -121,7 +126,7 @@
                 <li>Quiet mode</li>
                 <li>Printable sheets</li>
               </ul>
-              <a class="pricing-action" href="mailto:hello@colorcut.studio?subject=ColorCut%20classroom">Ask for schools</a>
+              <a class="pricing-action" href="#waitlist" data-waitlist-open>Ask for schools</a>
             </article>
           </div>
         </section>
@@ -184,5 +189,27 @@
       <span>Ready to try a calm puzzle?</span>
       <a href="index.html">Play now</a>
     </aside>
+    <div class="waitlist-modal" id="waitlistModal" role="dialog" aria-modal="true" aria-labelledby="waitlistTitle" aria-hidden="true" hidden>
+      <button class="waitlist-backdrop" id="waitlistBackdrop" type="button" aria-label="Close waitlist"></button>
+      <section class="waitlist-sheet" aria-label="ColorCut waitlist">
+        <button class="waitlist-close" id="waitlistCloseButton" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6.4 4.9 5.6 5.6 5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6 1.5-1.5Z" />
+          </svg>
+        </button>
+        <p class="modal-eyebrow">Early access</p>
+        <h2 id="waitlistTitle">Get 6 months of Plus free.</h2>
+        <p class="modal-copy">Join the waitlist and we will save your early-access spot.</p>
+        <form class="waitlist-form" id="waitlistForm">
+          <label for="waitlistEmail">Email</label>
+          <div>
+            <input id="waitlistEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required />
+            <button class="parent-primary" type="submit">Join</button>
+          </div>
+          <p class="waitlist-status" id="waitlistStatus" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </div>
+    <script src="site.js"></script>
   </body>
 </html>
