@@ -495,12 +495,9 @@ function renderDifficultyTabs() {
 function renderDrawingCards() {
   const visibleItems = libraryItems.filter((item) => item.category === state.category);
   dom.drawingGrid.innerHTML = visibleItems
-    .map((animal, index) => {
+    .map((animal) => {
       const locked = animal.tier === "plus";
-      const loading = index === 0 ? "eager" : "lazy";
-      const priority = index === 0 ? ' fetchpriority="high"' : "";
       const styleClass = animal.style ? ` is-${animal.style}` : "";
-      const dimensions = imageDimensions(animal);
       return `
         <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", ColorCut Plus" : ""}">
           ${
@@ -513,7 +510,7 @@ function renderDrawingCards() {
                 </span>`
               : ""
           }
-          <img class="drawing-preview" src="${animal.src}" width="${dimensions.width}" height="${dimensions.height}" alt="" loading="${loading}" decoding="async"${priority} draggable="false" />
+          <span class="drawing-preview" style="background-image: url('${animal.src}')" aria-hidden="true"></span>
           <span class="drawing-name">${animal.name}</span>
         </button>
       `;
