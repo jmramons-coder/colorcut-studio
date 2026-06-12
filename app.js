@@ -675,6 +675,7 @@ function bindControls() {
 function showProfileModal() {
   state.profileEditingName = false;
   renderProfilePanel();
+  document.body.classList.add("is-profile-modal-open");
   dom.profileModal.hidden = false;
   dom.profileModal.setAttribute("aria-hidden", "false");
 }
@@ -683,6 +684,7 @@ function hideProfileModal() {
   if (dom.profileModal.hidden) return;
   dom.profileModal.hidden = true;
   dom.profileModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("is-profile-modal-open");
   state.profileEditingName = false;
 }
 

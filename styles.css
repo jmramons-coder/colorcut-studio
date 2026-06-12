@@ -58,6 +58,15 @@ body.app-body {
   -webkit-user-select: none;
 }
 
+body.app-body.is-profile-modal-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
+body.app-body.is-profile-modal-open .app-shell {
+  overflow: hidden;
+}
+
 body.info-body {
   overflow-x: hidden;
   overflow-y: auto;
@@ -1543,7 +1552,9 @@ button {
   z-index: 90;
   align-items: end;
   padding: 0;
+  overscroll-behavior: contain;
   pointer-events: none;
+  touch-action: none;
 }
 
 .profile-modal:not([hidden]) {
@@ -1559,6 +1570,9 @@ button {
 .profile-sheet {
   width: 100%;
   max-height: min(760px, calc(100dvh - 68px));
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   padding: clamp(20px, 4vw, 34px) clamp(18px, 5vw, 54px) max(24px, env(safe-area-inset-bottom));
   border-radius: 18px 18px 0 0;
   background: rgba(246, 247, 244, 0.98);
@@ -5603,24 +5617,26 @@ body.info-body.landing-body .pricing-action svg {
 
 .profile-lock {
   position: absolute;
-  top: 5px;
-  right: 7px;
+  top: 2px;
+  right: 8px;
   z-index: 2;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
-  border: 2px solid rgba(255, 255, 255, 0.88);
-  border-radius: 999px;
-  background: rgba(23, 32, 38, 0.88);
-  color: #ffffff;
-  box-shadow: 0 9px 16px rgba(31, 49, 56, 0.16);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(23, 32, 38, 0.82);
+  filter:
+    drop-shadow(0 2px 0 rgba(255, 255, 255, 0.95))
+    drop-shadow(0 8px 10px rgba(31, 49, 56, 0.16));
   pointer-events: none;
 }
 
 .profile-lock svg {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   fill: currentColor;
 }
 
@@ -5651,6 +5667,10 @@ body.info-body.landing-body .pricing-action svg {
 
 .profile-puzzle.is-locked span {
   color: rgba(23, 32, 38, 0.38);
+}
+
+.profile-puzzle.is-locked .profile-lock {
+  color: rgba(23, 32, 38, 0.86);
 }
 
 .profile-puzzle.is-locked small {
