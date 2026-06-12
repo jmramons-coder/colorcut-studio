@@ -292,6 +292,7 @@ const dom = {
   finishTray: document.querySelector("#finishTray"),
   finishLibraryButton: document.querySelector("#finishLibraryButton"),
   finishRestartButton: document.querySelector("#finishRestartButton"),
+  activityHint: document.querySelector("#activityHint"),
   parentModal: document.querySelector("#parentModal"),
   parentBackdrop: document.querySelector("#parentBackdrop"),
   parentCloseButton: document.querySelector("#parentCloseButton"),
@@ -580,8 +581,10 @@ function renderDrawingCards() {
       const locked = animal.tier === "plus";
       const styleClass = animal.style ? ` is-${animal.style}` : "";
       const clone = visibleItems.length > 1 && (index < visibleItems.length || index >= visibleItems.length * 2);
+      const recommended = state.category === "animals" && index === visibleItems.length;
       return `
-        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" data-loop-index="${index % Math.max(visibleItems.length, 1)}" aria-label="${animal.name}${locked ? ", ColorPals Plus" : ""}"${clone ? " aria-hidden=\"true\" tabindex=\"-1\"" : ""}>
+        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}${recommended ? " is-recommended" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" data-loop-index="${index % Math.max(visibleItems.length, 1)}" aria-label="${animal.name}${locked ? ", ColorPals Plus" : ""}"${clone ? " aria-hidden=\"true\" tabindex=\"-1\"" : ""}>
+          ${recommended ? `<span class="drawing-recommend">Start here</span>` : ""}
           ${
             locked
               ? `<span class="drawing-lock" aria-hidden="true">
@@ -1199,6 +1202,7 @@ function showPicker() {
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
   hideFinishTray();
+  updateActivityHint("");
   dom.completePop.classList.remove("is-visible");
   dom.puzzleBoard.classList.remove("is-complete");
   dom.puzzleBoard.classList.remove("is-exiting");
@@ -1231,6 +1235,7 @@ function selectAnimal(id) {
   dom.colorArt.classList.remove("is-celebrating");
   dom.colorArt.classList.remove("is-floating");
   hideFinishTray();
+  updateActivityHint("Move the pieces near the pale picture. They snap in place.");
   dom.completePop.classList.remove("is-visible");
   dom.ghostArt.src = state.lineUrl;
   dom.colorArt.src = state.colorUrl;
@@ -1832,6 +1837,7 @@ function checkPuzzleComplete() {
 
 function beginColoringMode() {
   setStage("color");
+  updateActivityHint("Scratch over the gray picture to reveal the color.");
   dom.puzzleBoard.style.display = "none";
   dom.puzzleBoard.classList.remove("is-exiting");
   dom.colorBoard.classList.remove("is-hidden");
@@ -1980,8 +1986,15 @@ function completeColoring() {
   dom.colorBoard.classList.add("is-complete");
   recordPuzzleCompletion();
   showFinishTray();
+  updateActivityHint("");
   playColorCompleteSound();
   pulseHaptic([14, 36, 22]);
+}
+
+function updateActivityHint(message) {
+  if (!dom.activityHint) return;
+  dom.activityHint.textContent = message;
+  dom.activityHint.classList.toggle("is-visible", Boolean(message));
 }
 
 function pulseHaptic(pattern) {
