@@ -3872,24 +3872,36 @@ body.info-body .process-color {
 }
 
 body.info-body .process-ghost {
-  opacity: 0.38;
+  opacity: 0;
   filter: grayscale(1);
-  animation: miniPuzzleGhost 8s ease-in-out infinite;
+  animation: miniPuzzleGhost 9s ease-in-out infinite;
 }
 
 body.info-body .process-piece {
   width: 27.333%;
   height: 27.333%;
-  border: 1.7px solid rgba(48, 61, 66, 0.42);
+  border: 1.6px solid rgba(48, 61, 66, 0.42);
+  border-radius: 0;
   background-image: url("assets/red-panda.webp");
   background-repeat: no-repeat;
   background-size: 300% 300%;
   opacity: 0;
-  filter:
-    grayscale(1)
-    drop-shadow(0 8px 9px rgba(29, 43, 49, 0.13));
-  animation: miniPuzzlePiece 8s cubic-bezier(0.18, 0.9, 0.22, 1) infinite;
+  filter: grayscale(1);
+  animation: miniPuzzlePiece 9s cubic-bezier(0.18, 0.9, 0.22, 1) infinite;
   transform-origin: center;
+}
+
+body.info-body .process-piece,
+body.info-body .process-piece-one,
+body.info-body .process-piece-two,
+body.info-body .process-piece-three,
+body.info-body .process-piece-four,
+body.info-body .process-piece-five,
+body.info-body .process-piece-six,
+body.info-body .process-piece-seven,
+body.info-body .process-piece-eight,
+body.info-body .process-piece-nine {
+  border-radius: 0;
 }
 
 body.info-body .process-piece-one {
@@ -3985,122 +3997,153 @@ body.info-body .process-piece-nine {
 body.info-body .process-color {
   opacity: 0;
   transform: scale(0.98);
-  filter:
-    drop-shadow(0 18px 22px rgba(29, 43, 49, 0.16))
-    drop-shadow(0 5px 7px rgba(29, 43, 49, 0.09));
-  animation: miniPuzzleColor 8s ease-in-out infinite;
+  filter: none;
+  clip-path: circle(0% at 28% 26%);
+  animation: miniPuzzleColor 9s ease-in-out infinite;
 }
 
 body.info-body .process-scratch {
-  left: 17%;
-  top: 26%;
-  width: 32%;
-  height: 7px;
+  left: 0;
+  top: 0;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.84);
+  border: 2px solid rgba(98, 198, 196, 0.62);
   box-shadow:
-    34px 34px 0 rgba(255, 255, 255, 0.9),
-    76px 70px 0 rgba(255, 255, 255, 0.86);
+    inset 0 2px 0 rgba(255, 255, 255, 0.9),
+    0 8px 16px rgba(39, 55, 63, 0.14);
   opacity: 0;
-  transform: rotate(-16deg);
-  animation: miniPuzzleScratch 8s ease-in-out infinite;
+  transform: translate(26%, 25%) scale(0.8);
+  animation: miniPuzzleScratch 9s ease-in-out infinite;
 }
 
 body.info-body .process-check {
   width: 50px;
   height: 50px;
-  animation: miniPuzzleCheck 8s ease-in-out infinite;
+  animation: miniPuzzleCheck 9s ease-in-out infinite;
 }
 
 @keyframes miniPuzzlePiece {
-  0%, 8% {
+  0%, 7% {
     opacity: 0;
     transform: translate(var(--sx), var(--sy)) rotate(var(--sr)) scale(0.94);
   }
 
-  14% {
+  12% {
     opacity: 1;
     transform: translate(var(--sx), var(--sy)) rotate(var(--sr)) scale(0.94);
   }
 
-  42%, 61% {
+  36%, 45% {
     opacity: 1;
     transform: translate(0, 0) rotate(0deg) scale(1);
   }
 
-  72%, 100% {
+  50%, 100% {
     opacity: 0;
     transform: translate(0, 0) rotate(0deg) scale(1);
   }
 }
 
 @keyframes miniPuzzleGhost {
-  0%, 62% {
-    opacity: 0.38;
+  0%, 43% {
+    opacity: 0;
   }
 
-  72%, 100% {
+  50%, 73% {
+    opacity: 1;
+  }
+
+  86%, 100% {
     opacity: 0;
   }
 }
 
 @keyframes miniPuzzleCheck {
-  0%, 43% {
+  0%, 37% {
     opacity: 0;
     transform: translateX(-50%) scale(0.72);
   }
 
-  50%, 60% {
+  43%, 50% {
     opacity: 1;
     transform: translateX(-50%) scale(1.05);
   }
 
-  68%, 100% {
+  56%, 100% {
     opacity: 0;
     transform: translateX(-50%) scale(0.84);
   }
 }
 
 @keyframes miniPuzzleColor {
-  0%, 63% {
+  0%, 51% {
     opacity: 0;
     transform: scale(0.98);
-    clip-path: inset(0 100% 0 0);
+    clip-path: circle(0% at 28% 26%);
   }
 
-  76% {
+  55% {
     opacity: 1;
-    transform: scale(1.03);
-    clip-path: inset(0 0 0 0);
+    transform: scale(0.99);
+    clip-path: circle(12% at 28% 26%);
   }
 
-  88% {
+  62% {
     opacity: 1;
     transform: scale(1);
-    clip-path: inset(0 0 0 0);
+    clip-path: circle(30% at 65% 36%);
   }
 
-  100% {
+  70% {
+    opacity: 1;
+    transform: scale(1.018);
+    clip-path: circle(54% at 38% 70%);
+  }
+
+  78%, 90% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.035);
+    clip-path: circle(88% at 50% 50%);
+  }
+
+  96%, 100% {
     opacity: 0;
-    transform: scale(0.98);
-    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+    clip-path: circle(88% at 50% 50%);
   }
 }
 
 @keyframes miniPuzzleScratch {
-  0%, 64% {
+  0%, 51% {
     opacity: 0;
-    transform: translateX(-18px) rotate(-16deg);
+    transform: translate(26%, 25%) scale(0.8);
   }
 
-  70%, 82% {
+  55% {
     opacity: 1;
-    transform: translateX(70px) rotate(-16deg);
+    transform: translate(26%, 25%) scale(1);
   }
 
-  90%, 100% {
+  62% {
+    opacity: 1;
+    transform: translate(142%, 58%) scale(1);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translate(76%, 155%) scale(1);
+  }
+
+  77% {
+    opacity: 1;
+    transform: translate(155%, 118%) scale(1);
+  }
+
+  82%, 100% {
     opacity: 0;
-    transform: translateX(112px) rotate(-16deg);
+    transform: translate(155%, 118%) scale(0.86);
   }
 }
 
