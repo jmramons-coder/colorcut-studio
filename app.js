@@ -320,6 +320,7 @@ const state = {
   difficulty: "classic",
   pieces: [],
   activePiece: null,
+  activeSlot: null,
   lineUrl: "",
   colorUrl: "",
   brushSize: BRUSH_SIZE,
@@ -1060,11 +1061,14 @@ function showPicker() {
   dom.pickerView.classList.remove("is-hidden");
   dom.studioView.classList.add("is-hidden");
   dom.colorBoard.classList.remove("is-mask-ready");
+  dom.colorBoard.classList.remove("is-complete");
+  dom.colorBoard.classList.remove("is-entering");
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
   hideFinishTray();
   dom.completePop.classList.remove("is-visible");
   dom.puzzleBoard.classList.remove("is-complete");
+  dom.puzzleBoard.classList.remove("is-exiting");
 }
 
 function selectAnimal(id) {
@@ -1085,8 +1089,11 @@ function selectAnimal(id) {
   dom.studioView.classList.remove("is-hidden");
   dom.puzzleBoard.style.display = "";
   dom.puzzleBoard.classList.remove("is-complete");
+  dom.puzzleBoard.classList.remove("is-exiting");
   dom.colorBoard.classList.add("is-hidden");
   dom.colorBoard.classList.remove("is-mask-ready");
+  dom.colorBoard.classList.remove("is-complete");
+  dom.colorBoard.classList.remove("is-entering");
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
   dom.colorArt.classList.remove("is-floating");
@@ -1456,7 +1463,9 @@ function buildPuzzle() {
   dom.slotLayer.innerHTML = "";
   dom.pieceLayer.innerHTML = "";
   state.pieces = [];
+  state.activeSlot = null;
   dom.puzzleBoard.classList.remove("is-complete");
+  dom.puzzleBoard.classList.remove("is-exiting");
   applyArtLayout(dom.ghostArt, layout);
 
   for (let index = 0; index < grid.cols * grid.rows; index += 1) {
@@ -1469,18 +1478,24 @@ function buildPuzzle() {
     const visualH = tileH + pad * 2;
     const snapX = targetX + cellX - pad;
     const snapY = targetY + cellY - pad;
+    const pieceShape = piecePath(col, row, tileW, tileH, pad, grid);
 
-    const slot = document.createElement("div");
-    slot.className = "slot";
-    slot.style.width = `${tileW}px`;
-    slot.style.height = `${tileH}px`;
-    slot.style.left = `${targetX + cellX}px`;
-    slot.style.top = `${targetY + cellY}px`;
+    const slot = document.createElementNS(SVG_NS, "svg");
+    const slotShape = document.createElementNS(SVG_NS, "path");
+    slot.setAttribute("class", "slot");
+    slot.setAttribute("viewBox", `0 0 ${visualW} ${visualH}`);
+    slot.style.width = `${visualW}px`;
+    slot.style.height = `${visualH}px`;
+    slot.style.left = `${snapX}px`;
+    slot.style.top = `${snapY}px`;
+    slotShape.setAttribute("class", "slot-outline");
+    slotShape.setAttribute("d", pieceShape);
+    slotShape.setAttribute("vector-effect", "non-scaling-stroke");
+    slot.append(slotShape);
     dom.slotLayer.append(slot);
 
     const totalPieces = grid.cols * grid.rows;
     const piece = document.createElementNS(SVG_NS, "svg");
-    const pieceShape = piecePath(col, row, tileW, tileH, pad, grid);
     const clipId = `piece-clip-${state.animal.id}-${index}`;
     const defs = document.createElementNS(SVG_NS, "defs");
     const clipPath = document.createElementNS(SVG_NS, "clipPath");
@@ -1532,6 +1547,7 @@ function buildPuzzle() {
       height: visualH,
       rotation: start.rotation,
       snapped: false,
+      slot,
       pointerId: null,
       dragOffsetX: 0,
       dragOffsetY: 0
@@ -1599,6 +1615,7 @@ function dragPiece(event) {
   piece.x = clampWithFallback(point.x - piece.dragOffsetX, bounds.minX, bounds.maxX);
   piece.y = clampWithFallback(point.y - piece.dragOffsetY, bounds.minY, bounds.maxY);
   setPieceTransform(piece);
+  updateSlotHint(piece);
 }
 
 function dropPiece(event) {
@@ -1609,6 +1626,8 @@ function dropPiece(event) {
     piece.element.releasePointerCapture(event.pointerId);
   }
   piece.element.classList.remove("is-dragging");
+  piece.element.classList.remove("is-near-snap");
+  clearSlotHint();
   window.removeEventListener("pointermove", dragPiece);
   window.removeEventListener("pointerup", dropPiece);
   window.removeEventListener("pointercancel", dropPiece);
@@ -1621,9 +1640,13 @@ function dropPiece(event) {
     piece.rotation = 0;
     piece.snapped = true;
     piece.element.classList.add("is-snapped");
+    piece.element.classList.add("is-snapping");
+    piece.slot.classList.add("is-filled");
     piece.element.style.zIndex = String(1 + piece.index);
     setPieceTransform(piece);
     playSnapSound();
+    pulseHaptic(10);
+    window.setTimeout(() => piece.element.classList.remove("is-snapping"), 360);
     checkPuzzleComplete();
   } else {
     piece.element.style.zIndex = String(10 + piece.index);
@@ -1638,12 +1661,37 @@ function setPieceTransform(piece) {
   piece.element.style.transform = `translate(${piece.x}px, ${piece.y}px) rotate(${turn}deg)`;
 }
 
+function updateSlotHint(piece) {
+  const distance = Math.hypot(piece.x - piece.targetX, piece.y - piece.targetY);
+  const nearDistance = Math.min(piece.width, piece.height) * 0.68;
+  const near = distance <= nearDistance;
+
+  piece.element.classList.toggle("is-near-snap", near);
+  if (near && state.activeSlot !== piece.slot) {
+    clearSlotHint();
+    state.activeSlot = piece.slot;
+    piece.slot.classList.add("is-near");
+  } else if (!near && state.activeSlot === piece.slot) {
+    clearSlotHint();
+  }
+}
+
+function clearSlotHint() {
+  if (!state.activeSlot) return;
+  state.activeSlot.classList.remove("is-near");
+  state.activeSlot = null;
+}
+
 function checkPuzzleComplete() {
   if (!state.pieces.length || !state.pieces.every((piece) => piece.snapped)) return;
 
   dom.puzzleBoard.classList.add("is-complete");
   dom.completePop.classList.add("is-visible");
   playCompleteSound();
+  pulseHaptic([12, 42, 18]);
+  window.setTimeout(() => {
+    if (state.stage === "build") dom.puzzleBoard.classList.add("is-exiting");
+  }, 760);
   window.setTimeout(() => {
     if (state.stage === "build") beginColoringMode();
   }, 1150);
@@ -1652,13 +1700,17 @@ function checkPuzzleComplete() {
 function beginColoringMode() {
   setStage("color");
   dom.puzzleBoard.style.display = "none";
+  dom.puzzleBoard.classList.remove("is-exiting");
   dom.colorBoard.classList.remove("is-hidden");
+  dom.colorBoard.classList.add("is-entering");
   dom.colorBoard.classList.remove("is-mask-ready");
+  dom.colorBoard.classList.remove("is-complete");
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
   dom.colorArt.classList.remove("is-floating");
   hideFinishTray();
   prepareColorCanvas();
+  window.setTimeout(() => dom.colorBoard.classList.remove("is-entering"), 620);
 }
 
 function prepareColorCanvas() {
@@ -1690,6 +1742,7 @@ function prepareColorCanvas() {
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.globalCompositeOperation = "source-over";
   dom.colorBoard.classList.remove("is-mask-ready");
+  dom.colorBoard.classList.remove("is-complete");
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
   hideFinishTray();
@@ -1791,9 +1844,15 @@ function completeColoring() {
   state.colorContext.clearRect(0, 0, dom.colorCanvas.width, dom.colorCanvas.height);
   dom.colorArt.classList.add("is-celebrating");
   dom.colorArt.classList.add("is-floating");
+  dom.colorBoard.classList.add("is-complete");
   recordPuzzleCompletion();
   showFinishTray();
   playColorCompleteSound();
+  pulseHaptic([14, 36, 22]);
+}
+
+function pulseHaptic(pattern) {
+  navigator.vibrate?.(pattern);
 }
 
 function recordPuzzleCompletion() {
