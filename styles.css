@@ -841,17 +841,15 @@ button {
 .finish-tray {
   position: absolute;
   left: 50%;
-  bottom: clamp(12px, 4vw, 34px);
+  bottom: max(18px, env(safe-area-inset-bottom));
   z-index: 50;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow:
-    0 22px 48px rgba(31, 49, 56, 0.16),
-    0 4px 14px rgba(31, 49, 56, 0.08);
+  gap: 16px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 18px) scale(0.92);
@@ -867,27 +865,39 @@ button {
 }
 
 .finish-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 42px;
-  padding: 0 13px;
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  padding: 7px;
   border: 0;
   border-radius: 999px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.94);
   color: #1f2a31;
+  box-shadow:
+    0 14px 30px rgba(31, 49, 56, 0.14),
+    0 3px 8px rgba(31, 49, 56, 0.08);
   font-weight: 850;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .finish-button.is-primary {
-  background: #172026;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.96);
 }
 
-.finish-button svg {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
+.finish-button:active {
+  transform: translateY(2px) scale(0.96);
+}
+
+.finish-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .color-art.is-celebrating {
@@ -1949,8 +1959,8 @@ button {
     max-width: calc(100vw - 24px);
     margin-inline: 12px;
     scroll-padding-inline: 12px;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
-    mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .category-tabs {
@@ -2130,6 +2140,11 @@ button {
   .drawing-grid {
     align-items: center;
     padding-block: 22px 34px;
+  }
+
+  .gallery-wrap::before,
+  .gallery-wrap::after {
+    display: none;
   }
 
   .drawing-card {
