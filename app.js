@@ -354,6 +354,7 @@ const state = {
   resizeTimer: 0,
   parentGateAnswer: 0,
   parentUnlocked: false,
+  parentIntent: null,
   profile: loadProfile(),
   profileSelectedPuzzleId: null,
   profileEditingName: false,
@@ -926,6 +927,11 @@ function showParentModal() {
   dom.parentModal.setAttribute("aria-hidden", "false");
   dom.parentModal.classList.toggle("is-unlocked", state.parentUnlocked);
   if (state.parentUnlocked) {
+    if (state.parentIntent === "finish-plus") {
+      openWaitlistAfterParentGate();
+      return;
+    }
+
     dom.parentPanelStep.setAttribute("tabindex", "-1");
     dom.parentPanelStep.focus({ preventScroll: true });
     return;
@@ -940,6 +946,7 @@ function hideParentModal() {
   dom.parentModal.hidden = true;
   dom.parentModal.setAttribute("aria-hidden", "true");
   dom.parentGateError.textContent = "";
+  state.parentIntent = null;
 }
 
 function resetParentGate() {
@@ -962,9 +969,20 @@ function checkParentGate() {
 
   state.parentUnlocked = true;
   dom.parentGateError.textContent = "";
+  if (state.parentIntent === "finish-plus") {
+    openWaitlistAfterParentGate();
+    return;
+  }
+
   dom.parentModal.classList.add("is-unlocked");
   dom.parentPanelStep.setAttribute("tabindex", "-1");
   dom.parentPanelStep.focus({ preventScroll: true });
+}
+
+function openWaitlistAfterParentGate() {
+  state.parentIntent = null;
+  hideParentModal();
+  showWaitlistModal();
 }
 
 function showWaitlistModal() {
@@ -1227,6 +1245,7 @@ function handleFinishSuggestionClick(event) {
 
   ensureAudioContext();
   playPickSound();
+  state.parentIntent = "finish-plus";
   showParentModal();
 }
 
