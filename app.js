@@ -103,6 +103,51 @@ const libraryItems = [
     targetRatio: 0.78
   },
   {
+    id: "koala",
+    name: "Koala",
+    category: "animals",
+    src: "assets/koala.webp",
+    aspect: 1,
+    grid: { cols: 3, rows: 3 },
+    targetRatio: 0.78
+  },
+  {
+    id: "penguin",
+    name: "Penguin",
+    category: "animals",
+    src: "assets/penguin.webp",
+    aspect: 1,
+    grid: { cols: 3, rows: 3 },
+    targetRatio: 0.78
+  },
+  {
+    id: "elephant",
+    name: "Elephant",
+    category: "animals",
+    src: "assets/elephant.webp",
+    aspect: 1,
+    grid: { cols: 3, rows: 3 },
+    targetRatio: 0.78
+  },
+  {
+    id: "owl",
+    name: "Owl",
+    category: "animals",
+    src: "assets/owl.webp",
+    aspect: 1,
+    grid: { cols: 3, rows: 3 },
+    targetRatio: 0.78
+  },
+  {
+    id: "giraffe",
+    name: "Giraffe",
+    category: "animals",
+    src: "assets/giraffe.webp",
+    aspect: 1,
+    grid: { cols: 3, rows: 3 },
+    targetRatio: 0.78
+  },
+  {
     id: "eiffel-tower",
     name: "Eiffel Tower",
     category: "landmarks",
