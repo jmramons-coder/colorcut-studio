@@ -5,6 +5,13 @@ const waitlistEmail = document.querySelector("#waitlistEmail");
 const waitlistStatus = document.querySelector("#waitlistStatus");
 const waitlistForm = document.querySelector("#waitlistForm");
 
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {});
+  });
+}
+
 function showWaitlist(event) {
   event?.preventDefault();
   waitlistModal.hidden = false;
@@ -37,3 +44,5 @@ waitlistForm.addEventListener("submit", (event) => {
   waitlistStatus.textContent = "You're on the list. We'll keep Plus free for 6 months when early access opens.";
   waitlistForm.reset();
 });
+
+registerServiceWorker();
