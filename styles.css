@@ -5707,3 +5707,117 @@ body.info-body.landing-body .pricing-action svg {
     height: 15px;
   }
 }
+
+.parent-panel:focus,
+.parent-panel:focus-visible {
+  outline: none;
+}
+
+.profile-lock {
+  position: absolute;
+  top: 5px;
+  right: 7px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 999px;
+  background: rgba(23, 32, 38, 0.88);
+  color: #ffffff;
+  box-shadow: 0 9px 16px rgba(31, 49, 56, 0.16);
+  pointer-events: none;
+}
+
+.profile-lock svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.profile-puzzle.is-undone img {
+  opacity: 0.3;
+  filter:
+    grayscale(1)
+    saturate(0)
+    brightness(1.18)
+    contrast(0.78)
+    drop-shadow(0 8px 12px rgba(31, 49, 56, 0.08));
+}
+
+.profile-puzzle.is-undone span,
+.profile-puzzle.is-undone small {
+  color: rgba(23, 32, 38, 0.32);
+}
+
+.profile-puzzle.is-locked img {
+  opacity: 0.28;
+  filter:
+    grayscale(1)
+    saturate(0)
+    brightness(1.1)
+    contrast(0.82)
+    drop-shadow(0 8px 12px rgba(31, 49, 56, 0.08));
+}
+
+.profile-puzzle.is-locked span {
+  color: rgba(23, 32, 38, 0.38);
+}
+
+.profile-puzzle.is-locked small {
+  background: rgba(23, 32, 38, 0.08);
+  color: rgba(23, 32, 38, 0.48);
+}
+
+@media (min-width: 821px) {
+  .profile-modal {
+    top: 68px;
+  }
+
+  .profile-sheet {
+    height: calc(100dvh - 68px);
+    max-height: calc(100dvh - 68px);
+  }
+
+  html.landing-html {
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body.info-body.landing-body {
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding-bottom: max(82px, env(safe-area-inset-bottom));
+  }
+
+  body.info-body.landing-body .site-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  body.info-body.landing-body .site-main {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  body.info-body.landing-body .site-section,
+  body.info-body.landing-body .site-footer {
+    display: block;
+  }
+
+  body.info-body.landing-body .site-hero {
+    height: auto;
+    min-height: min(760px, calc(100dvh - 48px));
+    overflow: visible;
+    padding-bottom: 36px;
+  }
+}

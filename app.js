@@ -764,8 +764,18 @@ function renderProfilePuzzleGrid() {
       const dimmed = hasFilter && !selected;
       const styleClass = item.style ? ` is-${item.style}` : "";
       const dimensions = imageDimensions(item);
+      const unfinished = !locked && !stats.plays;
       return `
-        <button class="profile-puzzle${styleClass}${selected ? " is-selected" : ""}${dimmed ? " is-dimmed" : ""}${locked ? " is-locked" : ""}${stats.plays ? " is-complete" : ""}" type="button" data-profile-puzzle="${item.id}" aria-label="${item.name}">
+        <button class="profile-puzzle${styleClass}${selected ? " is-selected" : ""}${dimmed ? " is-dimmed" : ""}${locked ? " is-locked" : ""}${unfinished ? " is-undone" : ""}${stats.plays ? " is-complete" : ""}" type="button" data-profile-puzzle="${item.id}" aria-label="${item.name}">
+          ${
+            locked
+              ? `<span class="profile-lock" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z" />
+                  </svg>
+                </span>`
+              : ""
+          }
           <img src="${item.src}" width="${dimensions.width}" height="${dimensions.height}" alt="" loading="lazy" decoding="async" draggable="false" />
           <span>${item.name}</span>
           <small>${locked ? "Plus" : stats.plays ? `x${stats.plays}` : "0"}</small>
