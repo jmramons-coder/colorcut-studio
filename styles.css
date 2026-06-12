@@ -75,10 +75,13 @@ button {
 }
 
 .app-shell {
+  height: 100dvh;
   min-height: 100dvh;
+  max-height: 100dvh;
   display: grid;
   grid-template-rows: auto 1fr;
   background: var(--page-bg);
+  overflow: hidden;
 }
 
 .app-shell:fullscreen,
@@ -200,7 +203,7 @@ button {
   display: grid;
   min-height: 0;
   min-width: 0;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .picker-view,
@@ -215,7 +218,7 @@ button {
   grid-template-rows: auto auto minmax(0, 1fr);
   align-items: center;
   padding: clamp(12px, 3vw, 34px) 0;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .category-tabs,
@@ -343,9 +346,11 @@ button {
 .gallery-wrap {
   position: relative;
   width: 100%;
+  height: 100%;
   min-width: 0;
+  min-height: 0;
   max-width: 100vw;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .gallery-wrap::before,
@@ -371,7 +376,9 @@ button {
 
 .drawing-grid {
   width: 100%;
+  height: 100%;
   min-width: 0;
+  min-height: 0;
   max-width: 100vw;
   display: flex;
   align-items: center;
@@ -1959,7 +1966,7 @@ button {
 
   .drawing-grid {
     gap: 18px;
-    padding-block: 58px 72px;
+    padding-block: 34px 48px;
     padding-inline: max(calc((100vw - 300px) / 2), 42px);
   }
 
@@ -2091,14 +2098,15 @@ button {
   }
 
   .drawing-grid {
-    align-items: start;
-    padding-block: 48px 58px;
+    align-items: center;
+    padding-block: 22px 34px;
   }
 
   .drawing-card {
     padding: 16px;
     flex-basis: min(76vw, 300px);
-    min-height: min(52dvh, 330px);
+    min-height: 0;
+    height: min(100%, 330px);
   }
 
   .drawing-preview {

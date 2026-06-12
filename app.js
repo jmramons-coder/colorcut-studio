@@ -700,7 +700,7 @@ function updateProfileName() {
 }
 
 function imageDimensions(item) {
-  const maxSide = 960;
+  const maxSide = 900;
   const aspect = item.aspect || 1;
   if (aspect >= 1) {
     return {
