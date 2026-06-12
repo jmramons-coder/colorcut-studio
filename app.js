@@ -8,6 +8,16 @@ const BRUSH_SIZE = 42;
 const COLOR_COMPLETE_RATIO = 0.68;
 const PLUS_CHECKOUT_URL = "";
 const EARLY_ACCESS_URL = "mailto:hello@colorcut.studio?subject=ColorCut%20Plus%20early%20access";
+const PROFILE_STORAGE_KEY = "colorcut-profile-v1";
+
+const avatarOptions = [
+  { id: "core", label: "C", color: "#172026" },
+  { id: "sun", label: "S", color: "#f5b82e" },
+  { id: "leaf", label: "L", color: "#4f9f70" },
+  { id: "wave", label: "W", color: "#3f93bd" },
+  { id: "rose", label: "R", color: "#d96a6a" },
+  { id: "violet", label: "V", color: "#7d6ad9" }
+];
 
 const categories = [
   { id: "animals", name: "Animals", tier: "free" },
@@ -218,6 +228,8 @@ const dom = {
   drawingGrid: document.querySelector("#drawingGrid"),
   studioView: document.querySelector("#studioView"),
   parentButton: document.querySelector("#parentButton"),
+  profileButton: document.querySelector("#profileButton"),
+  profileButtonAvatar: document.querySelector("#profileButtonAvatar"),
   galleryButton: document.querySelector("#galleryButton"),
   fullscreenButton: document.querySelector("#fullscreenButton"),
   brand: document.querySelector(".brand"),
@@ -242,7 +254,16 @@ const dom = {
   parentGateAnswer: document.querySelector("#parentGateAnswer"),
   parentGateSubmit: document.querySelector("#parentGateSubmit"),
   parentGateError: document.querySelector("#parentGateError"),
-  parentCheckoutButton: document.querySelector("#parentCheckoutButton")
+  parentCheckoutButton: document.querySelector("#parentCheckoutButton"),
+  profileModal: document.querySelector("#profileModal"),
+  profileBackdrop: document.querySelector("#profileBackdrop"),
+  profileCloseButton: document.querySelector("#profileCloseButton"),
+  profileAvatarPreview: document.querySelector("#profileAvatarPreview"),
+  profileNameInput: document.querySelector("#profileNameInput"),
+  avatarPicker: document.querySelector("#avatarPicker"),
+  profileStats: document.querySelector("#profileStats"),
+  profileDetail: document.querySelector("#profileDetail"),
+  profilePuzzleGrid: document.querySelector("#profilePuzzleGrid")
 };
 
 const state = {
@@ -270,13 +291,17 @@ const state = {
   galleryScrollTimer: 0,
   resizeTimer: 0,
   parentGateAnswer: 0,
-  parentUnlocked: false
+  parentUnlocked: false,
+  profile: loadProfile(),
+  profileSelectedPuzzleId: null,
+  activityStartedAt: 0
 };
 
 installBrowserInteractionGuards();
 registerServiceWorker();
 renderPicker();
 bindControls();
+renderProfileButton();
 setStage("pick");
 
 function installBrowserInteractionGuards() {
@@ -323,6 +348,50 @@ function registerServiceWorker() {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("service-worker.js").catch(() => {});
   });
+}
+
+function loadProfile() {
+  const fallback = createDefaultProfile();
+  try {
+    const stored = JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || "null");
+    if (!stored || typeof stored !== "object") return fallback;
+
+    return {
+      version: 1,
+      name: sanitizeProfileName(stored.name) || fallback.name,
+      avatar: avatarOptions.some((avatar) => avatar.id === stored.avatar) ? stored.avatar : fallback.avatar,
+      completions: stored.completions && typeof stored.completions === "object" ? stored.completions : {}
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function createDefaultProfile() {
+  const names = ["Color Maker", "Puzzle Star", "Cut Artist", "Bright Builder"];
+  const index = Math.floor(Math.random() * names.length);
+  return {
+    version: 1,
+    name: names[index],
+    avatar: avatarOptions[index % avatarOptions.length].id,
+    completions: {}
+  };
+}
+
+function saveProfile() {
+  try {
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profile));
+  } catch {
+    // Progress is local-only for free profiles; if storage is unavailable, keep the session state.
+  }
+}
+
+function sanitizeProfileName(name) {
+  return String(name || "").replace(/\s+/g, " ").trim().slice(0, 18);
+}
+
+function avatarById(id) {
+  return avatarOptions.find((avatar) => avatar.id === id) || avatarOptions[0];
 }
 
 function renderPicker() {
@@ -448,6 +517,7 @@ function renderDrawingCards() {
 }
 
 function bindControls() {
+  dom.profileButton.addEventListener("click", showProfileModal);
   dom.parentButton.addEventListener("click", showParentModal);
   dom.galleryButton.addEventListener("click", showPicker);
   dom.fullscreenButton.addEventListener("click", toggleFullscreen);
@@ -456,11 +526,17 @@ function bindControls() {
   dom.finishRestartButton.addEventListener("click", restartCurrentAnimal);
   dom.parentBackdrop.addEventListener("click", hideParentModal);
   dom.parentCloseButton.addEventListener("click", hideParentModal);
+  dom.profileBackdrop.addEventListener("click", hideProfileModal);
+  dom.profileCloseButton.addEventListener("click", hideProfileModal);
+  dom.profileNameInput.addEventListener("input", updateProfileName);
   dom.parentGateSubmit.addEventListener("click", checkParentGate);
   dom.parentGateAnswer.addEventListener("keydown", (event) => {
     if (event.key === "Enter") checkParentGate();
   });
   dom.parentCheckoutButton.addEventListener("click", openPlusCheckout);
+  dom.avatarPicker.addEventListener("click", updateProfileAvatar);
+  dom.profilePuzzleGrid.addEventListener("click", selectProfilePuzzle);
+  dom.profileDetail.addEventListener("click", handleProfileDetailClick);
   dom.brand.addEventListener("click", (event) => {
     event.preventDefault();
     showPicker();
@@ -482,8 +558,176 @@ function bindControls() {
   document.addEventListener("fullscreenchange", syncFullscreenButton);
   document.addEventListener("webkitfullscreenchange", syncFullscreenButton);
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") hideParentModal();
+    if (event.key === "Escape") {
+      hideParentModal();
+      hideProfileModal();
+    }
   });
+}
+
+function showProfileModal() {
+  state.profileSelectedPuzzleId ||= firstCompletedPuzzleId() || firstFreePuzzleId();
+  renderProfilePanel();
+  dom.profileModal.hidden = false;
+  dom.profileModal.setAttribute("aria-hidden", "false");
+  window.setTimeout(() => dom.profileNameInput.focus(), 40);
+}
+
+function hideProfileModal() {
+  if (dom.profileModal.hidden) return;
+  dom.profileModal.hidden = true;
+  dom.profileModal.setAttribute("aria-hidden", "true");
+}
+
+function renderProfileButton() {
+  const avatar = avatarById(state.profile.avatar);
+  dom.profileButtonAvatar.textContent = avatar.label;
+  dom.profileButtonAvatar.style.setProperty("--avatar-color", avatar.color);
+}
+
+function renderProfilePanel() {
+  const avatar = avatarById(state.profile.avatar);
+  const totals = profileTotals();
+
+  dom.profileNameInput.value = state.profile.name;
+  dom.profileAvatarPreview.textContent = avatar.label;
+  dom.profileAvatarPreview.style.setProperty("--avatar-color", avatar.color);
+  dom.profileStats.innerHTML = `
+    <div>
+      <strong>${totals.completed}</strong>
+      <span>Completed</span>
+    </div>
+    <div>
+      <strong>${totals.plays}</strong>
+      <span>Total plays</span>
+    </div>
+    <div>
+      <strong>${formatDuration(totals.bestTime)}</strong>
+      <span>Best time</span>
+    </div>
+  `;
+
+  dom.avatarPicker.innerHTML = avatarOptions
+    .map((option) => `
+      <button class="avatar-choice${option.id === state.profile.avatar ? " is-active" : ""}" type="button" data-avatar="${option.id}" aria-label="Avatar ${option.label}">
+        <span style="--avatar-color: ${option.color}">${option.label}</span>
+      </button>
+    `)
+    .join("");
+
+  renderProfileDetail();
+  renderProfilePuzzleGrid();
+  renderProfileButton();
+}
+
+function renderProfileDetail() {
+  const item = libraryItems.find((puzzle) => puzzle.id === state.profileSelectedPuzzleId) || libraryItems[0];
+  const stats = puzzleStats(item.id);
+  const locked = item.tier === "plus";
+  const completed = stats.plays > 0;
+
+  dom.profileDetail.innerHTML = `
+    <div class="profile-detail-copy">
+      <span>${locked ? "Plus puzzle" : completed ? "Completed puzzle" : "Not completed yet"}</span>
+      <strong>${item.name}</strong>
+      <small>${completed ? `${stats.plays} play${stats.plays === 1 ? "" : "s"} · best ${formatDuration(stats.bestTime)} · last ${formatDate(stats.lastCompletedAt)}` : locked ? "Available with ColorCut Plus" : "Start it from the library or play it now."}</small>
+    </div>
+    <button class="profile-play-button" type="button" data-profile-play="${item.id}" ${locked ? "disabled" : ""}>
+      ${locked ? "Locked" : completed ? "Play again" : "Play"}
+    </button>
+  `;
+}
+
+function renderProfilePuzzleGrid() {
+  dom.profilePuzzleGrid.innerHTML = libraryItems
+    .map((item) => {
+      const stats = puzzleStats(item.id);
+      const locked = item.tier === "plus";
+      const selected = item.id === state.profileSelectedPuzzleId;
+      return `
+        <button class="profile-puzzle${selected ? " is-selected" : ""}${locked ? " is-locked" : ""}${stats.plays ? " is-complete" : ""}" type="button" data-profile-puzzle="${item.id}" aria-label="${item.name}">
+          <img src="${item.src}" alt="" loading="lazy" decoding="async" draggable="false" />
+          <span>${item.name}</span>
+          <small>${locked ? "Plus" : stats.plays ? `${stats.plays} done` : "Open"}</small>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function updateProfileName() {
+  const name = sanitizeProfileName(dom.profileNameInput.value);
+  state.profile.name = name || "Color Maker";
+  saveProfile();
+}
+
+function updateProfileAvatar(event) {
+  const button = event.target.closest("[data-avatar]");
+  if (!button) return;
+  state.profile.avatar = button.dataset.avatar;
+  saveProfile();
+  renderProfilePanel();
+  playPickSound();
+}
+
+function selectProfilePuzzle(event) {
+  const button = event.target.closest("[data-profile-puzzle]");
+  if (!button) return;
+  state.profileSelectedPuzzleId = button.dataset.profilePuzzle;
+  renderProfileDetail();
+  renderProfilePuzzleGrid();
+  playArrivalSound();
+}
+
+function handleProfileDetailClick(event) {
+  const button = event.target.closest("[data-profile-play]");
+  if (!button || button.disabled) return;
+  hideProfileModal();
+  selectAnimal(button.dataset.profilePlay);
+}
+
+function firstCompletedPuzzleId() {
+  const completed = libraryItems.find((item) => puzzleStats(item.id).plays > 0);
+  return completed?.id || null;
+}
+
+function firstFreePuzzleId() {
+  return libraryItems.find((item) => item.tier !== "plus")?.id || libraryItems[0]?.id || null;
+}
+
+function puzzleStats(id) {
+  return state.profile.completions[id] || {
+    plays: 0,
+    bestTime: 0,
+    lastDuration: 0,
+    lastCompletedAt: 0
+  };
+}
+
+function profileTotals() {
+  const values = Object.values(state.profile.completions);
+  return {
+    completed: values.filter((stats) => stats.plays > 0).length,
+    plays: values.reduce((total, stats) => total + (stats.plays || 0), 0),
+    bestTime: values.reduce((best, stats) => {
+      if (!stats.bestTime) return best;
+      return best ? Math.min(best, stats.bestTime) : stats.bestTime;
+    }, 0)
+  };
+}
+
+function formatDuration(ms) {
+  if (!ms) return "—";
+  const totalSeconds = Math.max(1, Math.round(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes ? `${minutes}:${String(seconds).padStart(2, "0")}` : `${seconds}s`;
+}
+
+function formatDate(timestamp) {
+  if (!timestamp) return "—";
+  const date = new Date(timestamp);
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function showParentModal() {
@@ -705,6 +949,7 @@ function selectAnimal(id) {
   state.pieces = [];
   state.activePiece = null;
   state.colorComplete = false;
+  state.activityStartedAt = Date.now();
 
   dom.pickerView.classList.add("is-hidden");
   dom.studioView.classList.remove("is-hidden");
@@ -714,6 +959,7 @@ function selectAnimal(id) {
   dom.colorBoard.classList.remove("is-mask-ready");
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
+  dom.colorArt.classList.remove("is-floating");
   hideFinishTray();
   dom.completePop.classList.remove("is-visible");
   dom.ghostArt.src = state.lineUrl;
@@ -1263,6 +1509,7 @@ function beginColoringMode() {
   dom.colorBoard.classList.remove("is-mask-ready");
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
+  dom.colorArt.classList.remove("is-floating");
   hideFinishTray();
   prepareColorCanvas();
 }
@@ -1396,8 +1643,27 @@ function completeColoring() {
   stopScratch();
   state.colorContext.clearRect(0, 0, dom.colorCanvas.width, dom.colorCanvas.height);
   dom.colorArt.classList.add("is-celebrating");
+  dom.colorArt.classList.add("is-floating");
+  recordPuzzleCompletion();
   showFinishTray();
   playColorCompleteSound();
+}
+
+function recordPuzzleCompletion() {
+  if (!state.animal) return;
+
+  const now = Date.now();
+  const duration = state.activityStartedAt ? now - state.activityStartedAt : 0;
+  const previous = puzzleStats(state.animal.id);
+  state.profile.completions[state.animal.id] = {
+    plays: previous.plays + 1,
+    bestTime: previous.bestTime && duration ? Math.min(previous.bestTime, duration) : duration || previous.bestTime,
+    lastDuration: duration || previous.lastDuration,
+    lastCompletedAt: now
+  };
+  state.profileSelectedPuzzleId = state.animal.id;
+  saveProfile();
+  renderProfileButton();
 }
 
 function canvasPoint(event) {

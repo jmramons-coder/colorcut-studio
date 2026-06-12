@@ -25,6 +25,10 @@
         </button>
 
         <div class="header-actions">
+          <button class="icon-button profile-button" id="profileButton" type="button" aria-label="Profile" title="Profile">
+            <span class="profile-button-avatar" id="profileButtonAvatar" aria-hidden="true">C</span>
+          </button>
+
           <button class="icon-button" id="parentButton" type="button" aria-label="Parents" title="Parents">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 3 4.7 5.8v5.4c0 4.6 2.9 8.4 7.3 9.8 4.4-1.4 7.3-5.2 7.3-9.8V5.8L12 3Zm0 2.6 4.9 1.9v3.7c0 3.2-1.8 5.9-4.9 7.1-3.1-1.2-4.9-3.9-4.9-7.1V7.5L12 5.6Zm-2.9 6.2 1.5-1.5 1.1 1.1 2.9-3 1.5 1.5-4.4 4.6-2.6-2.7Z" />
@@ -152,6 +156,36 @@
               <a href="terms.html">Terms</a>
             </div>
           </div>
+        </section>
+      </div>
+
+      <div class="profile-modal" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileTitle" aria-hidden="true" hidden>
+        <button class="profile-backdrop" id="profileBackdrop" type="button" aria-label="Close profile"></button>
+        <section class="profile-sheet" aria-label="Profile">
+          <button class="profile-close" id="profileCloseButton" type="button" aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6.4 4.9 5.6 5.6 5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6 1.5-1.5Z" />
+            </svg>
+          </button>
+
+          <div class="profile-head">
+            <div class="profile-avatar" id="profileAvatarPreview" aria-hidden="true">C</div>
+            <div>
+              <p class="modal-eyebrow">Local profile</p>
+              <h2 id="profileTitle">Puzzle progress</h2>
+            </div>
+          </div>
+
+          <label class="profile-name-field" for="profileNameInput">
+            <span>Name</span>
+            <input id="profileNameInput" type="text" maxlength="18" autocomplete="off" />
+          </label>
+
+          <div class="avatar-picker" id="avatarPicker" aria-label="Choose avatar"></div>
+
+          <div class="profile-stats" id="profileStats"></div>
+          <div class="profile-detail" id="profileDetail"></div>
+          <div class="profile-puzzle-grid" id="profilePuzzleGrid"></div>
         </section>
       </div>
     </div>
