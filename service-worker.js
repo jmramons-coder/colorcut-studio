@@ -1,4 +1,4 @@
-const CACHE_NAME = "colorcut-studio-v36";
+const CACHE_NAME = "colorcut-studio-v37";
 const APP_SHELL = [
   "./",
   "./index.html",
