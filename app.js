@@ -259,8 +259,8 @@ const dom = {
   profileBackdrop: document.querySelector("#profileBackdrop"),
   profileCloseButton: document.querySelector("#profileCloseButton"),
   profileAvatarPreview: document.querySelector("#profileAvatarPreview"),
+  profileTitle: document.querySelector("#profileTitle"),
   profileEditNameButton: document.querySelector("#profileEditNameButton"),
-  profileNameInput: document.querySelector("#profileNameInput"),
   avatarPrevButton: document.querySelector("#avatarPrevButton"),
   avatarNextButton: document.querySelector("#avatarNextButton"),
   profileStats: document.querySelector("#profileStats"),
@@ -532,10 +532,13 @@ function bindControls() {
   dom.profileBackdrop.addEventListener("click", hideProfileModal);
   dom.profileCloseButton.addEventListener("click", hideProfileModal);
   dom.profileEditNameButton.addEventListener("click", showProfileNameEditor);
-  dom.profileNameInput.addEventListener("input", updateProfileName);
-  dom.profileNameInput.addEventListener("blur", hideProfileNameEditor);
-  dom.profileNameInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") dom.profileNameInput.blur();
+  dom.profileTitle.addEventListener("input", updateProfileName);
+  dom.profileTitle.addEventListener("blur", hideProfileNameEditor);
+  dom.profileTitle.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      dom.profileTitle.blur();
+    }
   });
   dom.parentGateSubmit.addEventListener("click", checkParentGate);
   dom.parentGateAnswer.addEventListener("keydown", (event) => {
@@ -594,15 +597,22 @@ function renderProfileButton() {
   dom.profileButtonAvatar.style.setProperty("--avatar-color", avatar.color);
 }
 
+function updateProfileAvatarSurface() {
+  const avatar = avatarById(state.profile.avatar);
+  dom.profileAvatarPreview.textContent = avatar.label;
+  dom.profileAvatarPreview.style.setProperty("--avatar-color", avatar.color);
+  renderProfileButton();
+}
+
 function renderProfilePanel() {
   const avatar = avatarById(state.profile.avatar);
   const selectedItem = selectedProfilePuzzle();
   const totals = selectedItem ? profilePuzzleTotals(selectedItem.id) : profileTotals();
   const mode = selectedItem ? "Puzzle stats" : "All puzzles";
 
-  dom.profileNameInput.value = state.profile.name;
   dom.profileModal.classList.toggle("is-editing-name", state.profileEditingName);
-  document.querySelector("#profileTitle").textContent = state.profile.name;
+  dom.profileTitle.textContent = state.profile.name;
+  dom.profileTitle.contentEditable = state.profileEditingName ? "plaintext-only" : "false";
   dom.profileAvatarPreview.textContent = avatar.label;
   dom.profileAvatarPreview.style.setProperty("--avatar-color", avatar.color);
   dom.profileStats.innerHTML = `
@@ -629,14 +639,7 @@ function renderProfilePanel() {
 function renderProfileDetail() {
   const item = selectedProfilePuzzle();
   if (!item) {
-    const totals = profileTotals();
-    dom.profileDetail.innerHTML = `
-      <div class="profile-detail-copy">
-        <span>All puzzles</span>
-        <strong>${state.profile.name}</strong>
-        <small>${totals.completed ? `${totals.completed} completed · ${totals.plays} total plays` : "Complete a puzzle to start building your profile."}</small>
-      </div>
-    `;
+    dom.profileDetail.innerHTML = "";
     return;
   }
 
@@ -646,9 +649,9 @@ function renderProfileDetail() {
 
   dom.profileDetail.innerHTML = `
     <div class="profile-detail-copy">
-      <span>${locked ? "Plus puzzle" : completed ? "Completed puzzle" : "Not completed yet"}</span>
+      <span>${locked ? "Plus" : completed ? "Done" : "Open"}</span>
       <strong>${item.name}</strong>
-      <small>${completed ? `${stats.plays} play${stats.plays === 1 ? "" : "s"} · best ${formatDuration(stats.bestTime)} · last ${formatDate(stats.lastCompletedAt)}` : locked ? "Available with ColorCut Plus" : "Start it from the library or play it now."}</small>
+      <small>${completed ? `${stats.plays}x · ${formatDuration(stats.bestTime)} · ${formatDate(stats.lastCompletedAt)}` : locked ? "Plus" : "0x"}</small>
     </div>
     <button class="profile-play-button" type="button" data-profile-play="${item.id}" ${locked ? "disabled" : ""}>
       ${locked ? "Locked" : completed ? "Play again" : "Play"}
@@ -677,24 +680,28 @@ function renderProfilePuzzleGrid() {
 }
 
 function updateProfileName() {
-  const name = sanitizeProfileName(dom.profileNameInput.value);
+  const name = sanitizeProfileName(dom.profileTitle.textContent);
   state.profile.name = name || "Color Maker";
   saveProfile();
   renderProfileButton();
-  document.querySelector("#profileTitle").textContent = state.profile.name;
 }
 
 function showProfileNameEditor() {
   state.profileEditingName = true;
   renderProfilePanel();
   window.setTimeout(() => {
-    dom.profileNameInput.focus();
-    dom.profileNameInput.select();
+    const range = document.createRange();
+    range.selectNodeContents(dom.profileTitle);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    dom.profileTitle.focus();
   }, 20);
 }
 
 function hideProfileNameEditor() {
   state.profileEditingName = false;
+  dom.profileTitle.textContent = state.profile.name;
   renderProfilePanel();
 }
 
@@ -703,7 +710,7 @@ function cycleProfileAvatar(step) {
   const nextIndex = (index + step + avatarOptions.length) % avatarOptions.length;
   state.profile.avatar = avatarOptions[nextIndex].id;
   saveProfile();
-  renderProfilePanel();
+  updateProfileAvatarSurface();
   playPickSound();
 }
 
