@@ -3849,3 +3849,263 @@ body.info-body .site-proof span {
     height: clamp(210px, 58vw, 260px);
   }
 }
+
+body.info-body .preview-device {
+  overflow: hidden;
+}
+
+body.info-body .process-demo {
+  width: min(82%, 260px);
+  max-width: 100%;
+  aspect-ratio: 1;
+  overflow: visible;
+  transform: translateY(2px);
+}
+
+body.info-body .process-ghost,
+body.info-body .process-color {
+  inset: 9%;
+  background-image: url("assets/red-panda.webp");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+body.info-body .process-ghost {
+  opacity: 0.38;
+  filter: grayscale(1);
+  animation: miniPuzzleGhost 8s ease-in-out infinite;
+}
+
+body.info-body .process-piece {
+  width: 27.333%;
+  height: 27.333%;
+  border: 1.7px solid rgba(48, 61, 66, 0.42);
+  background-image: url("assets/red-panda.webp");
+  background-repeat: no-repeat;
+  background-size: 300% 300%;
+  opacity: 0;
+  filter:
+    grayscale(1)
+    drop-shadow(0 8px 9px rgba(29, 43, 49, 0.13));
+  animation: miniPuzzlePiece 8s cubic-bezier(0.18, 0.9, 0.22, 1) infinite;
+  transform-origin: center;
+}
+
+body.info-body .process-piece-one {
+  left: 9%;
+  top: 9%;
+  --sx: -42%;
+  --sy: -45%;
+  --sr: -11deg;
+  background-position: 0% 0%;
+  clip-path: polygon(0 0, 100% 0, 100% 62%, 82% 62%, 82% 82%, 61% 82%, 61% 100%, 0 100%);
+}
+
+body.info-body .process-piece-two {
+  left: 36.333%;
+  top: 9%;
+  --sx: 1%;
+  --sy: -58%;
+  --sr: 7deg;
+  background-position: 50% 0%;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 58% 100%, 58% 82%, 38% 82%, 38% 62%, 0 62%);
+}
+
+body.info-body .process-piece-three {
+  left: 63.666%;
+  top: 9%;
+  --sx: 43%;
+  --sy: -39%;
+  --sr: 12deg;
+  background-position: 100% 0%;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 62%, 18% 62%, 18% 42%, 0 42%);
+}
+
+body.info-body .process-piece-four {
+  left: 9%;
+  top: 36.333%;
+  --sx: -55%;
+  --sy: 2%;
+  --sr: 9deg;
+  background-position: 0% 50%;
+  clip-path: polygon(0 0, 61% 0, 61% 18%, 82% 18%, 82% 38%, 100% 38%, 100% 100%, 0 100%);
+}
+
+body.info-body .process-piece-five {
+  left: 36.333%;
+  top: 36.333%;
+  --sx: 2%;
+  --sy: 44%;
+  --sr: -8deg;
+  background-position: 50% 50%;
+  clip-path: polygon(18% 0, 38% 0, 38% 18%, 58% 18%, 58% 0, 100% 0, 100% 62%, 82% 62%, 82% 82%, 62% 82%, 62% 100%, 0 100%, 0 38%, 18% 38%);
+}
+
+body.info-body .process-piece-six {
+  left: 63.666%;
+  top: 36.333%;
+  --sx: 52%;
+  --sy: 9%;
+  --sr: -12deg;
+  background-position: 100% 50%;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 62%, 18% 62%, 18% 42%, 0 42%);
+}
+
+body.info-body .process-piece-seven {
+  left: 9%;
+  top: 63.666%;
+  --sx: -38%;
+  --sy: 46%;
+  --sr: -9deg;
+  background-position: 0% 100%;
+  clip-path: polygon(0 0, 100% 0, 100% 38%, 82% 38%, 82% 58%, 61% 58%, 61% 100%, 0 100%);
+}
+
+body.info-body .process-piece-eight {
+  left: 36.333%;
+  top: 63.666%;
+  --sx: -7%;
+  --sy: 60%;
+  --sr: 10deg;
+  background-position: 50% 100%;
+  clip-path: polygon(0 0, 38% 0, 38% 18%, 62% 18%, 62% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+body.info-body .process-piece-nine {
+  left: 63.666%;
+  top: 63.666%;
+  --sx: 45%;
+  --sy: 42%;
+  --sr: 8deg;
+  background-position: 100% 100%;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 38%, 18% 38%, 18% 58%, 0 58%);
+}
+
+body.info-body .process-color {
+  opacity: 0;
+  transform: scale(0.98);
+  filter:
+    drop-shadow(0 18px 22px rgba(29, 43, 49, 0.16))
+    drop-shadow(0 5px 7px rgba(29, 43, 49, 0.09));
+  animation: miniPuzzleColor 8s ease-in-out infinite;
+}
+
+body.info-body .process-scratch {
+  left: 17%;
+  top: 26%;
+  width: 32%;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    34px 34px 0 rgba(255, 255, 255, 0.9),
+    76px 70px 0 rgba(255, 255, 255, 0.86);
+  opacity: 0;
+  transform: rotate(-16deg);
+  animation: miniPuzzleScratch 8s ease-in-out infinite;
+}
+
+body.info-body .process-check {
+  width: 50px;
+  height: 50px;
+  animation: miniPuzzleCheck 8s ease-in-out infinite;
+}
+
+@keyframes miniPuzzlePiece {
+  0%, 8% {
+    opacity: 0;
+    transform: translate(var(--sx), var(--sy)) rotate(var(--sr)) scale(0.94);
+  }
+
+  14% {
+    opacity: 1;
+    transform: translate(var(--sx), var(--sy)) rotate(var(--sr)) scale(0.94);
+  }
+
+  42%, 61% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  72%, 100% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes miniPuzzleGhost {
+  0%, 62% {
+    opacity: 0.38;
+  }
+
+  72%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes miniPuzzleCheck {
+  0%, 43% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.72);
+  }
+
+  50%, 60% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.05);
+  }
+
+  68%, 100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.84);
+  }
+}
+
+@keyframes miniPuzzleColor {
+  0%, 63% {
+    opacity: 0;
+    transform: scale(0.98);
+    clip-path: inset(0 100% 0 0);
+  }
+
+  76% {
+    opacity: 1;
+    transform: scale(1.03);
+    clip-path: inset(0 0 0 0);
+  }
+
+  88% {
+    opacity: 1;
+    transform: scale(1);
+    clip-path: inset(0 0 0 0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.98);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes miniPuzzleScratch {
+  0%, 64% {
+    opacity: 0;
+    transform: translateX(-18px) rotate(-16deg);
+  }
+
+  70%, 82% {
+    opacity: 1;
+    transform: translateX(70px) rotate(-16deg);
+  }
+
+  90%, 100% {
+    opacity: 0;
+    transform: translateX(112px) rotate(-16deg);
+  }
+}
+
+@media (max-width: 820px) {
+  body.info-body .process-demo {
+    width: min(84%, 230px);
+  }
+}
