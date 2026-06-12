@@ -1,6 +1,6 @@
 {
-  "name": "ColorCut Studio",
-  "short_name": "ColorCut",
+  "name": "ColorPals Studio",
+  "short_name": "ColorPals",
   "description": "Ad-free puzzle coloring for calm iPad play.",
   "start_url": "index.html",
   "scope": "./",

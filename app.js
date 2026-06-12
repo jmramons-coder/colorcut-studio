@@ -526,7 +526,7 @@ function renderCategoryTabs() {
       const active = category.id === state.category;
       const locked = category.tier === "plus";
       return `
-        <button class="category-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-category="${category.id}" role="tab" aria-selected="${active}" aria-label="${category.name}${locked ? ", ColorCut Plus preview" : ""}">
+        <button class="category-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-category="${category.id}" role="tab" aria-selected="${active}" aria-label="${category.name}${locked ? ", ColorPals Plus preview" : ""}">
           ${categoryIcon(category.id)}
           <span>${category.name}</span>
         </button>
@@ -541,7 +541,7 @@ function renderDifficultyTabs() {
       const active = option.id === state.difficulty;
       const locked = option.tier === "plus";
       return `
-        <button class="difficulty-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-difficulty="${option.id}" role="tab" aria-selected="${active}" aria-label="${option.name}, ${option.label}${locked ? ", ColorCut Plus" : ""}">
+        <button class="difficulty-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-difficulty="${option.id}" role="tab" aria-selected="${active}" aria-label="${option.name}, ${option.label}${locked ? ", ColorPals Plus" : ""}">
           ${difficultyIcon(option.id)}
           <span>${option.name}</span>
           <small>${option.label}</small>
@@ -581,7 +581,7 @@ function renderDrawingCards() {
       const styleClass = animal.style ? ` is-${animal.style}` : "";
       const clone = visibleItems.length > 1 && (index < visibleItems.length || index >= visibleItems.length * 2);
       return `
-        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" data-loop-index="${index % Math.max(visibleItems.length, 1)}" aria-label="${animal.name}${locked ? ", ColorCut Plus" : ""}"${clone ? " aria-hidden=\"true\" tabindex=\"-1\"" : ""}>
+        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" data-loop-index="${index % Math.max(visibleItems.length, 1)}" aria-label="${animal.name}${locked ? ", ColorPals Plus" : ""}"${clone ? " aria-hidden=\"true\" tabindex=\"-1\"" : ""}>
           ${
             locked
               ? `<span class="drawing-lock" aria-hidden="true">
@@ -906,7 +906,8 @@ function showParentModal() {
   dom.parentModal.setAttribute("aria-hidden", "false");
   dom.parentModal.classList.toggle("is-unlocked", state.parentUnlocked);
   if (state.parentUnlocked) {
-    dom.parentCheckoutButton.focus();
+    dom.parentPanelStep.setAttribute("tabindex", "-1");
+    dom.parentPanelStep.focus({ preventScroll: true });
     return;
   }
 
@@ -942,7 +943,8 @@ function checkParentGate() {
   state.parentUnlocked = true;
   dom.parentGateError.textContent = "";
   dom.parentModal.classList.add("is-unlocked");
-  dom.parentCheckoutButton.focus();
+  dom.parentPanelStep.setAttribute("tabindex", "-1");
+  dom.parentPanelStep.focus({ preventScroll: true });
 }
 
 function showWaitlistModal() {
