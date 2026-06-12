@@ -286,9 +286,12 @@ const dom = {
   slotLayer: document.querySelector("#slotLayer"),
   pieceLayer: document.querySelector("#pieceLayer"),
   completePop: document.querySelector("#completePop"),
+  loadingSurface: document.querySelector("#loadingSurface"),
   spreadButton: document.querySelector("#spreadButton"),
   colorArt: document.querySelector("#colorArt"),
   colorCanvas: document.querySelector("#colorCanvas"),
+  scratchComplete: document.querySelector("#scratchComplete"),
+  finishSuggestions: document.querySelector("#finishSuggestions"),
   finishTray: document.querySelector("#finishTray"),
   finishLibraryButton: document.querySelector("#finishLibraryButton"),
   finishRestartButton: document.querySelector("#finishRestartButton"),
@@ -355,6 +358,7 @@ const state = {
   profileSelectedPuzzleId: null,
   profileEditingName: false,
   activityStartedAt: 0,
+  finishPromptTimer: 0,
   imagePromises: new Map()
 };
 
@@ -622,6 +626,7 @@ function bindControls() {
   dom.spreadButton.addEventListener("click", spreadLoosePieces);
   dom.finishLibraryButton.addEventListener("click", showPicker);
   dom.finishRestartButton.addEventListener("click", restartCurrentAnimal);
+  dom.finishSuggestions.addEventListener("click", handleFinishSuggestionClick);
   dom.parentBackdrop.addEventListener("click", hideParentModal);
   dom.parentCloseButton.addEventListener("click", hideParentModal);
   dom.profileBackdrop.addEventListener("click", hideProfileModal);
@@ -1177,6 +1182,54 @@ function hideFinishTray() {
   dom.finishTray.setAttribute("aria-hidden", "true");
 }
 
+function showFinishSuggestions() {
+  dom.finishSuggestions.classList.add("is-visible");
+  dom.finishSuggestions.setAttribute("aria-hidden", "false");
+}
+
+function hideFinishSuggestions() {
+  dom.finishSuggestions.classList.remove("is-visible");
+  dom.finishSuggestions.setAttribute("aria-hidden", "true");
+}
+
+function showScratchComplete() {
+  dom.scratchComplete.classList.remove("is-visible");
+  void dom.scratchComplete.offsetWidth;
+  dom.scratchComplete.classList.add("is-visible");
+  dom.scratchComplete.setAttribute("aria-hidden", "false");
+}
+
+function hideScratchComplete() {
+  dom.scratchComplete.classList.remove("is-visible");
+  dom.scratchComplete.setAttribute("aria-hidden", "true");
+}
+
+function showLoadingSurface() {
+  dom.loadingSurface.classList.add("is-visible");
+  dom.loadingSurface.setAttribute("aria-hidden", "false");
+}
+
+function hideLoadingSurface() {
+  dom.loadingSurface.classList.remove("is-visible");
+  dom.loadingSurface.setAttribute("aria-hidden", "true");
+}
+
+function hideFinishExperience() {
+  window.clearTimeout(state.finishPromptTimer);
+  hideFinishTray();
+  hideFinishSuggestions();
+  hideScratchComplete();
+}
+
+function handleFinishSuggestionClick(event) {
+  const button = event.target.closest("[data-premium-teaser]");
+  if (!button) return;
+
+  ensureAudioContext();
+  playPickSound();
+  showParentModal();
+}
+
 function restartCurrentAnimal() {
   if (!state.animal) {
     showPicker();
@@ -1201,7 +1254,8 @@ function showPicker() {
   dom.colorBoard.classList.remove("is-entering");
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
-  hideFinishTray();
+  hideLoadingSurface();
+  hideFinishExperience();
   updateActivityHint("");
   dom.completePop.classList.remove("is-visible");
   dom.puzzleBoard.classList.remove("is-complete");
@@ -1234,14 +1288,20 @@ function selectAnimal(id) {
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
   dom.colorArt.classList.remove("is-floating");
-  hideFinishTray();
-  updateActivityHint("Move the pieces near the pale picture. They snap in place.");
+  hideFinishExperience();
+  showLoadingSurface();
+  updateActivityHint("");
   dom.completePop.classList.remove("is-visible");
   dom.ghostArt.src = state.lineUrl;
   dom.colorArt.src = state.colorUrl;
   setStage("build");
 
-  warmImage(state.lineUrl).finally(() => requestAnimationFrame(buildPuzzle));
+  warmImage(state.lineUrl).finally(() =>
+    requestAnimationFrame(() => {
+      if (state.stage !== "build" || state.animal?.id !== id) return;
+      buildPuzzle();
+    })
+  );
 }
 
 function warmImage(src) {
@@ -1696,6 +1756,9 @@ function buildPuzzle() {
     dom.pieceLayer.append(piece);
     state.pieces.push(model);
   }
+
+  hideLoadingSurface();
+  updateActivityHint("Move the pieces near the pale picture. They snap in place.");
 }
 
 function spreadLoosePieces() {
@@ -1837,6 +1900,8 @@ function checkPuzzleComplete() {
 
 function beginColoringMode() {
   setStage("color");
+  hideLoadingSurface();
+  hideFinishExperience();
   updateActivityHint("Scratch over the gray picture to reveal the color.");
   dom.puzzleBoard.style.display = "none";
   dom.puzzleBoard.classList.remove("is-exiting");
@@ -1847,7 +1912,6 @@ function beginColoringMode() {
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
   dom.colorArt.classList.remove("is-floating");
-  hideFinishTray();
   prepareColorCanvas();
   window.setTimeout(() => dom.colorBoard.classList.remove("is-entering"), 620);
 }
@@ -1884,7 +1948,7 @@ function prepareColorCanvas() {
   dom.colorBoard.classList.remove("is-complete");
   dom.colorArt.classList.remove("is-visible");
   dom.colorArt.classList.remove("is-celebrating");
-  hideFinishTray();
+  hideFinishExperience();
 
   const image = new Image();
   image.onload = () => {
@@ -1985,7 +2049,13 @@ function completeColoring() {
   dom.colorArt.classList.add("is-floating");
   dom.colorBoard.classList.add("is-complete");
   recordPuzzleCompletion();
-  showFinishTray();
+  showScratchComplete();
+  window.clearTimeout(state.finishPromptTimer);
+  state.finishPromptTimer = window.setTimeout(() => {
+    if (state.stage !== "color" || !state.colorComplete) return;
+    showFinishSuggestions();
+    showFinishTray();
+  }, 520);
   updateActivityHint("");
   playColorCompleteSound();
   pulseHaptic([14, 36, 22]);

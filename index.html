@@ -9,7 +9,8 @@
     <meta name="theme-color" content="#f6f7f4" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="ColorPals" />
-    <link rel="stylesheet" href="styles.css?v=conversion-20260612" />
+    <link rel="preload" as="image" href="assets/red-panda.webp" fetchpriority="high" />
+    <link rel="stylesheet" href="styles.css?v=first60-20260612" />
   </head>
   <body class="app-body">
     <div class="app-shell">
@@ -84,9 +85,41 @@
                 </button>
               </div>
 
+              <div class="loading-surface" id="loadingSurface" aria-hidden="true">
+                <span class="loading-shimmer" aria-hidden="true"></span>
+              </div>
+
               <div class="color-board is-hidden" id="colorBoard" aria-label="Coloring board">
                 <img class="color-art" id="colorArt" alt="" />
                 <canvas id="colorCanvas"></canvas>
+              </div>
+
+              <div class="scratch-complete" id="scratchComplete" aria-hidden="true">
+                <span class="scratch-complete-sparkle" aria-hidden="true"></span>
+                <strong>Bravo!</strong>
+                <small>Color revealed</small>
+              </div>
+
+              <div class="finish-suggestions" id="finishSuggestions" aria-hidden="true">
+                <span class="finish-suggestions-label">Try another</span>
+                <button class="finish-suggestion" type="button" data-premium-teaser="dinosaurs" aria-label="Try a locked dinosaur puzzle">
+                  <img src="assets/t-rex.webp" width="565" height="1003" alt="" loading="lazy" decoding="async" draggable="false" />
+                  <span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z" />
+                    </svg>
+                    Plus
+                  </span>
+                </button>
+                <button class="finish-suggestion" type="button" data-premium-teaser="space" aria-label="Try a locked space puzzle">
+                  <img src="assets/astronaut.webp" width="600" height="900" alt="" loading="lazy" decoding="async" draggable="false" />
+                  <span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z" />
+                    </svg>
+                    Plus
+                  </span>
+                </button>
               </div>
 
               <div class="finish-tray" id="finishTray" aria-hidden="true">
@@ -229,6 +262,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=conversion-20260612"></script>
+    <script src="app.js?v=first60-20260612"></script>
   </body>
 </html>
