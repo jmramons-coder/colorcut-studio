@@ -1238,11 +1238,11 @@ button {
 .finish-tray {
   position: absolute;
   left: 50%;
-  bottom: max(18px, env(safe-area-inset-bottom));
+  bottom: max(12px, env(safe-area-inset-bottom));
   z-index: 50;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   padding: 0;
   border-radius: 0;
   background: transparent;
@@ -1304,8 +1304,8 @@ button {
 .finish-button {
   display: grid;
   place-items: center;
-  width: 78px;
-  height: 78px;
+  width: 64px;
+  height: 64px;
   padding: 0;
   border-radius: 999px;
   font-weight: 850;
@@ -1319,8 +1319,8 @@ button {
 }
 
 .finish-button img {
-  width: 66%;
-  height: 66%;
+  width: 62%;
+  height: 62%;
   object-fit: contain;
   filter:
     drop-shadow(0 2px 0 rgba(255, 255, 255, 0.28))
@@ -1331,13 +1331,13 @@ button {
 }
 
 .finish-button svg {
-  width: 43px;
-  height: 43px;
+  width: 32px;
+  height: 32px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.65;
+  stroke-width: 2.45;
   filter: drop-shadow(0 2px 0 rgba(255, 255, 255, 0.26));
 }
 
@@ -1358,16 +1358,16 @@ button {
 .scratch-complete {
   position: absolute;
   left: 50%;
-  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 156px);
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 126px);
   z-index: 56;
-  min-width: 164px;
-  min-height: 54px;
+  min-width: 142px;
+  min-height: 46px;
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
   align-items: center;
-  column-gap: 9px;
-  padding: 9px 17px 10px 15px;
+  column-gap: 7px;
+  padding: 7px 14px 8px 12px;
   border: 2px solid rgba(109, 177, 133, 0.58);
   border-radius: 999px;
   background:
@@ -1388,8 +1388,8 @@ button {
 .scratch-complete::after,
 .scratch-complete-sparkle {
   content: "";
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
   background: #55b977;
   opacity: 0.75;
@@ -1413,8 +1413,8 @@ button {
 
 .scratch-complete-sparkle {
   grid-row: 1 / 3;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   display: block;
   background:
     radial-gradient(circle at 50% 16%, #55b977 0 3px, transparent 4px),
@@ -1428,7 +1428,7 @@ button {
   font-family:
     ui-rounded, "Arial Rounded MT Bold", Inter, ui-sans-serif, system-ui,
     sans-serif;
-  font-size: 1.02rem;
+  font-size: 0.9rem;
   line-height: 1;
   font-weight: 950;
 }
@@ -1436,7 +1436,7 @@ button {
 .scratch-complete small {
   display: block;
   color: rgba(39, 112, 75, 0.72);
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 900;
   line-height: 1.05;
 }
@@ -1450,12 +1450,12 @@ button {
 .finish-suggestions {
   position: absolute;
   left: 50%;
-  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 88px);
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 72px);
   z-index: 55;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 14px) scale(0.94);
@@ -1471,25 +1471,13 @@ button {
 }
 
 .finish-suggestions-label {
-  min-height: 34px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 13px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82);
-  color: rgba(23, 32, 38, 0.72);
-  box-shadow:
-    inset 0 0 0 1px rgba(23, 32, 38, 0.04),
-    0 10px 22px rgba(31, 49, 56, 0.08);
-  font-size: 0.78rem;
-  font-weight: 950;
-  white-space: nowrap;
+  display: none;
 }
 
 .finish-suggestion {
   position: relative;
-  width: 68px;
-  height: 68px;
+  width: 58px;
+  height: 58px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -1520,36 +1508,64 @@ button {
 }
 
 .finish-suggestion img {
-  width: 78%;
-  height: 78%;
+  width: 76%;
+  height: 76%;
   object-fit: contain;
-  filter: drop-shadow(0 7px 8px rgba(31, 49, 56, 0.14));
+  filter: drop-shadow(0 6px 7px rgba(31, 49, 56, 0.13));
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
 }
 
-.finish-suggestion span {
+.finish-plus-badge {
   position: absolute;
-  right: -7px;
+  right: -6px;
   bottom: -5px;
-  min-height: 22px;
+  min-height: 19px;
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 0 7px;
+  padding: 0 6px;
   border-radius: 999px;
   background: #172026;
   color: #ffffff;
   box-shadow: 0 8px 15px rgba(31, 49, 56, 0.17);
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   font-weight: 950;
 }
 
-.finish-suggestion svg {
-  width: 10px;
-  height: 10px;
+.finish-plus-badge svg {
+  width: 9px;
+  height: 9px;
   fill: currentColor;
+}
+
+.finish-done-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.96);
+  border-radius: 999px;
+  background: #58bd78;
+  color: #ffffff;
+  box-shadow:
+    0 2px 0 rgba(45, 132, 78, 0.36),
+    0 7px 12px rgba(31, 49, 56, 0.14);
+  pointer-events: none;
+}
+
+.finish-done-badge svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 @keyframes colorPop {
@@ -3961,20 +3977,20 @@ button {
 }
 
 .finish-button:not(.is-primary) img {
-  width: 96%;
-  height: 96%;
-  transform: scale(1.16);
+  width: 82%;
+  height: 82%;
+  transform: scale(1.04);
   filter:
     drop-shadow(0 2px 0 rgba(255, 255, 255, 0.34))
     drop-shadow(0 3px 2px rgba(116, 48, 38, 0.18));
 }
 
 .finish-button.is-primary svg {
-  width: 46px;
-  height: 46px;
+  width: 31px;
+  height: 31px;
   fill: none;
   stroke: #7a3033;
-  stroke-width: 3;
+  stroke-width: 2.45;
   stroke-linecap: round;
   stroke-linejoin: round;
   filter:

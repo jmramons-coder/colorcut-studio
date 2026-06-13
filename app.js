@@ -2304,23 +2304,39 @@ function hideFinishExperience() {
 
 function renderFinishSuggestions() {
   const plusActive = isParentPlusActive();
-  const suggestions = plusActive
-    ? libraryItems.filter((item) => item.id !== state.animal?.id).slice(0, 3)
-    : libraryItems.filter((item) => item.tier === "plus").slice(0, 3);
+  const currentId = state.animal?.id;
+  const availableItems = libraryItems.filter((item) => item.id !== currentId);
+  const freeItems = availableItems.filter((item) => item.tier !== "plus");
+  const plusItems = availableItems.filter((item) => item.tier === "plus");
+  const nextFreeItem = freeItems.find((item) => !puzzleStats(item.id).plays) || freeItems[0];
+  const suggestionPool = plusActive
+    ? availableItems
+    : [nextFreeItem, ...plusItems.slice(0, 2), ...freeItems.slice(0, 2)];
+  const suggestions = Array.from(
+    new Map(suggestionPool.filter(Boolean).map((item) => [item.id, item])).values()
+  ).slice(0, 3);
 
   dom.finishSuggestions.innerHTML = `
-    <span class="finish-suggestions-label">${plusActive ? "Try another" : "Unlock bigger puzzles"}</span>
     ${suggestions
-      .map((item) => `
-        <button class="finish-suggestion${!plusActive ? " is-premium" : ""}" type="button" data-finish-animal="${item.id}" data-locked="${isPlusLocked(item)}" aria-label="${isPlusLocked(item) ? `Unlock ${item.name}` : `Try ${item.name}`}">
+      .map((item) => {
+        const locked = isPlusLocked(item);
+        const played = puzzleStats(item.id).plays > 0;
+        return `
+        <button class="finish-suggestion${locked ? " is-premium" : ""}${played ? " is-done" : ""}" type="button" data-finish-animal="${item.id}" data-locked="${locked}" aria-label="${locked ? `Unlock ${item.name}` : `Try ${item.name}`}${played ? ", already completed" : ""}">
           <img src="${item.src}" alt="" loading="lazy" decoding="async" />
           ${
-            isPlusLocked(item)
-              ? `<span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z"/></svg> Plus</span>`
+            locked
+              ? `<span class="finish-plus-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z"/></svg> Plus</span>`
+              : ""
+          }
+          ${
+            played
+              ? `<span class="finish-done-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m6.7 12.4 3.2 3.2 7.4-7.4" /></svg></span>`
               : ""
           }
         </button>
-      `)
+      `;
+      })
       .join("")}
   `;
 }
