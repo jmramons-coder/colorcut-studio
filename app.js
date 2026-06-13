@@ -1244,6 +1244,8 @@ function renderParentAuth(message = "") {
   const resetEmail = state.parentResetEmail || "";
   const modeEmail = passwordMode ? checkoutEmail : resetMode ? resetEmail : "";
   dom.parentAuthSummary.hidden = !signedIn;
+  dom.parentAuthModal.classList.toggle("is-busy", state.parentAuthBusy);
+  dom.parentAuthModal.setAttribute("aria-busy", String(state.parentAuthBusy));
   dom.parentAuthForm.hidden = signedIn;
   dom.parentAuthFooter.hidden = signedIn || setupMode;
   dom.parentAuthEmailStep.hidden = signedIn;
@@ -1270,7 +1272,7 @@ function renderParentAuth(message = "") {
   dom.profileSubscribeButton.hidden = false;
   dom.profileSubscribeButton.textContent = signedIn && plusActive ? "Manage" : "Subscribe";
   dom.profileSubscribeButton.dataset.billingAction = signedIn && plusActive ? "account" : "subscribe";
-  dom.parentButton.hidden = plusActive;
+  dom.parentButton.hidden = signedIn;
   dom.parentAuthManageBillingButton.hidden = !plusActive;
   dom.parentAuthCancelPlanButton.hidden = !plusActive;
   dom.parentAuthEmailButton.hidden = !forgotMode;

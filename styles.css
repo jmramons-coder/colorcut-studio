@@ -2636,6 +2636,11 @@ button {
 .parent-auth-form {
   display: grid;
   gap: 12px;
+  transition: opacity 160ms ease;
+}
+
+.auth-modal.is-busy .parent-auth-form {
+  opacity: 0.82;
 }
 
 .parent-auth-field {
@@ -2671,6 +2676,41 @@ button {
   color: #4e6d67;
   font-size: 0.86rem;
   font-weight: 850;
+}
+
+.auth-modal.is-busy #parentAuthPasswordButton,
+.auth-modal.is-busy #parentAuthEmailButton,
+.auth-modal.is-busy #parentAuthSendButton {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.auth-modal.is-busy #parentAuthPasswordButton::after,
+.auth-modal.is-busy #parentAuthEmailButton::after,
+.auth-modal.is-busy #parentAuthSendButton::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 3px solid rgba(122, 48, 51, 0.24);
+  border-top-color: #7a3033;
+  border-radius: 999px;
+  animation: authButtonSpin 720ms linear infinite;
+}
+
+#parentAuthSendButton::after {
+  border-color: rgba(53, 109, 108, 0.22);
+  border-top-color: #356d6c;
+}
+
+@keyframes authButtonSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .parent-auth-footer {
