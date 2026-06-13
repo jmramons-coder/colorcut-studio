@@ -60,15 +60,6 @@
         </button>
 
         <div class="header-actions">
-          <button class="icon-button profile-button" id="profileButton" type="button" aria-label="Profile" title="Profile">
-            <span class="profile-button-avatar" id="profileButtonAvatar" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M12 12.2a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Z" />
-                <path d="M5.4 19.2c.9-3 3.4-4.7 6.6-4.7s5.7 1.7 6.6 4.7" />
-              </svg>
-            </span>
-          </button>
-
           <button class="icon-button" id="galleryButton" type="button" aria-label="Choose another drawing" title="Choose another drawing">
             <img src="assets/icon-library-puzzles.webp" width="512" height="512" alt="" draggable="false" />
           </button>
@@ -90,6 +81,15 @@
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 10V4h6v2.4H6.4V10H4Zm10-6h6v6h-2.4V6.4H14V4ZM4 14h2.4v3.6H10V20H4v-6Zm17.6 0H20v6h-6v-2.4h3.6V14Z" />
             </svg>
+          </button>
+
+          <button class="icon-button profile-button" id="profileButton" type="button" aria-label="Profile" title="Profile">
+            <span class="profile-button-avatar" id="profileButtonAvatar" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 12.2a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Z" />
+                <path d="M5.4 19.2c.9-3 3.4-4.7 6.6-4.7s5.7 1.7 6.6 4.7" />
+              </svg>
+            </span>
           </button>
         </div>
       </header>
@@ -314,15 +314,6 @@
                 <input id="parentAuthEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" />
                 <button class="parent-primary" id="parentAuthSendButton" type="button">Send link</button>
               </div>
-            </label>
-            <label class="parent-auth-field" id="parentAuthCodeStep" for="parentAuthCode" hidden>
-              <span>Code</span>
-              <div>
-                <input id="parentAuthCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" />
-                <button class="parent-primary" id="parentAuthVerifyButton" type="button">Login</button>
-              </div>
-              <button class="parent-link-button parent-auth-resend" id="parentAuthResendButton" type="button">Resend email</button>
-              <button class="parent-link-button parent-auth-change-email" id="parentAuthChangeEmailButton" type="button">Use another email</button>
             </label>
             <p class="parent-auth-status" id="parentAuthStatus" role="status" aria-live="polite"></p>
           </form>

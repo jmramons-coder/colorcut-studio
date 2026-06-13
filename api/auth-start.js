@@ -1,4 +1,27 @@
-const { isValidEmail, json, normalizeEmail, readJson, supabasePublic } = require("./_supabase");
+const { isValidEmail, json, normalizeEmail, readJson, supabaseAdmin, supabasePublic } = require("./_supabase");
+
+const MEMBER_STATUSES = new Set(["plus", "active", "trialing"]);
+
+async function memberProfileForEmail(email) {
+  const supabase = supabaseAdmin();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("email,subscription_status,stripe_customer_id")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const status = String(data.subscription_status || "").toLowerCase();
+  if (MEMBER_STATUSES.has(status) || data.stripe_customer_id) {
+    return data;
+  }
+
+  return null;
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -12,6 +35,16 @@ module.exports = async function handler(req, res) {
 
     if (!isValidEmail(email)) {
       json(res, 400, { ok: false, message: "Enter a valid email." });
+      return;
+    }
+
+    const memberProfile = await memberProfileForEmail(email);
+    if (!memberProfile) {
+      json(res, 404, {
+        ok: false,
+        code: "account_not_found",
+        message: "No member account found for this email. Subscribe first, then log in with your checkout email."
+      });
       return;
     }
 
@@ -36,7 +69,7 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     json(res, 500, {
       ok: false,
-      message: error.message || "Could not send the login code."
+      message: error.message || "Could not send the login link."
     });
   }
 };
