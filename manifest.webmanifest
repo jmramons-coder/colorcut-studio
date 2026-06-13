@@ -1,7 +1,7 @@
 {
   "name": "ColorPals Studio",
   "short_name": "ColorPals",
-  "description": "Ad-free puzzle coloring for calm iPad play.",
+  "description": "Calm puzzle coloring for iPad kids. Build cutout puzzles, then scratch to reveal color.",
   "start_url": "index.html",
   "scope": "./",
   "display": "standalone",

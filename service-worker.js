@@ -1,10 +1,13 @@
-const CACHE_NAME = "colorpals-studio-v15";
+const CACHE_NAME = "colorpals-studio-v16";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./parents.html",
   "./privacy.html",
   "./terms.html",
+  "./robots.txt",
+  "./sitemap.xml",
+  "./llms.txt",
   "./styles.css",
   "./app.js",
   "./site.js",
