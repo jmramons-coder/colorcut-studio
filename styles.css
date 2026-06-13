@@ -2551,6 +2551,13 @@ button {
   font-size: 0.82rem;
 }
 
+.parent-auth-actions .parent-auth-cancel-plan {
+  border-color: rgba(23, 32, 38, 0.1);
+  background: rgba(23, 32, 38, 0.05);
+  color: rgba(23, 32, 38, 0.72);
+  box-shadow: none;
+}
+
 .parent-auth-form {
   display: grid;
   gap: 12px;

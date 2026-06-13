@@ -320,7 +320,9 @@ const dom = {
   parentAuthFooter: document.querySelector("#parentAuthFooter"),
   parentAuthSummary: document.querySelector("#parentAuthSummary"),
   parentAuthEmailLabel: document.querySelector("#parentAuthEmailLabel"),
+  parentAuthEditEmailButton: document.querySelector("#parentAuthEditEmailButton"),
   parentAuthManageBillingButton: document.querySelector("#parentAuthManageBillingButton"),
+  parentAuthCancelPlanButton: document.querySelector("#parentAuthCancelPlanButton"),
   parentAuthLogoutButton: document.querySelector("#parentAuthLogoutButton"),
   parentAuthSubscribeButton: document.querySelector("#parentAuthSubscribeButton"),
   parentAuthEmailStep: document.querySelector("#parentAuthEmailStep"),
@@ -711,7 +713,9 @@ function bindControls() {
   dom.parentAuthBackdrop.addEventListener("click", hideParentAuthModal);
   dom.parentAuthCloseButton.addEventListener("click", hideParentAuthModal);
   dom.parentAuthSendButton.addEventListener("click", startParentAuth);
+  dom.parentAuthEditEmailButton.addEventListener("click", editParentAccountEmail);
   dom.parentAuthManageBillingButton.addEventListener("click", openBillingPortal);
+  dom.parentAuthCancelPlanButton.addEventListener("click", openBillingPortal);
   dom.parentAuthLogoutButton.addEventListener("click", logoutParentAccount);
   dom.parentAuthSubscribeButton.addEventListener("click", openSubscribeFromAuth);
   dom.parentAuthEmail.addEventListener("keydown", (event) => {
@@ -1105,6 +1109,7 @@ function renderParentAuth(message = "") {
   dom.profileSubscribeButton.dataset.billingAction = signedIn ? "account" : "subscribe";
   dom.parentButton.hidden = false;
   dom.parentAuthManageBillingButton.hidden = !plusActive;
+  dom.parentAuthCancelPlanButton.hidden = !plusActive;
   dom.parentAuthSendButton.textContent = cooldownSeconds
     ? `Try again in ${cooldownSeconds}s`
     : state.parentAuthPendingEmail && !signedIn
@@ -1247,6 +1252,15 @@ function logoutParentAccount() {
   dom.parentAuthEmail.value = "";
   hideParentAuthModal();
   renderParentAuth("Logged out.");
+}
+
+function editParentAccountEmail() {
+  saveParentAuth(null);
+  state.parentAuthPendingEmail = "";
+  state.parentAuthCooldownUntil = 0;
+  dom.parentAuthEmail.value = "";
+  renderParentAuth("Enter the new checkout email.");
+  window.setTimeout(() => dom.parentAuthEmail.focus(), 40);
 }
 
 function openSubscribeFromAuth() {
