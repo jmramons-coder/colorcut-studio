@@ -30,13 +30,13 @@ async function checkoutEmail(sessionId) {
   const session = await stripe.checkout.sessions.retrieve(sessionId);
   const email = normalizeEmail(session.customer_details?.email || session.customer_email);
 
-  if (!email || (session.payment_status !== "paid" && !session.subscription)) {
+  if (!email || session.payment_status !== "paid") {
     return "";
   }
 
   const supabase = supabaseAdmin();
   if (supabase) {
-    await supabase.from("profiles").upsert(
+    const { error } = await supabase.from("profiles").upsert(
       {
         email,
         stripe_customer_id: typeof session.customer === "string" ? session.customer : session.customer?.id || null,
@@ -44,6 +44,7 @@ async function checkoutEmail(sessionId) {
       },
       { onConflict: "email" }
     );
+    if (error) throw error;
   }
 
   return email;
@@ -58,11 +59,15 @@ module.exports = async function handler(req, res) {
   try {
     const body = await readJson(req);
     const password = String(body.password || "");
-    const sessionEmail = await checkoutEmail(String(body.checkoutSessionId || body.sessionId || "").trim());
-    const email = sessionEmail || normalizeEmail(body.email);
+    const checkoutSessionId = String(body.checkoutSessionId || body.sessionId || "").trim();
+    const email = await checkoutEmail(checkoutSessionId);
 
     if (!isValidEmail(email)) {
-      json(res, 400, { ok: false, message: "Enter a valid email." });
+      json(res, 401, {
+        ok: false,
+        code: "checkout_required",
+        message: "Open account setup from your completed checkout."
+      });
       return;
     }
 
