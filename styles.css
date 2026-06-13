@@ -2353,6 +2353,88 @@ button {
   line-height: 1.5;
 }
 
+.parent-auth-card {
+  margin-top: 18px;
+  padding: 14px;
+  border: 2px solid rgba(23, 32, 38, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.parent-auth-summary {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+}
+
+.parent-auth-summary span,
+.parent-auth-field span {
+  color: rgba(23, 32, 38, 0.56);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.parent-auth-summary strong {
+  color: #172026;
+  font-size: 0.98rem;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+}
+
+.parent-auth-form {
+  display: grid;
+  gap: 12px;
+}
+
+.parent-auth-field {
+  display: grid;
+  gap: 7px;
+}
+
+.parent-auth-field div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.parent-auth-field input {
+  width: 100%;
+  height: 44px;
+  min-width: 0;
+  padding: 0 13px;
+  border: 2px solid rgba(23, 32, 38, 0.14);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #172026;
+  font-weight: 850;
+}
+
+.parent-auth-field input:disabled {
+  opacity: 0.7;
+}
+
+.parent-auth-status {
+  min-height: 1.2em;
+  margin: 0;
+  color: #4e6d67;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.parent-link-button {
+  width: max-content;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #477a73;
+  font-size: 0.84rem;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .parent-policy-links {
   display: flex;
   flex-wrap: wrap;
@@ -3080,6 +3162,10 @@ button {
   .parent-primary,
   .parent-secondary {
     width: 100%;
+  }
+
+  .parent-auth-field div {
+    grid-template-columns: 1fr;
   }
 
   .site-hero {

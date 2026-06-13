@@ -56,10 +56,82 @@ function supabaseAdmin() {
   });
 }
 
+function supabasePublic() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+
+  if (!url || !key) return null;
+
+  return createClient(url, key, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+}
+
+function bearerToken(req) {
+  const value = req.headers.authorization || "";
+  const match = value.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : "";
+}
+
+function publicProfile(profile) {
+  if (!profile) return null;
+  return {
+    id: profile.id,
+    email: profile.email,
+    displayName: profile.display_name,
+    avatar: profile.avatar,
+    subscriptionStatus: profile.subscription_status
+  };
+}
+
+async function upsertProfileForUser(user) {
+  const supabase = supabaseAdmin();
+  if (!supabase || !user?.id || !user?.email) {
+    return null;
+  }
+
+  const { data: existing, error: selectError } = await supabase
+    .from("profiles")
+    .select("id,email,display_name,avatar,subscription_status")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (selectError) {
+    throw selectError;
+  }
+
+  if (existing) {
+    return publicProfile(existing);
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .insert({
+      auth_user_id: user.id,
+      email: user.email,
+      display_name: user.user_metadata?.display_name || "Color Maker"
+    })
+    .select("id,email,display_name,avatar,subscription_status")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return publicProfile(data);
+}
+
 module.exports = {
+  bearerToken,
   isValidEmail,
   json,
   normalizeEmail,
+  publicProfile,
   readJson,
-  supabaseAdmin
+  supabaseAdmin,
+  supabasePublic,
+  upsertProfileForUser
 };

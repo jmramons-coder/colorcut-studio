@@ -24,7 +24,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="ColorPals" />
     <link rel="preload" as="image" href="assets/red-panda.webp" fetchpriority="high" />
-    <link rel="stylesheet" href="styles.css?v=supabase-waitlist-20260612" />
+    <link rel="stylesheet" href="styles.css?v=parent-otp-auth-20260612" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -222,8 +222,32 @@
               <li>Dinosaur and space pack previews, with more premium packs planned.</li>
               <li>Offline play, printable coloring sheets, and classroom mode.</li>
             </ul>
+            <div class="parent-auth-card" id="parentAuthCard">
+              <div class="parent-auth-summary" id="parentAuthSummary" hidden>
+                <span>Parent signed in</span>
+                <strong id="parentAuthEmailLabel">parent@example.com</strong>
+                <button class="parent-link-button" id="parentAuthLogoutButton" type="button">Switch email</button>
+              </div>
+              <form class="parent-auth-form" id="parentAuthForm">
+                <label class="parent-auth-field" id="parentAuthEmailStep" for="parentAuthEmail">
+                  <span>Parent email</span>
+                  <div>
+                    <input id="parentAuthEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" />
+                    <button class="parent-primary" id="parentAuthSendButton" type="button">Send email</button>
+                  </div>
+                </label>
+                <label class="parent-auth-field" id="parentAuthCodeStep" for="parentAuthCode" hidden>
+                  <span>6-digit code if shown</span>
+                  <div>
+                    <input id="parentAuthCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" />
+                    <button class="parent-primary" id="parentAuthVerifyButton" type="button">Verify</button>
+                  </div>
+                </label>
+                <p class="parent-auth-status" id="parentAuthStatus" role="status" aria-live="polite"></p>
+              </form>
+            </div>
             <div class="parent-actions is-panel">
-              <button class="parent-primary" id="parentCheckoutButton" type="button">Join early access</button>
+              <button class="parent-primary" id="parentCheckoutButton" type="button">Sign in for Plus</button>
               <a class="parent-secondary" href="parents.html">Parent page</a>
             </div>
             <div class="parent-policy-links" aria-label="Parent legal links">
@@ -297,6 +321,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=supabase-waitlist-20260612"></script>
+    <script src="app.js?v=parent-otp-auth-20260612"></script>
   </body>
 </html>

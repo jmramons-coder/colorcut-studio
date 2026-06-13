@@ -48,6 +48,32 @@ Expected after Supabase env vars are set:
 }
 ```
 
+## Parent Auth
+
+Parent login uses Supabase Email Auth through these API routes:
+
+```txt
+/api/auth-start
+/api/auth-verify
+/api/auth-me
+/api/auth-refresh
+```
+
+The current Supabase default email template sends a magic sign-in link. The app also includes a 6-digit code field, which will work once custom SMTP is connected and the Supabase "Magic link or OTP" email template includes:
+
+```txt
+{{ .Token }}
+```
+
+Supabase Auth settings used:
+
+```txt
+Site URL: https://colorcut-studio.vercel.app
+Redirect URLs:
+https://colorcut-studio.vercel.app
+https://colorcut-studio.vercel.app/*
+```
+
 ## Next Integrations
 
 Resend will use:
