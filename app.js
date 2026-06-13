@@ -329,6 +329,7 @@ const dom = {
   parentAuthForgotButton: document.querySelector("#parentAuthForgotButton"),
   parentAuthEmailStep: document.querySelector("#parentAuthEmailStep"),
   parentAuthEmail: document.querySelector("#parentAuthEmail"),
+  parentAuthEmailButton: document.querySelector("#parentAuthEmailButton"),
   parentAuthPasswordStep: document.querySelector("#parentAuthPasswordStep"),
   parentAuthPassword: document.querySelector("#parentAuthPassword"),
   parentAuthPasswordButton: document.querySelector("#parentAuthPasswordButton"),
@@ -785,8 +786,9 @@ function bindControls() {
   dom.parentPanelLoginButton.addEventListener("click", () => showParentAuthModal());
   dom.parentAuthBackdrop.addEventListener("click", hideParentAuthModal);
   dom.parentAuthCloseButton.addEventListener("click", hideParentAuthModal);
+  dom.parentAuthEmailButton.addEventListener("click", startParentPasswordReset);
   dom.parentAuthPasswordButton.addEventListener("click", submitParentPasswordAuth);
-  dom.parentAuthForgotButton.addEventListener("click", startParentPasswordReset);
+  dom.parentAuthForgotButton.addEventListener("click", toggleForgotPasswordMode);
   dom.parentAuthSendButton.addEventListener("click", startParentAuth);
   dom.parentAuthEditEmailButton.addEventListener("click", editParentAccountEmail);
   dom.parentAuthManageBillingButton.addEventListener("click", openBillingPortal);
@@ -796,6 +798,10 @@ function bindControls() {
   dom.parentAuthEmail.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
+      if (state.parentAuthMode === "forgot-password") {
+        startParentPasswordReset();
+        return;
+      }
       dom.parentAuthPassword.focus();
     }
   });
@@ -1172,6 +1178,7 @@ function renderParentAuth(message = "") {
   const cooldownSeconds = parentAuthCooldownSeconds();
   const passwordMode = state.parentAuthMode === "set-password";
   const resetMode = state.parentAuthMode === "reset-password";
+  const forgotMode = state.parentAuthMode === "forgot-password";
   const setupMode = passwordMode || resetMode;
   const checkoutEmail = state.parentCheckoutEmail || "";
   const resetEmail = state.parentResetEmail || "";
@@ -1180,7 +1187,7 @@ function renderParentAuth(message = "") {
   dom.parentAuthForm.hidden = signedIn;
   dom.parentAuthFooter.hidden = signedIn || setupMode;
   dom.parentAuthEmailStep.hidden = signedIn;
-  dom.parentAuthPasswordStep.hidden = signedIn;
+  dom.parentAuthPasswordStep.hidden = signedIn || forgotMode;
   dom.parentAuthEmailLabel.textContent = email || "Account";
   dom.parentAuthTitle.textContent = signedIn
     ? "Account"
@@ -1188,6 +1195,8 @@ function renderParentAuth(message = "") {
       ? "Create account"
       : resetMode
         ? "New password"
+        : forgotMode
+          ? "Reset password"
         : "Login";
   dom.parentAuthPasswordButton.textContent = passwordMode
     ? "Create password"
@@ -1204,11 +1213,15 @@ function renderParentAuth(message = "") {
   dom.parentButton.hidden = false;
   dom.parentAuthManageBillingButton.hidden = !plusActive;
   dom.parentAuthCancelPlanButton.hidden = !plusActive;
+  dom.parentAuthEmailButton.hidden = !forgotMode;
+  dom.parentAuthEmailButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
   dom.parentAuthSendButton.textContent = cooldownSeconds
     ? `Try again in ${cooldownSeconds}s`
     : state.parentAuthPendingEmail && !signedIn
       ? "Send again"
       : "Email magic link";
+  dom.parentAuthSendButton.hidden = forgotMode;
+  dom.parentAuthForgotButton.textContent = forgotMode ? "Back to login" : "Forgot password?";
   dom.parentAuthSendButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
   dom.parentAuthForgotButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
   dom.parentAuthEmail.disabled = state.parentAuthBusy;
@@ -1227,6 +1240,8 @@ function renderParentAuth(message = "") {
         ? resetEmail
           ? "Choose a new password for this account."
           : "Checking your reset link..."
+        : forgotMode
+          ? "Enter the email used at checkout. If it matches a member account, we will send a reset link."
       : "Enter the email used at checkout and your password.";
   dom.parentAuthStatus.textContent = message;
 
@@ -1285,6 +1300,10 @@ function hideParentAuthModal() {
   if (dom.parentAuthModal.hidden) return;
   dom.parentAuthModal.hidden = true;
   dom.parentAuthModal.setAttribute("aria-hidden", "true");
+  if (state.parentAuthMode === "forgot-password") {
+    state.parentAuthMode = "login";
+    renderParentAuth("");
+  }
 }
 
 function setParentAuthBusy(isBusy) {
@@ -1503,6 +1522,21 @@ function editParentAccountEmail() {
   window.setTimeout(() => dom.parentAuthEmail.focus(), 40);
 }
 
+function toggleForgotPasswordMode() {
+  if (state.parentAuthMode === "forgot-password") {
+    state.parentAuthMode = "login";
+    dom.parentAuthPassword.value = "";
+    renderParentAuth("");
+    window.setTimeout(() => dom.parentAuthEmail.focus(), 40);
+    return;
+  }
+
+  state.parentAuthMode = "forgot-password";
+  dom.parentAuthPassword.value = "";
+  renderParentAuth("");
+  window.setTimeout(() => dom.parentAuthEmail.focus(), 40);
+}
+
 function openSubscribeFromAuth() {
   hideParentAuthModal();
   state.parentUnlocked = true;
@@ -1566,7 +1600,7 @@ async function startParentPasswordReset() {
     await parentAuthRequest("/api/auth-password-set", { action: "reset-start", email });
     state.parentAuthPendingEmail = email;
     state.parentAuthCooldownUntil = Date.now() + LOGIN_EMAIL_COOLDOWN_MS;
-    renderParentAuth("Check your email. Open the newest reset link on this device.");
+    renderParentAuth("Reset link sent. Open the newest email on this device, then choose a new password.");
     scheduleParentAuthCooldownRender();
   } catch (error) {
     if (error.code === "email_rate_limit" || error.status === 429) {
