@@ -2670,6 +2670,12 @@ button {
   opacity: 0.7;
 }
 
+.parent-auth-field > .parent-primary {
+  justify-self: stretch;
+  min-height: 44px;
+  margin-top: 2px;
+}
+
 .parent-auth-status {
   min-height: 1.2em;
   margin: 0;
@@ -2712,10 +2718,11 @@ button {
 }
 
 .parent-auth-footer {
-  display: flex;
+  display: grid;
   align-items: center;
+  justify-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   margin-top: 18px;
   color: rgba(23, 32, 38, 0.58);
   font-size: 0.88rem;
@@ -2728,6 +2735,11 @@ button {
 
 .parent-auth-footer .parent-link-button {
   margin-top: 0;
+}
+
+.parent-auth-footer span {
+  margin-top: 2px;
+  font-size: 0.78rem;
 }
 
 .parent-link-button {
@@ -4162,16 +4174,17 @@ body.is-parent-signed-in #parentButton {
   }
 
   .parent-auth-footer {
-    flex-wrap: wrap;
+    display: grid;
+    justify-items: center;
     justify-content: center;
-    row-gap: 5px;
+    gap: 7px;
     margin-top: 12px;
     font-size: 0.8rem;
   }
 
   .parent-auth-footer .parent-link-button {
     min-height: 30px;
-    padding-inline: 5px;
+    padding-inline: 0;
   }
 
   .parent-auth-actions {
