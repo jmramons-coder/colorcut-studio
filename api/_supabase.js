@@ -1,6 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -101,12 +102,16 @@ async function subscriptionForProfile(profileId) {
 async function publicProfile(profile) {
   if (!profile) return null;
   const subscription = await subscriptionForProfile(profile.id);
+  const subscriptionStatus = ACTIVE_SUBSCRIPTION_STATUSES.has(String(subscription?.status || "").toLowerCase())
+    ? "plus"
+    : profile.subscription_status;
+
   return {
     id: profile.id,
     email: profile.email,
     displayName: profile.display_name,
     avatar: profile.avatar,
-    subscriptionStatus: profile.subscription_status,
+    subscriptionStatus,
     subscription
   };
 }

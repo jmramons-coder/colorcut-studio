@@ -1580,14 +1580,14 @@ async function startParentPasswordReset() {
 }
 
 async function refreshParentAuth() {
-  if (!state.parentAuth?.session?.refreshToken) {
+  if (!state.parentAuth?.session?.refreshToken && !state.parentAuth?.session?.accessToken) {
     renderParentAuth();
     return;
   }
 
   const expiresAtMs = Number(state.parentAuth.session.expiresAt || 0) * 1000;
   if (expiresAtMs && expiresAtMs > Date.now() + 120000) {
-    renderParentAuth();
+    await refreshParentProfile();
     return;
   }
 
@@ -1607,6 +1607,34 @@ async function refreshParentAuth() {
     saveParentAuth(null);
     renderParentAuth();
     syncAccessAfterAuthChange();
+  }
+}
+
+async function refreshParentProfile() {
+  if (!state.parentAuth?.session?.accessToken) {
+    renderParentAuth();
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/auth-me", {
+      headers: {
+        Authorization: `Bearer ${state.parentAuth.session.accessToken}`
+      }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.message || "Could not refresh account.");
+    }
+    saveParentAuth({
+      ...state.parentAuth,
+      user: data.user || state.parentAuth.user,
+      profile: data.profile || state.parentAuth.profile
+    });
+    renderParentAuth();
+    syncAccessAfterAuthChange();
+  } catch {
+    renderParentAuth();
   }
 }
 
