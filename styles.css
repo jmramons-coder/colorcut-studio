@@ -1801,10 +1801,10 @@ button {
 }
 
 .profile-detail {
-  display: flex;
+  display: grid;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  justify-items: center;
+  gap: 12px;
   margin-top: 14px;
   padding: 14px;
 }
@@ -1841,14 +1841,51 @@ button {
 }
 
 .profile-play-button {
-  flex: 0 0 auto;
-  min-height: 40px;
-  padding: 0 16px;
-  border: 0;
+  display: inline-grid;
+  grid-template-columns: 34px auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 5px 16px 6px 8px;
+  border: 3px solid var(--button-rim);
   border-radius: 999px;
-  background: #172026;
-  color: #ffffff;
-  font-weight: 900;
+  background:
+    radial-gradient(circle at 27% 22%, var(--button-glow) 0 9%, transparent 10%),
+    radial-gradient(circle at 18% 28%, rgba(255, 255, 255, 0.72) 0 5%, transparent 5.5%),
+    linear-gradient(180deg, var(--button-gold-light) 0%, var(--button-gold) 42%, var(--button-orange) 100%);
+  color: var(--button-icon);
+  box-shadow:
+    inset 0 4px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -7px 0 rgba(151, 58, 39, 0.3),
+    0 5px 0 var(--button-rim-dark),
+    0 12px 18px rgba(97, 48, 34, 0.18);
+  font-weight: 950;
+  transition:
+    filter 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.profile-play-button img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.profile-play-button span {
+  line-height: 1;
+}
+
+.profile-play-button:disabled {
+  opacity: 0.54;
+  filter: grayscale(0.4);
+}
+
+.profile-play-button:not(:disabled):hover {
+  filter: saturate(1.05) brightness(1.02);
+  transform: translateY(-2px);
 }
 
 .profile-play-button:disabled {
@@ -2087,10 +2124,6 @@ button {
 
 .profile-detail-copy strong {
   color: rgba(23, 32, 38, 0.82);
-}
-
-.profile-play-button {
-  display: none;
 }
 
 .profile-puzzle-grid {

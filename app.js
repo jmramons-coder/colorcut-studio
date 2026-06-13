@@ -774,8 +774,9 @@ function renderProfileDetail() {
       <strong>${item.name}</strong>
       <small>${completed ? `${stats.plays}x · ${formatDuration(stats.bestTime)} · ${formatDate(stats.lastCompletedAt)}` : locked ? "Plus" : "0x"}</small>
     </div>
-    <button class="profile-play-button" type="button" data-profile-play="${item.id}" ${locked ? "disabled" : ""}>
-      ${locked ? "Locked" : completed ? "Play again" : "Play"}
+    <button class="profile-play-button" type="button" data-profile-play="${item.id}" aria-label="${locked ? `${item.name} is locked` : `Play ${item.name}`}" ${locked ? "disabled" : ""}>
+      <img src="assets/icon-library-puzzles.webp" width="512" height="512" alt="" draggable="false" />
+      <span>${locked ? "Locked" : completed ? "Play again" : "Play"}</span>
     </button>
   `;
 }
