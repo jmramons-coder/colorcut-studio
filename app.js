@@ -1070,11 +1070,7 @@ function parentSubscriptionDateLabel() {
     day: "numeric",
     year: "numeric"
   });
-  const status = String(subscription.status || "").toLowerCase();
-  if (status === "canceled" || status === "unpaid" || status === "past_due") {
-    return `Plus access ends ${label}`;
-  }
-  return `Renews ${label}`;
+  return `Access through ${label}`;
 }
 
 function renderParentAuth(message = "") {
