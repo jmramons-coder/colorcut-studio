@@ -316,9 +316,10 @@ const dom = {
   parentAuthCloseButton: document.querySelector("#parentAuthCloseButton"),
   parentAuthForm: document.querySelector("#parentAuthForm"),
   parentAuthCopy: document.querySelector("#parentAuthCopy"),
+  parentAuthFooter: document.querySelector("#parentAuthFooter"),
   parentAuthSummary: document.querySelector("#parentAuthSummary"),
   parentAuthEmailLabel: document.querySelector("#parentAuthEmailLabel"),
-  parentAuthLogoutButton: document.querySelector("#parentAuthLogoutButton"),
+  parentAuthSubscribeButton: document.querySelector("#parentAuthSubscribeButton"),
   parentAuthResendButton: document.querySelector("#parentAuthResendButton"),
   parentAuthChangeEmailButton: document.querySelector("#parentAuthChangeEmailButton"),
   parentAuthEmailStep: document.querySelector("#parentAuthEmailStep"),
@@ -712,7 +713,7 @@ function bindControls() {
   dom.parentAuthSendButton.addEventListener("click", startParentAuth);
   dom.parentAuthResendButton.addEventListener("click", resendParentAuthCode);
   dom.parentAuthVerifyButton.addEventListener("click", verifyParentAuth);
-  dom.parentAuthLogoutButton.addEventListener("click", clearParentAuth);
+  dom.parentAuthSubscribeButton.addEventListener("click", openSubscribeFromAuth);
   dom.parentAuthChangeEmailButton.addEventListener("click", resetParentAuthEmailStep);
   dom.parentAuthEmail.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -733,7 +734,7 @@ function bindControls() {
   dom.waitlistForm.addEventListener("submit", saveWaitlistEmail);
   dom.avatarPrevButton.addEventListener("click", () => cycleProfileAvatar(-1));
   dom.avatarNextButton.addEventListener("click", () => cycleProfileAvatar(1));
-  dom.profileParentAuthButton.addEventListener("click", () => showParentAuthModal());
+  dom.profileParentAuthButton.addEventListener("click", handleProfileAuthButton);
   dom.profileSubscribeButton.addEventListener("click", handleProfileBillingAction);
   dom.profilePuzzleGrid.addEventListener("click", selectProfilePuzzle);
   dom.profileDetail.addEventListener("click", handleProfileDetailClick);
@@ -1083,6 +1084,7 @@ function renderParentAuth(message = "") {
   const codeStepActive = !signedIn && state.parentAuthStep === "code" && state.parentAuthPendingEmail;
   dom.parentAuthSummary.hidden = !signedIn;
   dom.parentAuthForm.hidden = signedIn;
+  dom.parentAuthFooter.hidden = signedIn;
   dom.parentAuthEmailStep.hidden = signedIn || codeStepActive;
   dom.parentAuthCodeStep.hidden = signedIn || !codeStepActive;
   dom.parentAuthEmailLabel.textContent = email || "Account";
@@ -1094,12 +1096,10 @@ function renderParentAuth(message = "") {
   dom.profileSubscribeButton.textContent = signedIn && plusActive ? "Manage billing" : "Subscribe";
   dom.profileSubscribeButton.dataset.billingAction = signedIn && plusActive ? "portal" : "subscribe";
   dom.parentAuthCopy.textContent = signedIn
-    ? plusActive
-      ? `Plus is unlocked on this device.${dateLabel ? ` ${dateLabel}.` : ""}`
-      : "You are signed in with a free account. Subscribe to unlock Plus packs; your puzzle stats stay saved either way."
+    ? "You are logged in."
     : codeStepActive
-      ? `Enter the 6-digit code sent to ${state.parentAuthPendingEmail}.`
-      : "Enter the email used at checkout. We will send a short code to unlock Plus on this device.";
+      ? `Enter the code sent to ${state.parentAuthPendingEmail}, or use the magic link in your email.`
+      : "Enter the email used at checkout. We will send a magic link to log in.";
   dom.parentAuthStatus.textContent = message;
 
   if (state.parentAuthPendingEmail && !signedIn) {
@@ -1140,7 +1140,7 @@ function showParentAuthModal(message = "") {
   renderParentAuth(message);
   window.setTimeout(() => {
     if (isParentSignedIn()) {
-      dom.parentAuthLogoutButton.focus();
+      dom.parentAuthCloseButton.focus();
       return;
     }
     const target = state.parentAuthStep === "code" && state.parentAuthPendingEmail ? dom.parentAuthCode : dom.parentAuthEmail;
@@ -1219,6 +1219,24 @@ function handleProfileBillingAction() {
   showParentModal();
 }
 
+function handleProfileAuthButton() {
+  if (isParentSignedIn()) {
+    saveParentAuth(null);
+    state.parentAuthPendingEmail = "";
+    state.parentAuthStep = "email";
+    dom.parentAuthCode.value = "";
+  }
+  showParentAuthModal();
+}
+
+function openSubscribeFromAuth() {
+  hideParentAuthModal();
+  state.parentUnlocked = true;
+  state.parentIntent = "auth-subscribe";
+  showParentModal();
+  focusParentPanel();
+}
+
 async function startParentAuth() {
   const email = String(dom.parentAuthEmail.value || "").trim().toLowerCase();
   if (!isValidEmail(email)) {
@@ -1228,14 +1246,14 @@ async function startParentAuth() {
   }
 
   setParentAuthBusy(true);
-  renderParentAuth("Sending your login email...");
+  renderParentAuth("Sending login email...");
 
   try {
     await parentAuthRequest("/api/auth-start", { email });
     state.parentAuthPendingEmail = email;
     state.parentAuthStep = "code";
     dom.parentAuthCode.value = "";
-    renderParentAuth("Code sent. Check your email.");
+    renderParentAuth("Check your email for the magic link.");
     window.setTimeout(() => dom.parentAuthCode.focus(), 40);
   } catch (error) {
     renderParentAuth(error.message || "Could not send the login email.");
@@ -1253,14 +1271,14 @@ async function resendParentAuthCode() {
   }
 
   setParentAuthBusy(true);
-  renderParentAuth("Sending a new code...");
+  renderParentAuth("Sending a new login email...");
 
   try {
     await parentAuthRequest("/api/auth-start", { email });
     state.parentAuthPendingEmail = email;
     state.parentAuthStep = "code";
     dom.parentAuthCode.value = "";
-    renderParentAuth("New code sent.");
+    renderParentAuth("Check your email again.");
     window.setTimeout(() => dom.parentAuthCode.focus(), 40);
   } catch (error) {
     renderParentAuth(error.message || "Could not resend the code.");
@@ -1285,7 +1303,7 @@ async function verifyParentAuth() {
   }
 
   setParentAuthBusy(true);
-  renderParentAuth("Checking the code...");
+  renderParentAuth("Logging in...");
 
   try {
     const data = await parentAuthRequest("/api/auth-verify", { email, token });
@@ -1298,7 +1316,8 @@ async function verifyParentAuth() {
     state.parentAuthPendingEmail = "";
     state.parentAuthStep = "email";
     dom.parentAuthCode.value = "";
-    renderParentAuth("You're signed in.");
+    renderParentAuth("Logged in.");
+    window.setTimeout(hideParentAuthModal, 650);
   } catch (error) {
     renderParentAuth(error.message || "That code did not work.");
     dom.parentAuthCode.select();
@@ -1397,7 +1416,11 @@ async function consumeParentAuthRedirect() {
     });
     state.parentAuthPendingEmail = "";
     state.parentAuthStep = "email";
-    renderParentAuth("You're signed in.");
+    renderParentAuth("Logged in.");
+    window.setTimeout(() => {
+      hideParentAuthModal();
+      showPicker();
+    }, 450);
   } catch (error) {
     saveParentAuth(null);
     renderParentAuth(error.message || "Could not finish sign in.");
@@ -1414,7 +1437,7 @@ function consumeCheckoutRedirect() {
   if (checkout === "success") {
     state.parentAuthPendingEmail = "";
     state.parentAuthStep = "email";
-    showParentAuthModal("Payment complete. Sign in with the same email to unlock Plus on this device.");
+    showParentAuthModal("Payment complete. Log in with your checkout email.");
     return;
   }
 
@@ -1442,7 +1465,7 @@ function clearParentAuth() {
   state.parentAuthPendingEmail = "";
   state.parentAuthStep = "email";
   dom.parentAuthCode.value = "";
-  renderParentAuth("Signed out on this device.");
+  renderParentAuth("Logged out.");
   dom.parentAuthEmail.focus();
 }
 

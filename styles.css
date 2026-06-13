@@ -2577,6 +2577,25 @@ button {
   font-weight: 850;
 }
 
+.parent-auth-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 18px;
+  color: rgba(23, 32, 38, 0.58);
+  font-size: 0.88rem;
+  font-weight: 850;
+}
+
+.parent-auth-footer[hidden] {
+  display: none;
+}
+
+.parent-auth-footer .parent-link-button {
+  margin-top: 0;
+}
+
 .parent-link-button {
   width: max-content;
   margin-top: 6px;

@@ -293,40 +293,43 @@
       </div>
 
       <div class="auth-modal" id="parentAuthModal" role="dialog" aria-modal="true" aria-labelledby="parentAuthTitle" aria-hidden="true" hidden>
-        <button class="auth-backdrop" id="parentAuthBackdrop" type="button" aria-label="Close Plus sign in"></button>
-        <section class="auth-sheet" aria-label="Plus sign in">
+        <button class="auth-backdrop" id="parentAuthBackdrop" type="button" aria-label="Close login"></button>
+        <section class="auth-sheet" aria-label="Login">
           <button class="waitlist-close" id="parentAuthCloseButton" type="button" aria-label="Close">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="m6.4 4.9 5.6 5.6 5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6 1.5-1.5Z" />
             </svg>
           </button>
-          <p class="modal-eyebrow">Plus access</p>
-          <h2 id="parentAuthTitle">Sign in to Plus</h2>
-          <p class="modal-copy" id="parentAuthCopy">Enter the email used at checkout. We will send a short code to unlock Plus on this device.</p>
+          <p class="modal-eyebrow">Member login</p>
+          <h2 id="parentAuthTitle">Login</h2>
+          <p class="modal-copy" id="parentAuthCopy">Enter the email used at checkout. We will send a magic link to log in.</p>
           <div class="parent-auth-summary" id="parentAuthSummary" hidden>
-            <span>Signed in on this device</span>
+            <span>Logged in</span>
             <strong id="parentAuthEmailLabel">parent@example.com</strong>
-            <button class="parent-link-button" id="parentAuthLogoutButton" type="button">Switch email</button>
           </div>
           <form class="parent-auth-form" id="parentAuthForm">
             <label class="parent-auth-field" id="parentAuthEmailStep" for="parentAuthEmail">
               <span>Email</span>
               <div>
                 <input id="parentAuthEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" />
-                <button class="parent-primary" id="parentAuthSendButton" type="button">Send email</button>
+                <button class="parent-primary" id="parentAuthSendButton" type="button">Send link</button>
               </div>
             </label>
             <label class="parent-auth-field" id="parentAuthCodeStep" for="parentAuthCode" hidden>
-              <span>Login code</span>
+              <span>Code</span>
               <div>
                 <input id="parentAuthCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" />
-                <button class="parent-primary" id="parentAuthVerifyButton" type="button">Enter</button>
+                <button class="parent-primary" id="parentAuthVerifyButton" type="button">Login</button>
               </div>
-              <button class="parent-link-button parent-auth-resend" id="parentAuthResendButton" type="button">Resend code</button>
-              <button class="parent-link-button parent-auth-change-email" id="parentAuthChangeEmailButton" type="button">Use a different email</button>
+              <button class="parent-link-button parent-auth-resend" id="parentAuthResendButton" type="button">Resend email</button>
+              <button class="parent-link-button parent-auth-change-email" id="parentAuthChangeEmailButton" type="button">Use another email</button>
             </label>
             <p class="parent-auth-status" id="parentAuthStatus" role="status" aria-live="polite"></p>
           </form>
+          <div class="parent-auth-footer" id="parentAuthFooter">
+            <span>No account?</span>
+            <button class="parent-link-button" id="parentAuthSubscribeButton" type="button">Subscribe</button>
+          </div>
         </section>
       </div>
 
