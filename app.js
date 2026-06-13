@@ -1232,6 +1232,9 @@ function renderParentAuth(message = "") {
   if (!dom.parentAuthForm) return;
 
   const signedIn = isParentSignedIn();
+  if (signedIn && ["forgot-password", "reset-password", "set-password"].includes(state.parentAuthMode)) {
+    state.parentAuthMode = "login";
+  }
   const email = parentEmail();
   const plusActive = isParentPlusActive();
   const dateLabel = parentSubscriptionDateLabel();
@@ -1243,6 +1246,7 @@ function renderParentAuth(message = "") {
   const checkoutEmail = state.parentCheckoutEmail || "";
   const resetEmail = state.parentResetEmail || "";
   const modeEmail = passwordMode ? checkoutEmail : resetMode ? resetEmail : "";
+  document.body.classList.toggle("is-parent-signed-in", signedIn);
   dom.parentAuthSummary.hidden = !signedIn;
   dom.parentAuthModal.classList.toggle("is-busy", state.parentAuthBusy);
   dom.parentAuthModal.setAttribute("aria-busy", String(state.parentAuthBusy));
@@ -1273,9 +1277,11 @@ function renderParentAuth(message = "") {
   dom.profileSubscribeButton.textContent = signedIn && plusActive ? "Manage" : "Subscribe";
   dom.profileSubscribeButton.dataset.billingAction = signedIn && plusActive ? "account" : "subscribe";
   dom.parentButton.hidden = signedIn;
+  dom.parentButton.setAttribute("aria-hidden", String(signedIn));
+  dom.parentButton.tabIndex = signedIn ? -1 : 0;
   dom.parentAuthManageBillingButton.hidden = !plusActive;
   dom.parentAuthCancelPlanButton.hidden = !plusActive;
-  dom.parentAuthEmailButton.hidden = !forgotMode;
+  dom.parentAuthEmailButton.hidden = signedIn || !forgotMode;
   dom.parentAuthEmailButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
   dom.parentAuthSendButton.textContent = cooldownSeconds
     ? `Try again in ${cooldownSeconds}s`
