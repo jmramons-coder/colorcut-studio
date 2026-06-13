@@ -748,7 +748,7 @@ function bindControls() {
   dom.profileParentAuthButton.addEventListener("click", handleProfileAuthButton);
   dom.profileSubscribeButton.addEventListener("click", handleProfileBillingAction);
   dom.profilePuzzleGrid.addEventListener("click", selectProfilePuzzle);
-  dom.profileDetail.addEventListener("click", handleProfileDetailClick);
+  dom.profilePuzzleGrid.addEventListener("click", handleProfilePlayClick);
   dom.brand.addEventListener("click", (event) => {
     event.preventDefault();
     showPicker();
@@ -853,55 +853,42 @@ function renderProfileStats(totals = selectedProfilePuzzle() ? profilePuzzleTota
 }
 
 function renderProfileDetail() {
-  const item = selectedProfilePuzzle();
-  if (!item) {
-    dom.profileDetail.innerHTML = "";
-    return;
-  }
-
-  const stats = puzzleStats(item.id);
-  const locked = item.tier === "plus";
-  const completed = stats.plays > 0;
-
-  dom.profileDetail.innerHTML = `
-    <div class="profile-detail-copy">
-      <span>${locked ? "Plus" : completed ? "Done" : "Open"}</span>
-      <strong>${item.name}</strong>
-      <small>${completed ? `${stats.plays}x · ${formatDuration(stats.bestTime)} · ${formatDate(stats.lastCompletedAt)}` : locked ? "Plus" : "0x"}</small>
-    </div>
-    <button class="profile-play-button" type="button" data-profile-play="${item.id}" aria-label="${locked ? `${item.name} is locked` : `Play ${item.name}`}" ${locked ? "disabled" : ""}>
-      <img src="assets/icon-library-puzzles.webp" width="512" height="512" alt="" draggable="false" />
-      <span>${locked ? "Locked" : completed ? "Play again" : "Play"}</span>
-    </button>
-  `;
+  dom.profileDetail.innerHTML = "";
 }
 
 function renderProfilePuzzleGrid() {
-  const hasFilter = Boolean(state.profileSelectedPuzzleId);
   dom.profilePuzzleGrid.innerHTML = libraryItems
     .map((item) => {
       const stats = puzzleStats(item.id);
       const locked = item.tier === "plus";
       const selected = item.id === state.profileSelectedPuzzleId;
-      const dimmed = hasFilter && !selected;
       const styleClass = item.style ? ` is-${item.style}` : "";
       const dimensions = imageDimensions(item);
       const unfinished = !locked && !stats.plays;
+      const playLabel = stats.plays ? "Play again" : "Play";
       return `
-        <button class="profile-puzzle${styleClass}${selected ? " is-selected" : ""}${dimmed ? " is-dimmed" : ""}${locked ? " is-locked" : ""}${unfinished ? " is-undone" : ""}${stats.plays ? " is-complete" : ""}" type="button" data-profile-puzzle="${item.id}" aria-label="${item.name}">
-          ${
-            locked
-              ? `<span class="profile-lock" aria-hidden="true">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z" />
-                  </svg>
-                </span>`
-              : ""
-          }
-          <img src="${item.src}" width="${dimensions.width}" height="${dimensions.height}" alt="" loading="lazy" decoding="async" draggable="false" />
-          <span>${item.name}</span>
-          <small>${locked ? "Plus" : stats.plays ? `x${stats.plays}` : "0"}</small>
-        </button>
+        <div class="profile-puzzle${styleClass}${selected ? " is-selected" : ""}${locked ? " is-locked" : ""}${unfinished ? " is-undone" : ""}${stats.plays ? " is-complete" : ""}" data-profile-puzzle-card="${item.id}">
+          <button class="profile-puzzle-select" type="button" data-profile-puzzle="${item.id}" aria-label="${item.name}">
+            <span class="profile-count-badge" aria-label="${stats.plays || 0} plays">${stats.plays || 0}</span>
+            ${
+              locked
+                ? `<span class="profile-lock" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z" />
+                    </svg>
+                  </span>`
+                : ""
+            }
+            <img src="${item.src}" width="${dimensions.width}" height="${dimensions.height}" alt="" loading="lazy" decoding="async" draggable="false" />
+            <span class="profile-puzzle-name">${item.name}</span>
+          </button>
+          <button class="profile-inline-play" type="button" data-profile-play="${item.id}" aria-label="${locked ? `${item.name} is locked` : `Play ${item.name}`}" ${locked || !selected ? "disabled" : ""} ${selected && !locked ? "" : "hidden"}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8.4 5.2 18.2 12 8.4 18.8V5.2Z" />
+            </svg>
+            <span>${playLabel}</span>
+          </button>
+        </div>
       `;
     })
     .join("");
@@ -959,6 +946,7 @@ function cycleProfileAvatar(step) {
 }
 
 function selectProfilePuzzle(event) {
+  if (event.target.closest("[data-profile-play]")) return;
   const button = event.target.closest("[data-profile-puzzle]");
   if (!button) return;
   state.profileSelectedPuzzleId = state.profileSelectedPuzzleId === button.dataset.profilePuzzle ? null : button.dataset.profilePuzzle;
@@ -969,22 +957,31 @@ function selectProfilePuzzle(event) {
 }
 
 function updateProfilePuzzleSelection() {
-  const hasFilter = Boolean(state.profileSelectedPuzzleId);
-  dom.profilePuzzleGrid.querySelectorAll("[data-profile-puzzle]").forEach((button) => {
-    const item = libraryItems.find((puzzle) => puzzle.id === button.dataset.profilePuzzle);
-    const stats = puzzleStats(button.dataset.profilePuzzle);
-    const selected = button.dataset.profilePuzzle === state.profileSelectedPuzzleId;
+  dom.profilePuzzleGrid.querySelectorAll("[data-profile-puzzle-card]").forEach((card) => {
+    const id = card.dataset.profilePuzzleCard;
+    const item = libraryItems.find((puzzle) => puzzle.id === id);
+    const stats = puzzleStats(id);
+    const selected = id === state.profileSelectedPuzzleId;
     const locked = item?.tier === "plus";
-    button.classList.toggle("is-selected", selected);
-    button.classList.toggle("is-dimmed", hasFilter && !selected);
-    button.classList.toggle("is-undone", !locked && !stats.plays);
-    button.classList.toggle("is-complete", Boolean(stats.plays));
-    const count = button.querySelector("small");
-    if (count) count.textContent = locked ? "Plus" : stats.plays ? `x${stats.plays}` : "0";
+    card.classList.toggle("is-selected", selected);
+    card.classList.toggle("is-undone", !locked && !stats.plays);
+    card.classList.toggle("is-complete", Boolean(stats.plays));
+    const count = card.querySelector(".profile-count-badge");
+    if (count) {
+      count.textContent = stats.plays || 0;
+      count.setAttribute("aria-label", `${stats.plays || 0} plays`);
+    }
+    const playButton = card.querySelector("[data-profile-play]");
+    if (playButton) {
+      playButton.hidden = !selected || locked;
+      playButton.disabled = !selected || locked;
+      const label = stats.plays ? "Play again" : "Play";
+      playButton.querySelector("span").textContent = label;
+    }
   });
 }
 
-function handleProfileDetailClick(event) {
+function handleProfilePlayClick(event) {
   const button = event.target.closest("[data-profile-play]");
   if (!button || button.disabled) return;
   hideProfileModal();

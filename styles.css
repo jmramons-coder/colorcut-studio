@@ -637,7 +637,8 @@ button {
 .profile-close:focus-visible,
 .avatar-arrow:focus-visible,
 .profile-edit-name:focus-visible,
-.profile-puzzle:focus-visible,
+.profile-puzzle-select:focus-visible,
+.profile-inline-play:focus-visible,
 .profile-play-button:focus-visible,
 .parent-primary:focus-visible,
 .parent-secondary:focus-visible {
@@ -6683,6 +6684,173 @@ body.info-body.landing-body .pricing-action svg {
 .profile-puzzle.is-locked small {
   background: rgba(23, 32, 38, 0.08);
   color: rgba(23, 32, 38, 0.48);
+}
+
+.profile-detail {
+  display: none;
+}
+
+.profile-puzzle {
+  grid-template-rows: auto auto;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.profile-puzzle-select {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 112px auto;
+  gap: 6px;
+  padding: 8px 7px 8px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: #172026;
+  text-align: center;
+  overflow: visible;
+  transition:
+    background 170ms ease,
+    box-shadow 170ms ease,
+    transform 180ms ease;
+}
+
+.profile-puzzle:hover,
+.profile-puzzle.is-selected {
+  transform: none;
+}
+
+.profile-puzzle:hover .profile-puzzle-select {
+  transform: translateY(-2px);
+}
+
+.profile-puzzle.is-selected .profile-puzzle-select {
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.86),
+    0 14px 26px rgba(31, 49, 56, 0.12);
+  transform: translateY(-5px) scale(1.025);
+}
+
+.profile-puzzle.is-dimmed {
+  opacity: 1;
+}
+
+.profile-puzzle img,
+.profile-puzzle.is-photo img {
+  justify-self: center;
+  max-width: 100%;
+  pointer-events: none;
+}
+
+.profile-puzzle-name {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(23, 32, 38, 0.48);
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-puzzle.is-selected .profile-puzzle-name {
+  color: rgba(23, 32, 38, 0.82);
+}
+
+.profile-puzzle.is-undone .profile-puzzle-name {
+  color: rgba(23, 32, 38, 0.34);
+}
+
+.profile-puzzle.is-selected.is-undone .profile-puzzle-name {
+  color: rgba(23, 32, 38, 0.78);
+}
+
+.profile-count-badge {
+  position: absolute;
+  left: -4px;
+  bottom: 22px;
+  min-width: 28px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(23, 32, 38, 0.45);
+  box-shadow:
+    inset 0 0 0 1px rgba(23, 32, 38, 0.04),
+    0 7px 14px rgba(31, 49, 56, 0.08);
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1;
+  z-index: 2;
+}
+
+.profile-puzzle.is-selected .profile-count-badge,
+.profile-puzzle.is-complete .profile-count-badge {
+  background: #172026;
+  color: #ffffff;
+}
+
+.profile-puzzle.is-undone .profile-count-badge {
+  color: rgba(23, 32, 38, 0.44);
+}
+
+.profile-puzzle.is-selected.is-undone .profile-count-badge {
+  background: #172026;
+  color: #ffffff;
+}
+
+.profile-inline-play {
+  justify-self: center;
+  min-height: 34px;
+  display: inline-grid;
+  grid-template-columns: 18px auto;
+  align-items: center;
+  gap: 5px;
+  margin-top: -2px;
+  padding: 4px 13px 5px 9px;
+  border: 2px solid var(--button-rim);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 27% 22%, var(--button-glow) 0 10%, transparent 11%),
+    linear-gradient(180deg, var(--button-gold-light) 0%, var(--button-gold) 45%, var(--button-orange) 100%);
+  color: var(--button-icon);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -5px 0 rgba(151, 58, 39, 0.24),
+    0 3px 0 var(--button-rim-dark),
+    0 9px 14px rgba(97, 48, 34, 0.14);
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.profile-inline-play[hidden] {
+  display: none;
+}
+
+.profile-inline-play svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.profile-inline-play:active {
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -3px 0 rgba(151, 58, 39, 0.22),
+    0 1px 0 var(--button-rim-dark),
+    0 6px 10px rgba(97, 48, 34, 0.12);
+  transform: translateY(2px) scale(0.98);
+}
+
+.profile-puzzle small {
+  display: none;
 }
 
 @media (min-width: 821px) {
