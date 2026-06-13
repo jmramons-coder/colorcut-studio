@@ -1,6 +1,6 @@
 const { json, readJson, supabasePublic, upsertProfileForUser } = require("./_supabase");
 
-const ALLOWED_OTP_TYPES = new Set(["email", "magiclink", "signup"]);
+const ALLOWED_OTP_TYPES = new Set(["email", "magiclink", "signup", "recovery"]);
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {

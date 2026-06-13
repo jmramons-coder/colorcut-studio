@@ -55,6 +55,8 @@ Parent login uses Supabase Auth through these API routes:
 ```txt
 /api/auth-password-login
 /api/auth-password-set
+/api/auth-password-reset-start
+/api/auth-password-reset-complete
 /api/auth-start
 /api/auth-link
 /api/auth-me
@@ -62,6 +64,8 @@ Parent login uses Supabase Auth through these API routes:
 ```
 
 Password login is primary. Magic links remain available as a fallback until Google/Apple SSO is added.
+
+Password recovery is the path for parents who paid but do not know their password. The app checks that the email belongs to an active member profile, creates a linked Supabase Auth user if the paid profile does not have one yet, sends a Supabase recovery email, and then lets the parent set a new password from the recovery redirect.
 
 Supabase Auth settings used:
 

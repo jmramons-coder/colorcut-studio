@@ -326,6 +326,7 @@ const dom = {
   parentAuthCancelPlanButton: document.querySelector("#parentAuthCancelPlanButton"),
   parentAuthLogoutButton: document.querySelector("#parentAuthLogoutButton"),
   parentAuthSubscribeButton: document.querySelector("#parentAuthSubscribeButton"),
+  parentAuthForgotButton: document.querySelector("#parentAuthForgotButton"),
   parentAuthEmailStep: document.querySelector("#parentAuthEmailStep"),
   parentAuthEmail: document.querySelector("#parentAuthEmail"),
   parentAuthPasswordStep: document.querySelector("#parentAuthPasswordStep"),
@@ -394,6 +395,10 @@ const state = {
   parentAuthMode: "login",
   parentCheckoutSessionId: "",
   parentCheckoutEmail: "",
+  parentResetAccessToken: "",
+  parentResetRefreshToken: "",
+  parentResetExpiresAt: 0,
+  parentResetEmail: "",
   parentCheckoutBusy: false,
   billingPlan: "monthly",
   profile: loadProfile(),
@@ -769,6 +774,7 @@ function bindControls() {
   dom.parentAuthBackdrop.addEventListener("click", hideParentAuthModal);
   dom.parentAuthCloseButton.addEventListener("click", hideParentAuthModal);
   dom.parentAuthPasswordButton.addEventListener("click", submitParentPasswordAuth);
+  dom.parentAuthForgotButton.addEventListener("click", startParentPasswordReset);
   dom.parentAuthSendButton.addEventListener("click", startParentAuth);
   dom.parentAuthEditEmailButton.addEventListener("click", editParentAccountEmail);
   dom.parentAuthManageBillingButton.addEventListener("click", openBillingPortal);
@@ -1153,15 +1159,29 @@ function renderParentAuth(message = "") {
   const dateLabel = parentSubscriptionDateLabel();
   const cooldownSeconds = parentAuthCooldownSeconds();
   const passwordMode = state.parentAuthMode === "set-password";
+  const resetMode = state.parentAuthMode === "reset-password";
+  const setupMode = passwordMode || resetMode;
   const checkoutEmail = state.parentCheckoutEmail || "";
+  const resetEmail = state.parentResetEmail || "";
+  const modeEmail = passwordMode ? checkoutEmail : resetMode ? resetEmail : "";
   dom.parentAuthSummary.hidden = !signedIn;
   dom.parentAuthForm.hidden = signedIn;
-  dom.parentAuthFooter.hidden = signedIn || passwordMode;
+  dom.parentAuthFooter.hidden = signedIn || setupMode;
   dom.parentAuthEmailStep.hidden = signedIn;
   dom.parentAuthPasswordStep.hidden = signedIn;
   dom.parentAuthEmailLabel.textContent = email || "Account";
-  dom.parentAuthTitle.textContent = signedIn ? "Account" : passwordMode ? "Create account" : "Login";
-  dom.parentAuthPasswordButton.textContent = passwordMode ? "Create password" : "Login";
+  dom.parentAuthTitle.textContent = signedIn
+    ? "Account"
+    : passwordMode
+      ? "Create account"
+      : resetMode
+        ? "New password"
+        : "Login";
+  dom.parentAuthPasswordButton.textContent = passwordMode
+    ? "Create password"
+    : resetMode
+      ? "Save password"
+      : "Login";
   dom.profileParentAuthLabel.textContent = signedIn
     ? `${plusActive ? "Plus active" : "Free account"} · ${dateLabel || email}`
     : "Plus access";
@@ -1178,22 +1198,28 @@ function renderParentAuth(message = "") {
       ? "Send again"
       : "Email magic link";
   dom.parentAuthSendButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
+  dom.parentAuthForgotButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
   dom.parentAuthEmail.disabled = state.parentAuthBusy;
-  dom.parentAuthEmail.readOnly = passwordMode;
+  dom.parentAuthEmail.readOnly = setupMode;
   dom.parentAuthPassword.disabled = state.parentAuthBusy;
-  dom.parentAuthPassword.autocomplete = passwordMode ? "new-password" : "current-password";
-  dom.parentAuthPasswordButton.disabled = state.parentAuthBusy || (passwordMode && !checkoutEmail);
+  dom.parentAuthPassword.autocomplete = setupMode ? "new-password" : "current-password";
+  dom.parentAuthPassword.placeholder = setupMode ? "New password" : "Password";
+  dom.parentAuthPasswordButton.disabled = state.parentAuthBusy || (setupMode && !modeEmail);
   dom.parentAuthCopy.textContent = signedIn
     ? "You are logged in."
     : passwordMode
       ? checkoutEmail
         ? "Create a password for your paid account."
         : "Checking the email used at checkout..."
+      : resetMode
+        ? resetEmail
+          ? "Choose a new password for this account."
+          : "Checking your reset link..."
       : "Enter the email used at checkout and your password.";
   dom.parentAuthStatus.textContent = message;
 
-  if (passwordMode && checkoutEmail) {
-    dom.parentAuthEmail.value = checkoutEmail;
+  if (setupMode && modeEmail) {
+    dom.parentAuthEmail.value = modeEmail;
   } else if (state.parentAuthPendingEmail && !signedIn) {
     dom.parentAuthEmail.value = state.parentAuthPendingEmail;
   }
@@ -1233,6 +1259,10 @@ function showParentAuthModal(message = "") {
   window.setTimeout(() => {
     if (isParentSignedIn()) {
       dom.parentAuthCloseButton.focus();
+      return;
+    }
+    if (state.parentAuthMode === "set-password" || state.parentAuthMode === "reset-password") {
+      dom.parentAuthPassword.focus();
       return;
     }
     dom.parentAuthEmail.focus();
@@ -1280,22 +1310,37 @@ function saveParentAuthResponse(data) {
   dom.parentAuthPassword.value = "";
   state.parentCheckoutSessionId = "";
   state.parentCheckoutEmail = "";
+  state.parentResetAccessToken = "";
+  state.parentResetRefreshToken = "";
+  state.parentResetExpiresAt = 0;
+  state.parentResetEmail = "";
   renderParentAuth("Logged in.");
 }
 
 async function submitParentPasswordAuth() {
   const passwordMode = state.parentAuthMode === "set-password";
-  const email = String((passwordMode && state.parentCheckoutEmail) || dom.parentAuthEmail.value || "").trim().toLowerCase();
+  const resetMode = state.parentAuthMode === "reset-password";
+  const email = String(
+    (passwordMode && state.parentCheckoutEmail) ||
+    (resetMode && state.parentResetEmail) ||
+    dom.parentAuthEmail.value ||
+    ""
+  ).trim().toLowerCase();
   const password = String(dom.parentAuthPassword.value || "");
 
   if (!isValidEmail(email)) {
-    renderParentAuth(passwordMode ? "We could not load your checkout email." : "Enter a valid email.");
+    renderParentAuth(passwordMode || resetMode ? "We could not load your account email." : "Enter a valid email.");
     dom.parentAuthEmail.focus();
     return;
   }
 
   if (passwordMode && !state.parentCheckoutSessionId) {
     renderParentAuth("Open account setup from your completed checkout.");
+    return;
+  }
+
+  if (resetMode && !state.parentResetAccessToken) {
+    renderParentAuth("Open the newest password reset link from your email.");
     return;
   }
 
@@ -1306,17 +1351,37 @@ async function submitParentPasswordAuth() {
   }
 
   setParentAuthBusy(true);
-  renderParentAuth(state.parentAuthMode === "set-password" ? "Creating password..." : "Logging in...");
+  renderParentAuth(passwordMode ? "Creating password..." : resetMode ? "Saving password..." : "Logging in...");
 
   try {
-    const data = await parentAuthRequest(
-      passwordMode ? "/api/auth-password-set" : "/api/auth-password-login",
-      {
+    let data;
+    if (resetMode) {
+      const response = await fetch("/api/auth-password-reset-complete", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${state.parentResetAccessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          password,
+          refreshToken: state.parentResetRefreshToken,
+          expiresAt: state.parentResetExpiresAt
+        })
+      });
+      data = await response.json().catch(() => ({}));
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.message || "Could not save the new password.");
+      }
+    } else {
+      data = await parentAuthRequest(
+        passwordMode ? "/api/auth-password-set" : "/api/auth-password-login",
+        {
         email,
         password,
         checkoutSessionId: state.parentCheckoutSessionId
-      }
-    );
+        }
+      );
+    }
     saveParentAuthResponse(data);
     window.setTimeout(() => {
       hideParentAuthModal();
@@ -1385,6 +1450,10 @@ function logoutParentAccount() {
   state.parentAuthMode = "login";
   state.parentCheckoutSessionId = "";
   state.parentCheckoutEmail = "";
+  state.parentResetAccessToken = "";
+  state.parentResetRefreshToken = "";
+  state.parentResetExpiresAt = 0;
+  state.parentResetEmail = "";
   dom.parentAuthEmail.value = "";
   dom.parentAuthPassword.value = "";
   hideParentAuthModal();
@@ -1398,6 +1467,10 @@ function editParentAccountEmail() {
   state.parentAuthMode = "login";
   state.parentCheckoutSessionId = "";
   state.parentCheckoutEmail = "";
+  state.parentResetAccessToken = "";
+  state.parentResetRefreshToken = "";
+  state.parentResetExpiresAt = 0;
+  state.parentResetEmail = "";
   dom.parentAuthEmail.value = "";
   dom.parentAuthPassword.value = "";
   renderParentAuth("Enter the new checkout email.");
@@ -1446,6 +1519,40 @@ async function startParentAuth() {
   }
 }
 
+async function startParentPasswordReset() {
+  const email = String(dom.parentAuthEmail.value || "").trim().toLowerCase();
+  if (!isValidEmail(email)) {
+    renderParentAuth("Enter the checkout email first.");
+    dom.parentAuthEmail.focus();
+    return;
+  }
+
+  const cooldownSeconds = parentAuthCooldownSeconds();
+  if (cooldownSeconds) {
+    renderParentAuth(`Use the newest email. You can request another in ${cooldownSeconds}s.`);
+    return;
+  }
+
+  setParentAuthBusy(true);
+  renderParentAuth("Sending password reset...");
+
+  try {
+    await parentAuthRequest("/api/auth-password-reset-start", { email });
+    state.parentAuthPendingEmail = email;
+    state.parentAuthCooldownUntil = Date.now() + LOGIN_EMAIL_COOLDOWN_MS;
+    renderParentAuth("Check your email. Open the newest reset link on this device.");
+    scheduleParentAuthCooldownRender();
+  } catch (error) {
+    if (error.code === "email_rate_limit" || error.status === 429) {
+      state.parentAuthCooldownUntil = Date.now() + 5 * 60 * 1000;
+      scheduleParentAuthCooldownRender();
+    }
+    renderParentAuth(error.message || "Could not send the password reset email.");
+  } finally {
+    setParentAuthBusy(false);
+  }
+}
+
 async function refreshParentAuth() {
   if (!state.parentAuth?.session?.refreshToken) {
     renderParentAuth();
@@ -1475,6 +1582,42 @@ async function refreshParentAuth() {
   }
 }
 
+async function beginParentPasswordResetFromSession({ accessToken, refreshToken, expiresAt, expiresIn }) {
+  if (!accessToken) {
+    renderParentAuth("Open the newest password reset link from your email.");
+    return;
+  }
+
+  state.parentAuthMode = "reset-password";
+  state.parentResetAccessToken = accessToken;
+  state.parentResetRefreshToken = refreshToken || "";
+  state.parentResetExpiresAt = Number(expiresAt || Math.floor(Date.now() / 1000) + Number(expiresIn || 3600));
+  state.parentResetEmail = "";
+  dom.parentAuthPassword.value = "";
+  showParentAuthModal("Checking reset link...");
+
+  try {
+    const response = await fetch("/api/auth-me", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.message || "Could not verify reset link.");
+    }
+    state.parentResetEmail = data.user?.email || data.profile?.email || "";
+    renderParentAuth("Choose a new password.");
+    window.setTimeout(() => dom.parentAuthPassword.focus(), 40);
+  } catch (error) {
+    state.parentResetAccessToken = "";
+    state.parentResetRefreshToken = "";
+    state.parentResetExpiresAt = 0;
+    state.parentResetEmail = "";
+    renderParentAuth(error.message || "This reset link may have expired. Request a new one.");
+  }
+}
+
 async function consumeParentAuthRedirect() {
   const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   const queryParams = new URLSearchParams(window.location.search);
@@ -1492,6 +1635,17 @@ async function consumeParentAuthRedirect() {
   if (!accessToken && !tokenHash) return;
 
   window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`);
+
+  if (authType === "recovery" && accessToken) {
+    beginParentPasswordResetFromSession({
+      accessToken,
+      refreshToken,
+      expiresAt,
+      expiresIn
+    });
+    return;
+  }
+
   showParentAuthModal("Finishing sign in...");
 
   try {
@@ -1515,6 +1669,15 @@ async function consumeParentAuthRedirect() {
     }
 
     const fallbackExpiresAt = Math.floor(Date.now() / 1000) + Number(expiresIn || 3600);
+    if (authType === "recovery") {
+      beginParentPasswordResetFromSession({
+        accessToken: data.session?.accessToken,
+        refreshToken: data.session?.refreshToken,
+        expiresAt: Number(data.session?.expiresAt || fallbackExpiresAt)
+      });
+      return;
+    }
+
     saveParentAuthResponse({
       user: data.user,
       session: {
