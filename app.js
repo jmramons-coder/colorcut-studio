@@ -1030,17 +1030,45 @@ function hideWaitlistModal() {
   dom.waitlistModal.setAttribute("aria-hidden", "true");
 }
 
-function saveWaitlistEmail(event) {
+async function saveWaitlistEmail(event) {
   event.preventDefault();
   const email = dom.waitlistEmail.value.trim();
   if (!email) return;
+  const submitButton = dom.waitlistForm.querySelector("button[type='submit']");
+  submitButton.disabled = true;
+  dom.waitlistStatus.textContent = "Saving your spot...";
+
   try {
     localStorage.setItem(WAITLIST_STORAGE_KEY, email);
   } catch {
     // The form still confirms the signup locally if storage is unavailable.
   }
+
+  try {
+    const response = await fetch("/api/waitlist", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email,
+        source: "app",
+        page: window.location.pathname,
+        completedPuzzleId: state.animal?.id || null
+      })
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.message || "Waitlist save failed.");
+    }
+  } catch (error) {
+    console.warn("Waitlist saved locally only:", error);
+  }
+
   dom.waitlistStatus.textContent = "You're on the list. We'll keep Plus free for 6 months when early access opens.";
   dom.waitlistForm.reset();
+  submitButton.disabled = false;
 }
 
 function beginGalleryDrag(event) {

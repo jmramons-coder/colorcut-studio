@@ -36,13 +36,44 @@ waitlistForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const email = waitlistEmail.value.trim();
   if (!email) return;
+  saveWaitlistSignup(email, "parents-page");
+});
+
+async function saveWaitlistSignup(email, source) {
+  const submitButton = waitlistForm.querySelector("button[type='submit']");
+  submitButton.disabled = true;
+  waitlistStatus.textContent = "Saving your spot...";
+
   try {
     localStorage.setItem(WAITLIST_STORAGE_KEY, email);
   } catch {
     // Keep the waitlist confirmation usable even if local storage is blocked.
   }
+
+  try {
+    const response = await fetch("/api/waitlist", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email,
+        source,
+        page: window.location.pathname
+      })
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.message || "Waitlist save failed.");
+    }
+  } catch (error) {
+    console.warn("Waitlist saved locally only:", error);
+  }
+
   waitlistStatus.textContent = "You're on the list. We'll keep Plus free for 6 months when early access opens.";
   waitlistForm.reset();
-});
+  submitButton.disabled = false;
+}
 
 registerServiceWorker();

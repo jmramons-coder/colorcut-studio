@@ -1,0 +1,133 @@
+create extension if not exists citext;
+create extension if not exists pgcrypto;
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+create table if not exists public.waitlist_leads (
+  id uuid primary key default gen_random_uuid(),
+  email citext not null unique,
+  source text not null default 'website',
+  page text,
+  completed_puzzle_id text,
+  referrer text,
+  user_agent text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists set_waitlist_leads_updated_at on public.waitlist_leads;
+create trigger set_waitlist_leads_updated_at
+before update on public.waitlist_leads
+for each row execute function public.set_updated_at();
+
+create table if not exists public.profiles (
+  id uuid primary key default gen_random_uuid(),
+  auth_user_id uuid unique references auth.users(id) on delete set null,
+  email citext unique,
+  display_name text not null default 'Color Maker',
+  avatar text not null default 'core',
+  stripe_customer_id text unique,
+  subscription_status text not null default 'free',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists set_profiles_updated_at on public.profiles;
+create trigger set_profiles_updated_at
+before update on public.profiles
+for each row execute function public.set_updated_at();
+
+create table if not exists public.puzzle_completions (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  puzzle_id text not null,
+  plays integer not null default 0,
+  best_time_ms integer,
+  last_completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(profile_id, puzzle_id)
+);
+
+drop trigger if exists set_puzzle_completions_updated_at on public.puzzle_completions;
+create trigger set_puzzle_completions_updated_at
+before update on public.puzzle_completions
+for each row execute function public.set_updated_at();
+
+create table if not exists public.subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid references public.profiles(id) on delete set null,
+  stripe_customer_id text not null,
+  stripe_subscription_id text unique,
+  status text not null default 'incomplete',
+  price_id text,
+  current_period_end timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists set_subscriptions_updated_at on public.subscriptions;
+create trigger set_subscriptions_updated_at
+before update on public.subscriptions
+for each row execute function public.set_updated_at();
+
+alter table public.waitlist_leads enable row level security;
+alter table public.profiles enable row level security;
+alter table public.puzzle_completions enable row level security;
+alter table public.subscriptions enable row level security;
+
+drop policy if exists "Profiles are readable by owner" on public.profiles;
+create policy "Profiles are readable by owner"
+on public.profiles
+for select
+using (auth.uid() = auth_user_id);
+
+drop policy if exists "Profiles are editable by owner" on public.profiles;
+create policy "Profiles are editable by owner"
+on public.profiles
+for update
+using (auth.uid() = auth_user_id)
+with check (auth.uid() = auth_user_id);
+
+drop policy if exists "Completions are readable by profile owner" on public.puzzle_completions;
+create policy "Completions are readable by profile owner"
+on public.puzzle_completions
+for select
+using (
+  exists (
+    select 1
+    from public.profiles
+    where profiles.id = puzzle_completions.profile_id
+      and profiles.auth_user_id = auth.uid()
+  )
+);
+
+drop policy if exists "Completions are editable by profile owner" on public.puzzle_completions;
+create policy "Completions are editable by profile owner"
+on public.puzzle_completions
+for all
+using (
+  exists (
+    select 1
+    from public.profiles
+    where profiles.id = puzzle_completions.profile_id
+      and profiles.auth_user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.profiles
+    where profiles.id = puzzle_completions.profile_id
+      and profiles.auth_user_id = auth.uid()
+  )
+);
