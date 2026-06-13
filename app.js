@@ -1356,13 +1356,14 @@ async function submitParentPasswordAuth() {
   try {
     let data;
     if (resetMode) {
-      const response = await fetch("/api/auth-password-reset-complete", {
+      const response = await fetch("/api/auth-password-set", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${state.parentResetAccessToken}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
+          action: "reset-complete",
           password,
           refreshToken: state.parentResetRefreshToken,
           expiresAt: state.parentResetExpiresAt
@@ -1537,7 +1538,7 @@ async function startParentPasswordReset() {
   renderParentAuth("Sending password reset...");
 
   try {
-    await parentAuthRequest("/api/auth-password-reset-start", { email });
+    await parentAuthRequest("/api/auth-password-set", { action: "reset-start", email });
     state.parentAuthPendingEmail = email;
     state.parentAuthCooldownUntil = Date.now() + LOGIN_EMAIL_COOLDOWN_MS;
     renderParentAuth("Check your email. Open the newest reset link on this device.");

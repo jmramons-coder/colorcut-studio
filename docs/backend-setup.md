@@ -55,8 +55,6 @@ Parent login uses Supabase Auth through these API routes:
 ```txt
 /api/auth-password-login
 /api/auth-password-set
-/api/auth-password-reset-start
-/api/auth-password-reset-complete
 /api/auth-start
 /api/auth-link
 /api/auth-me
