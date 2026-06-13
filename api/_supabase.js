@@ -76,14 +76,38 @@ function bearerToken(req) {
   return match ? match[1] : "";
 }
 
-function publicProfile(profile) {
+async function subscriptionForProfile(profileId) {
+  const supabase = supabaseAdmin();
+  if (!supabase || !profileId) return null;
+
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .select("status,price_id,current_period_end,updated_at")
+    .eq("profile_id", profileId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    status: data.status,
+    priceId: data.price_id,
+    currentPeriodEnd: data.current_period_end
+  };
+}
+
+async function publicProfile(profile) {
   if (!profile) return null;
+  const subscription = await subscriptionForProfile(profile.id);
   return {
     id: profile.id,
     email: profile.email,
     displayName: profile.display_name,
     avatar: profile.avatar,
-    subscriptionStatus: profile.subscription_status
+    subscriptionStatus: profile.subscription_status,
+    subscription
   };
 }
 
@@ -157,6 +181,7 @@ module.exports = {
   normalizeEmail,
   publicProfile,
   readJson,
+  subscriptionForProfile,
   supabaseAdmin,
   supabasePublic,
   upsertProfileForUser

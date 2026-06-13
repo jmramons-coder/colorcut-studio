@@ -403,6 +403,7 @@ renderParentAuth();
 renderBillingPlan();
 consumeParentAuthRedirect();
 consumeCheckoutRedirect();
+consumeBillingRedirect();
 refreshParentAuth();
 setStage("pick");
 
@@ -733,10 +734,7 @@ function bindControls() {
   dom.avatarPrevButton.addEventListener("click", () => cycleProfileAvatar(-1));
   dom.avatarNextButton.addEventListener("click", () => cycleProfileAvatar(1));
   dom.profileParentAuthButton.addEventListener("click", () => showParentAuthModal());
-  dom.profileSubscribeButton.addEventListener("click", () => {
-    state.parentIntent = "profile-subscribe";
-    showParentModal();
-  });
+  dom.profileSubscribeButton.addEventListener("click", handleProfileBillingAction);
   dom.profilePuzzleGrid.addEventListener("click", selectProfilePuzzle);
   dom.profileDetail.addEventListener("click", handleProfileDetailClick);
   dom.brand.addEventListener("click", (event) => {
@@ -1056,25 +1054,53 @@ function isParentPlusActive() {
   return status === "plus" || status === "active" || status === "trialing";
 }
 
+function parentSubscription() {
+  return state.parentAuth?.profile?.subscription || null;
+}
+
+function parentSubscriptionDateLabel() {
+  const subscription = parentSubscription();
+  if (!subscription?.currentPeriodEnd) return "";
+
+  const date = new Date(subscription.currentPeriodEnd);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const label = date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+  const status = String(subscription.status || "").toLowerCase();
+  if (status === "canceled" || status === "unpaid" || status === "past_due") {
+    return `Plus access ends ${label}`;
+  }
+  return `Renews ${label}`;
+}
+
 function renderParentAuth(message = "") {
   if (!dom.parentAuthForm) return;
 
   const signedIn = isParentSignedIn();
   const email = parentEmail();
   const plusActive = isParentPlusActive();
+  const dateLabel = parentSubscriptionDateLabel();
   const codeStepActive = !signedIn && state.parentAuthStep === "code" && state.parentAuthPendingEmail;
   dom.parentAuthSummary.hidden = !signedIn;
   dom.parentAuthForm.hidden = signedIn;
   dom.parentAuthEmailStep.hidden = signedIn || codeStepActive;
   dom.parentAuthCodeStep.hidden = signedIn || !codeStepActive;
   dom.parentAuthEmailLabel.textContent = email || "Account";
-  dom.profileParentAuthLabel.textContent = signedIn ? `${plusActive ? "Plus active" : "Signed in"}: ${email}` : "Plus access";
-  dom.profileParentAuthButton.textContent = signedIn ? "Manage" : "Sign in";
-  dom.profileSubscribeButton.hidden = plusActive;
+  dom.profileParentAuthLabel.textContent = signedIn
+    ? `${plusActive ? "Plus active" : "Free account"} · ${dateLabel || email}`
+    : "Plus access";
+  dom.profileParentAuthButton.textContent = signedIn ? "Switch email" : "Sign in";
+  dom.profileSubscribeButton.hidden = false;
+  dom.profileSubscribeButton.textContent = signedIn && plusActive ? "Manage billing" : "Subscribe";
+  dom.profileSubscribeButton.dataset.billingAction = signedIn && plusActive ? "portal" : "subscribe";
   dom.parentAuthCopy.textContent = signedIn
     ? plusActive
-      ? "Plus is unlocked on this device."
-      : "You are signed in. If Plus does not appear yet, use the same email you used at checkout."
+      ? `Plus is unlocked on this device.${dateLabel ? ` ${dateLabel}.` : ""}`
+      : "You are signed in with a free account. Subscribe to unlock Plus packs; your puzzle stats stay saved either way."
     : codeStepActive
       ? `Enter the 6-digit code sent to ${state.parentAuthPendingEmail}.`
       : "Enter the email used at checkout. We will send a short code to unlock Plus on this device.";
@@ -1153,6 +1179,48 @@ async function parentAuthRequest(path, payload) {
     throw new Error(data.message || "Something went wrong.");
   }
   return data;
+}
+
+async function openBillingPortal() {
+  if (!state.parentAuth?.session?.accessToken) {
+    showParentAuthModal("Sign in to manage billing.");
+    return;
+  }
+
+  dom.profileSubscribeButton.disabled = true;
+  const previousText = dom.profileSubscribeButton.textContent;
+  dom.profileSubscribeButton.textContent = "Opening...";
+
+  try {
+    const response = await fetch("/api/create-billing-portal-session", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${state.parentAuth.session.accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({})
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false || !data.url) {
+      throw new Error(data.message || "Could not open billing management.");
+    }
+    window.location.assign(data.url);
+  } catch (error) {
+    showParentAuthModal(error.message || "Could not open billing management.");
+  } finally {
+    dom.profileSubscribeButton.disabled = false;
+    dom.profileSubscribeButton.textContent = previousText;
+  }
+}
+
+function handleProfileBillingAction() {
+  if (dom.profileSubscribeButton.dataset.billingAction === "portal") {
+    openBillingPortal();
+    return;
+  }
+
+  state.parentIntent = "profile-subscribe";
+  showParentModal();
 }
 
 async function startParentAuth() {
@@ -1358,6 +1426,18 @@ function consumeCheckoutRedirect() {
     state.parentUnlocked = true;
     showParentModal();
     renderParentCheckoutStatus("Checkout was canceled. You can continue whenever you're ready.");
+  }
+}
+
+function consumeBillingRedirect() {
+  const queryParams = new URLSearchParams(window.location.search);
+  const billing = queryParams.get("billing");
+  if (!billing) return;
+
+  window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`);
+  if (billing === "return") {
+    showProfileModal();
+    renderParentAuth("Billing updated.");
   }
 }
 
