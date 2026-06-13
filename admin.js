@@ -1,0 +1,321 @@
+const STORAGE_KEY = "snapuzzle-admin-secret";
+
+const form = document.querySelector("#adminSearchForm");
+const secretInput = document.querySelector("#adminSecret");
+const emailInput = document.querySelector("#customerEmail");
+const statusEl = document.querySelector("#adminStatus");
+const dashboard = document.querySelector("#dashboard");
+const profilePanel = document.querySelector("#profilePanel");
+const stripePanel = document.querySelector("#stripePanel");
+const subscriptionPanel = document.querySelector("#subscriptionPanel");
+const moneyPanel = document.querySelector("#moneyPanel");
+const progressPanel = document.querySelector("#progressPanel");
+
+const state = {
+  customer: null,
+  email: ""
+};
+
+secretInput.value = localStorage.getItem(STORAGE_KEY) || "";
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  searchCustomer();
+});
+
+document.addEventListener("click", (event) => {
+  const actionButton = event.target.closest("[data-action]");
+  if (!actionButton) return;
+  runAction(actionButton.dataset.action);
+});
+
+function setStatus(message = "", isError = false) {
+  statusEl.textContent = message;
+  statusEl.classList.toggle("is-error", isError);
+}
+
+function setBusy(isBusy) {
+  document.body.classList.toggle("is-busy", isBusy);
+}
+
+function adminSecret() {
+  return secretInput.value.trim();
+}
+
+function customerEmail() {
+  return emailInput.value.trim().toLowerCase();
+}
+
+async function adminRequest(payload) {
+  const secret = adminSecret();
+  if (!secret) throw new Error("Enter the admin secret.");
+
+  const response = await fetch("/api/admin-customer", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Admin-Secret": secret
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.ok) {
+    throw new Error(data.message || "Admin request failed.");
+  }
+
+  localStorage.setItem(STORAGE_KEY, secret);
+  return data;
+}
+
+async function searchCustomer(message = "Searching...") {
+  const email = customerEmail();
+  if (!email) {
+    setStatus("Enter a customer email.", true);
+    return;
+  }
+
+  setBusy(true);
+  setStatus(message);
+  try {
+    const data = await adminRequest({ email });
+    state.customer = data;
+    state.email = email;
+    renderDashboard(data);
+    setStatus(data.message || "Customer loaded.");
+  } catch (error) {
+    setStatus(error.message || "Could not load customer.", true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function runAction(action) {
+  const email = state.customer?.profile?.email || state.email || customerEmail();
+  const profileId = state.customer?.profile?.id || "";
+  if (!email && !profileId) {
+    setStatus("Search a customer first.", true);
+    return;
+  }
+
+  const payload = { action, email, profileId };
+
+  if (action === "cancel_subscription") {
+    const value = window.prompt("Type cancel to cancel the latest Stripe subscription.");
+    if (value !== "cancel") return;
+    payload.confirm = "cancel";
+  }
+
+  if (action === "delete_supabase") {
+    const value = window.prompt("Type delete to remove Supabase auth/profile/progress for this test account. Stripe is not deleted.");
+    if (value !== "delete") return;
+    payload.confirm = "delete";
+  }
+
+  setBusy(true);
+  setStatus("Running admin action...");
+  try {
+    const data = await adminRequest(payload);
+    state.customer = data;
+    renderDashboard(data);
+    setStatus(data.message || "Action complete.");
+  } catch (error) {
+    setStatus(error.message || "Action failed.", true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function safeText(value, fallback = "None") {
+  const text = value === null || value === undefined || value === "" ? fallback : value;
+  return escapeHtml(text);
+}
+
+function badge(value) {
+  const label = String(value || "none");
+  return `<span class="badge ${escapeHtml(label.toLowerCase())}">${escapeHtml(label)}</span>`;
+}
+
+function dateLabel(value) {
+  if (!value) return "None";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function money(cents, currency = "usd") {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: String(currency || "usd").toUpperCase()
+  }).format(Number(cents || 0) / 100);
+}
+
+function link(url, label) {
+  if (!url) return "None";
+  return `<a class="small-link" href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`;
+}
+
+function kv(rows) {
+  return `<dl class="kv">${rows.map(([key, value]) => `<div><dt>${escapeHtml(key)}</dt><dd>${value}</dd></div>`).join("")}</dl>`;
+}
+
+function renderDashboard(data) {
+  dashboard.hidden = false;
+  renderProfile(data);
+  renderStripe(data);
+  renderSubscriptions(data);
+  renderMoney(data);
+  renderProgress(data);
+}
+
+function renderProfile(data) {
+  const profile = data.profile;
+  const authUser = data.authUser;
+
+  if (!profile) {
+    profilePanel.innerHTML = `
+      <p class="eyebrow">Supabase</p>
+      <h2>No app profile</h2>
+      <p class="empty">No Supabase profile exists for this email yet.</p>
+    `;
+    return;
+  }
+
+  profilePanel.innerHTML = `
+    <p class="eyebrow">Supabase</p>
+    <h2>App profile</h2>
+    ${kv([
+      ["Email", safeText(profile.email)],
+      ["Status", badge(profile.subscriptionStatus)],
+      ["Display name", safeText(profile.displayName)],
+      ["Avatar", safeText(profile.avatar)],
+      ["Profile ID", safeText(profile.id)],
+      ["Auth user", safeText(profile.authUserId)],
+      ["Auth email", safeText(authUser?.email)],
+      ["Last sign in", safeText(dateLabel(authUser?.lastSignInAt))],
+      ["Created", safeText(dateLabel(profile.createdAt))]
+    ])}
+  `;
+}
+
+function renderStripe(data) {
+  const stripe = data.stripe || {};
+  const customer = stripe.customer;
+
+  if (!stripe.configured) {
+    stripePanel.innerHTML = `
+      <p class="eyebrow">Stripe</p>
+      <h2>Not connected</h2>
+      <p class="empty">Stripe env vars are missing.</p>
+    `;
+    return;
+  }
+
+  if (!customer) {
+    stripePanel.innerHTML = `
+      <p class="eyebrow">Stripe</p>
+      <h2>No customer</h2>
+      <p class="empty">No Stripe customer was found for this email.</p>
+    `;
+    return;
+  }
+
+  stripePanel.innerHTML = `
+    <p class="eyebrow">Stripe</p>
+    <h2>Billing customer</h2>
+    ${kv([
+      ["Email", safeText(customer.email)],
+      ["Customer ID", safeText(customer.id)],
+      ["Name", safeText(customer.name)],
+      ["Delinquent", badge(customer.delinquent ? "yes" : "no")],
+      ["Dashboard", link(customer.url, "Open in Stripe")],
+      ["Created", safeText(dateLabel(customer.createdAt))]
+    ])}
+  `;
+}
+
+function renderSubscriptions(data) {
+  const localSubscriptions = data.subscriptions || [];
+  const stripeSubscriptions = data.stripe?.subscriptions || [];
+
+  subscriptionPanel.innerHTML = `
+    <p class="eyebrow">Access</p>
+    <h2>Subscriptions</h2>
+    <h3>Stripe</h3>
+    ${stripeSubscriptions.length ? list(stripeSubscriptions.map((item) => `
+      <div class="row"><strong>${safeText(item.id)}</strong>${badge(item.status)}</div>
+      <span class="muted">Renews/ends: ${safeText(dateLabel(item.currentPeriodEnd))}</span>
+      <span>${link(item.url, "Open subscription")}</span>
+    `)) : `<p class="empty">No Stripe subscriptions.</p>`}
+    <h3>Supabase mirror</h3>
+    ${localSubscriptions.length ? list(localSubscriptions.map((item) => `
+      <div class="row"><strong>${safeText(item.stripeSubscriptionId)}</strong>${badge(item.status)}</div>
+      <span class="muted">Price: ${safeText(item.priceId)}</span>
+      <span class="muted">Current period end: ${safeText(dateLabel(item.currentPeriodEnd))}</span>
+    `)) : `<p class="empty">No mirrored subscriptions.</p>`}
+  `;
+}
+
+function renderMoney(data) {
+  const invoices = data.stripe?.invoices || [];
+  const charges = data.stripe?.charges || [];
+  const total = data.money?.totalPaidCents || 0;
+  const currency = data.money?.currency || "usd";
+
+  moneyPanel.innerHTML = `
+    <p class="eyebrow">Revenue</p>
+    <h2>Payments</h2>
+    <div class="money-total">${escapeHtml(money(total, currency))}</div>
+    <p class="muted">Total paid charges found for this Stripe customer.</p>
+    <h3>Latest invoices</h3>
+    ${invoices.length ? list(invoices.slice(0, 5).map((item) => `
+      <div class="row"><strong>${safeText(item.number || item.id)}</strong>${badge(item.status)}</div>
+      <span>${safeText(money(item.amountPaid, item.currency))} paid</span>
+      <span>${link(item.hostedInvoiceUrl, "Open invoice")}</span>
+    `)) : `<p class="empty">No invoices.</p>`}
+    <h3>Latest charges</h3>
+    ${charges.length ? list(charges.slice(0, 5).map((item) => `
+      <div class="row"><strong>${safeText(money(item.amount, item.currency))}</strong>${badge(item.refunded ? "refunded" : item.status)}</div>
+      <span class="muted">${safeText(dateLabel(item.createdAt))}</span>
+      <span>${link(item.receiptUrl, "Receipt")}</span>
+    `)) : `<p class="empty">No charges.</p>`}
+  `;
+}
+
+function renderProgress(data) {
+  const completions = data.completions || [];
+  const totalPlays = completions.reduce((sum, item) => sum + Number(item.plays || 0), 0);
+
+  progressPanel.innerHTML = `
+    <p class="eyebrow">Product usage</p>
+    <h2>Puzzle progress</h2>
+    ${kv([
+      ["Completed puzzles", safeText(completions.length)],
+      ["Total plays", safeText(totalPlays)]
+    ])}
+    ${completions.length ? list(completions.map((item) => `
+      <div class="row"><strong>${safeText(item.puzzle_id)}</strong><span class="badge">${safeText(item.plays)} plays</span></div>
+      <span class="muted">Last completed: ${safeText(dateLabel(item.last_completed_at))}</span>
+      <span class="muted">Best time: ${item.best_time_ms ? `${safeText(Math.round(item.best_time_ms / 1000))}s` : "None"}</span>
+    `)) : `<p class="empty">No saved completions yet.</p>`}
+  `;
+}
+
+function list(items) {
+  return `<ul class="list">${items.map((item) => `<li>${item}</li>`).join("")}</ul>`;
+}

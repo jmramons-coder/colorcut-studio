@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Snapuzzle Admin</title>
+    <link rel="icon" href="assets/app-icon.svg" />
+    <link rel="stylesheet" href="admin.css" />
+    <script src="admin.js" defer></script>
+  </head>
+  <body>
+    <main class="admin-shell">
+      <header class="admin-header">
+        <a class="brand" href="/" aria-label="Back to Snapuzzle">
+          <img src="assets/icon-library-puzzles.webp" alt="" width="52" height="52" />
+          <span>Snapuzzle Admin</span>
+        </a>
+        <a class="site-link" href="/" target="_blank" rel="noreferrer">Open app</a>
+      </header>
+
+      <section class="panel search-panel" aria-labelledby="searchTitle">
+        <div>
+          <p class="eyebrow">Private operations</p>
+          <h1 id="searchTitle">Find a customer</h1>
+          <p class="lede">Search by email to inspect Supabase identity, profile progress, Stripe subscriptions, invoices, and payments.</p>
+        </div>
+
+        <form class="admin-form" id="adminSearchForm">
+          <label>
+            <span>Admin secret</span>
+            <input id="adminSecret" type="password" autocomplete="current-password" placeholder="ADMIN_SECRET" />
+          </label>
+          <label>
+            <span>Customer email</span>
+            <input id="customerEmail" type="email" inputmode="email" autocomplete="email" placeholder="parent@example.com" />
+          </label>
+          <button class="primary-button" type="submit">Search</button>
+        </form>
+        <p class="status" id="adminStatus" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="dashboard" id="dashboard" hidden>
+        <div class="grid two">
+          <article class="panel" id="profilePanel"></article>
+          <article class="panel" id="stripePanel"></article>
+        </div>
+
+        <article class="panel action-panel">
+          <div>
+            <p class="eyebrow">Actions</p>
+            <h2>Account controls</h2>
+          </div>
+          <div class="action-grid">
+            <button class="secondary-button" data-action="sync_stripe">Resync from Stripe</button>
+            <button class="secondary-button" data-action="grant_comp">Grant comp Plus</button>
+            <button class="secondary-button" data-action="remove_comp">Remove comp Plus</button>
+            <button class="danger-button" data-action="cancel_subscription">Cancel Stripe subscription</button>
+            <button class="danger-button" data-action="delete_supabase">Delete Supabase test account</button>
+          </div>
+          <p class="fine-print">Billing changes happen in Stripe. Deleting Supabase only removes app login/profile/progress; it does not erase Stripe payment records.</p>
+        </article>
+
+        <div class="grid two">
+          <article class="panel" id="subscriptionPanel"></article>
+          <article class="panel" id="moneyPanel"></article>
+        </div>
+
+        <article class="panel" id="progressPanel"></article>
+      </section>
+    </main>
+  </body>
+</html>
