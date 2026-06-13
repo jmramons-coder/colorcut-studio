@@ -85,6 +85,15 @@ alter table public.profiles enable row level security;
 alter table public.puzzle_completions enable row level security;
 alter table public.subscriptions enable row level security;
 
+grant usage on schema public to anon, authenticated, service_role;
+grant all privileges on table public.waitlist_leads to service_role;
+grant all privileges on table public.profiles to service_role;
+grant all privileges on table public.puzzle_completions to service_role;
+grant all privileges on table public.subscriptions to service_role;
+grant select, insert, update on table public.profiles to authenticated;
+grant select, insert, update, delete on table public.puzzle_completions to authenticated;
+grant select on table public.subscriptions to authenticated;
+
 drop policy if exists "Profiles are readable by owner" on public.profiles;
 create policy "Profiles are readable by owner"
 on public.profiles
