@@ -3300,6 +3300,49 @@ button {
   stroke: currentColor;
 }
 
+.premium-button {
+  border-color: #4f9f77;
+  background:
+    radial-gradient(circle at 27% 22%, rgba(255, 255, 255, 0.86) 0 9%, transparent 10%),
+    radial-gradient(circle at 18% 28%, rgba(255, 255, 255, 0.62) 0 5%, transparent 5.5%),
+    linear-gradient(180deg, #b9f2c8 0%, #75d394 48%, #44ad72 100%);
+  color: #ffffff;
+  box-shadow:
+    inset 0 4px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -7px 0 rgba(27, 116, 73, 0.28),
+    0 5px 0 #347f5b,
+    0 12px 18px rgba(48, 116, 81, 0.18);
+}
+
+.premium-button svg {
+  width: 27px;
+  height: 27px;
+}
+
+.premium-button .premium-plus {
+  fill: #ffffff;
+  stroke: rgba(23, 92, 63, 0.32);
+  stroke-width: 0.35;
+}
+
+.premium-button .premium-heart {
+  fill: #e83f4f;
+  stroke: #9f2331;
+  stroke-width: 0.45;
+}
+
+.premium-button:hover {
+  filter: saturate(1.08) brightness(1.03);
+}
+
+#parentButton.premium-button:active {
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -4px 0 rgba(27, 116, 73, 0.25),
+    0 2px 0 #347f5b,
+    0 7px 12px rgba(48, 116, 81, 0.16);
+}
+
 #fullscreenButton {
   border-color: rgba(23, 32, 38, 0.08);
   background:
