@@ -49,9 +49,16 @@ module.exports = async function handler(req, res) {
       profile
     });
   } catch (error) {
+    const message = error.message || "";
+    const isExpired =
+      /expired|invalid|already|token|otp/i.test(message);
+
     json(res, 401, {
       ok: false,
-      message: error.message || "Could not finish sign in."
+      code: isExpired ? "magic_link_expired" : "magic_link_failed",
+      message: isExpired
+        ? "This magic link may have already been used. Request a new link on this device."
+        : message || "Could not finish sign in."
     });
   }
 };

@@ -76,7 +76,7 @@ module.exports = async function handler(req, res) {
       ok: false,
       code: isRateLimited ? "email_rate_limit" : "login_email_failed",
       message: isRateLimited
-        ? "Too many login emails were requested. Wait a few minutes, then use the newest magic link."
+        ? "Too many login emails were requested. Wait a few minutes, then use the newest link on this device."
         : message || "Could not send the login link."
     });
   }

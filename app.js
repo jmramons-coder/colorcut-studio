@@ -1109,7 +1109,7 @@ function renderParentAuth(message = "") {
   dom.parentAuthEmail.disabled = state.parentAuthBusy;
   dom.parentAuthCopy.textContent = signedIn
     ? "You are logged in."
-    : "Enter the email used at checkout. We will send a magic link to log in.";
+    : "Enter the email used at checkout. Open the magic link on the device you want to log in.";
   dom.parentAuthStatus.textContent = message;
 
   if (state.parentAuthPendingEmail && !signedIn) {
@@ -1257,7 +1257,7 @@ async function startParentAuth() {
 
   const cooldownSeconds = parentAuthCooldownSeconds();
   if (cooldownSeconds) {
-    renderParentAuth(`A login email was already sent. Try again in ${cooldownSeconds}s or use the newest magic link.`);
+    renderParentAuth(`Use the newest magic link. You can request another in ${cooldownSeconds}s.`);
     return;
   }
 
@@ -1268,7 +1268,7 @@ async function startParentAuth() {
     await parentAuthRequest("/api/auth-start", { email });
     state.parentAuthPendingEmail = email;
     state.parentAuthCooldownUntil = Date.now() + LOGIN_EMAIL_COOLDOWN_MS;
-    renderParentAuth("Check your email for the magic link.");
+    renderParentAuth("Check your email. Open the newest link on this device.");
     scheduleParentAuthCooldownRender();
   } catch (error) {
     if (error.code === "email_rate_limit" || error.status === 429) {
@@ -1368,7 +1368,7 @@ async function consumeParentAuthRedirect() {
     }, 450);
   } catch (error) {
     saveParentAuth(null);
-    renderParentAuth(error.message || "Could not finish sign in.");
+    renderParentAuth(error.message || "This magic link may have already been used. Request a new link on this device.");
   }
 }
 
