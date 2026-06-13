@@ -339,6 +339,7 @@ const dom = {
   profileParentAuth: document.querySelector("#profileParentAuth"),
   profileParentAuthLabel: document.querySelector("#profileParentAuthLabel"),
   profileParentAuthButton: document.querySelector("#profileParentAuthButton"),
+  profileSubscribeButton: document.querySelector("#profileSubscribeButton"),
   profileStats: document.querySelector("#profileStats"),
   profileDetail: document.querySelector("#profileDetail"),
   profilePuzzleGrid: document.querySelector("#profilePuzzleGrid")
@@ -720,6 +721,10 @@ function bindControls() {
   dom.avatarPrevButton.addEventListener("click", () => cycleProfileAvatar(-1));
   dom.avatarNextButton.addEventListener("click", () => cycleProfileAvatar(1));
   dom.profileParentAuthButton.addEventListener("click", () => showParentAuthModal());
+  dom.profileSubscribeButton.addEventListener("click", () => {
+    state.parentIntent = "profile-subscribe";
+    showParentModal();
+  });
   dom.profilePuzzleGrid.addEventListener("click", selectProfilePuzzle);
   dom.profileDetail.addEventListener("click", handleProfileDetailClick);
   dom.brand.addEventListener("click", (event) => {
@@ -1034,18 +1039,25 @@ function isParentSignedIn() {
   return Boolean(state.parentAuth?.session?.accessToken && parentEmail());
 }
 
+function isParentPlusActive() {
+  const status = String(state.parentAuth?.profile?.subscriptionStatus || "").toLowerCase();
+  return status === "plus" || status === "active" || status === "trialing";
+}
+
 function renderParentAuth(message = "") {
   if (!dom.parentAuthForm) return;
 
   const signedIn = isParentSignedIn();
   const email = parentEmail();
+  const plusActive = isParentPlusActive();
   dom.parentAuthSummary.hidden = !signedIn;
   dom.parentAuthForm.hidden = signedIn;
   dom.parentAuthEmailStep.hidden = signedIn;
   dom.parentAuthCodeStep.hidden = signedIn || !state.parentAuthPendingEmail;
-  dom.parentAuthEmailLabel.textContent = email || "Parent";
-  dom.profileParentAuthLabel.textContent = signedIn ? `Parent signed in: ${email}` : "Parent account not connected";
+  dom.parentAuthEmailLabel.textContent = email || "Account";
+  dom.profileParentAuthLabel.textContent = signedIn ? `${plusActive ? "Plus active" : "Signed in"}: ${email}` : "Plus access";
   dom.profileParentAuthButton.textContent = signedIn ? "Manage" : "Sign in";
+  dom.profileSubscribeButton.hidden = plusActive;
   dom.parentAuthStatus.textContent = message;
 
   if (state.parentAuthPendingEmail && !signedIn) {
@@ -1104,7 +1116,7 @@ async function parentAuthRequest(path, payload) {
 async function startParentAuth() {
   const email = String(dom.parentAuthEmail.value || "").trim().toLowerCase();
   if (!isValidEmail(email)) {
-    renderParentAuth("Enter a valid parent email.");
+    renderParentAuth("Enter a valid email.");
     dom.parentAuthEmail.focus();
     return;
   }
@@ -1130,7 +1142,7 @@ async function verifyParentAuth() {
   const token = String(dom.parentAuthCode.value || "").trim().replace(/\s+/g, "");
 
   if (!isValidEmail(email)) {
-    renderParentAuth("Enter a valid parent email.");
+    renderParentAuth("Enter a valid email.");
     return;
   }
 
@@ -1202,7 +1214,7 @@ async function consumeParentAuthRedirect() {
   if (!accessToken || !refreshToken) return;
 
   window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`);
-  showParentAuthModal("Finishing parent sign in...");
+  showParentAuthModal("Finishing sign in...");
 
   try {
     const response = await fetch("/api/auth-me", {
@@ -1228,7 +1240,7 @@ async function consumeParentAuthRedirect() {
     renderParentAuth("You're signed in.");
   } catch (error) {
     saveParentAuth(null);
-    renderParentAuth(error.message || "Could not finish parent sign in.");
+    renderParentAuth(error.message || "Could not finish sign in.");
   }
 }
 
@@ -1240,7 +1252,7 @@ function consumeCheckoutRedirect() {
   window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`);
 
   if (checkout === "success") {
-    showParentAuthModal("Payment complete. Sign in with the same parent email to unlock Plus on this device.");
+    showParentAuthModal("Payment complete. Sign in with the same email to unlock Plus on this device.");
     return;
   }
 

@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
     const email = normalizeEmail(body.email);
 
     if (!isValidEmail(email)) {
-      json(res, 400, { ok: false, message: "Enter a valid parent email." });
+      json(res, 400, { ok: false, message: "Enter a valid email." });
       return;
     }
 

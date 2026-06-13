@@ -275,7 +275,11 @@ button {
 .profile-button-avatar svg {
   width: 25px;
   height: 25px;
-  fill: currentColor;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .main {
@@ -3300,7 +3304,21 @@ button {
   stroke: currentColor;
 }
 
+.profile-button .profile-button-avatar svg,
+.profile-button .profile-button-avatar path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.profile-button .profile-button-avatar svg {
+  stroke-width: 1.75;
+}
+
 .premium-button {
+  position: relative;
+  overflow: visible;
   border-color: #4f9f77;
   background:
     radial-gradient(circle at 27% 22%, rgba(255, 255, 255, 0.86) 0 9%, transparent 10%),
@@ -3314,7 +3332,12 @@ button {
     0 12px 18px rgba(48, 116, 81, 0.18);
 }
 
-.premium-button svg {
+.premium-icon,
+.premium-icon svg {
+  display: block;
+}
+
+.premium-icon svg {
   width: 27px;
   height: 27px;
 }
@@ -3325,14 +3348,54 @@ button {
   stroke-width: 0.35;
 }
 
-.premium-button .premium-heart {
+.premium-heart-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    0 2px 0 rgba(159, 35, 49, 0.25),
+    0 6px 10px rgba(31, 49, 56, 0.14);
+}
+
+.premium-heart-badge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.premium-heart-badge path {
   fill: #e83f4f;
   stroke: #9f2331;
-  stroke-width: 0.45;
+  stroke-width: 0.7;
 }
 
 .premium-button:hover {
   filter: saturate(1.08) brightness(1.03);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .premium-button:hover {
+    animation: premiumPulse 780ms ease-in-out both;
+  }
+}
+
+@keyframes premiumPulse {
+  0% {
+    transform: translateY(-2px) scale(1);
+  }
+
+  45% {
+    transform: translateY(-2px) scale(1.08);
+  }
+
+  100% {
+    transform: translateY(-2px) scale(1);
+  }
 }
 
 #parentButton.premium-button:active {
@@ -3693,6 +3756,20 @@ button {
   font-size: 0.84rem;
   font-weight: 850;
   overflow-wrap: anywhere;
+}
+
+.profile-parent-auth-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.profile-parent-auth-actions .parent-primary,
+.profile-parent-auth-actions .parent-secondary {
+  min-height: 38px;
+  padding-inline: 14px;
+  font-size: 0.82rem;
 }
 
 .waitlist-close {
@@ -6233,7 +6310,13 @@ body.info-body.landing-body .pricing-action svg {
     padding: 12px;
   }
 
-  .profile-parent-auth .parent-secondary {
+  .profile-parent-auth-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .profile-parent-auth-actions .parent-primary,
+  .profile-parent-auth-actions .parent-secondary {
     width: 100%;
   }
 
