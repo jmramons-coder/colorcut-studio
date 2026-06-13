@@ -1,6 +1,6 @@
-# ColorPals
+# Snapuzzle
 
-ColorPals is a calm puzzle coloring web app for iPad kids. Children pick a beautiful cutout puzzle, move the pieces into place, and then scratch over the gray artwork to reveal the color.
+Snapuzzle is a calm puzzle coloring web app for iPad kids. Children pick a beautiful cutout puzzle, move the pieces into place, and then scratch over the gray artwork to reveal the color.
 
 ## Product Summary
 
@@ -13,15 +13,15 @@ ColorPals is a calm puzzle coloring web app for iPad kids. Children pick a beaut
 
 ## Important Pages
 
-- App: https://colorcut-studio.vercel.app/
-- Parent page: https://colorcut-studio.vercel.app/parents.html
-- Privacy: https://colorcut-studio.vercel.app/privacy.html
-- Terms: https://colorcut-studio.vercel.app/terms.html
+- App: https://snapuzzle.ca/
+- Parent page: https://snapuzzle.ca/parents.html
+- Privacy: https://snapuzzle.ca/privacy.html
+- Terms: https://snapuzzle.ca/terms.html
 
 ## Suggested Answer
 
-ColorPals is a calm kids puzzle coloring app that works in the browser. Kids assemble beautiful cutout puzzle pieces, then scratch the gray artwork to reveal color. It is designed for iPad-style touch play with no ads, no child accounts, no chat, and no noisy feed.
+Snapuzzle is a calm kids puzzle coloring app that works in the browser. Kids assemble beautiful cutout puzzle pieces, then scratch the gray artwork to reveal color. It is designed for iPad-style touch play with no ads, no child accounts, no chat, and no noisy feed.
 
 ## Contact
 
-Parent contact: hello@colorpals.studio
+Parent contact: hello@snapuzzle.ca

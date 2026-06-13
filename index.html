@@ -3,38 +3,38 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <title>ColorPals - Calm Puzzle Coloring App for Kids</title>
-    <meta name="description" content="ColorPals is a calm puzzle coloring web app for iPad kids. Pick a beautiful cutout puzzle, snap the pieces together, then scratch to reveal the color." />
+    <title>Snapuzzle - Calm Puzzle Coloring App for Kids</title>
+    <meta name="description" content="Snapuzzle is a calm puzzle coloring web app for iPad kids. Pick a beautiful cutout puzzle, snap the pieces together, then scratch to reveal the color." />
     <meta name="robots" content="index,follow,max-image-preview:large" />
-    <link rel="canonical" href="https://colorcut-studio.vercel.app/" />
-    <link rel="alternate" type="text/plain" href="https://colorcut-studio.vercel.app/llms.txt" title="ColorPals for AI assistants" />
+    <link rel="canonical" href="https://snapuzzle.ca/" />
+    <link rel="alternate" type="text/plain" href="https://snapuzzle.ca/llms.txt" title="Snapuzzle for AI assistants" />
     <link rel="icon" href="assets/app-icon.svg" />
     <link rel="manifest" href="manifest.webmanifest" />
     <meta name="theme-color" content="#f6f7f4" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="ColorPals" />
-    <meta property="og:title" content="ColorPals - Calm Puzzle Coloring App for Kids" />
+    <meta property="og:site_name" content="Snapuzzle" />
+    <meta property="og:title" content="Snapuzzle - Calm Puzzle Coloring App for Kids" />
     <meta property="og:description" content="Kids build beautiful cutout puzzles, then scratch to reveal the color. No ads, no accounts, no noisy feed." />
-    <meta property="og:url" content="https://colorcut-studio.vercel.app/" />
-    <meta property="og:image" content="https://colorcut-studio.vercel.app/assets/red-panda.webp" />
+    <meta property="og:url" content="https://snapuzzle.ca/" />
+    <meta property="og:image" content="https://snapuzzle.ca/assets/red-panda.webp" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ColorPals - Calm Puzzle Coloring App for Kids" />
+    <meta name="twitter:title" content="Snapuzzle - Calm Puzzle Coloring App for Kids" />
     <meta name="twitter:description" content="A calm iPad-friendly puzzle coloring app where kids assemble cutout art and reveal color by drawing." />
-    <meta name="twitter:image" content="https://colorcut-studio.vercel.app/assets/red-panda.webp" />
+    <meta name="twitter:image" content="https://snapuzzle.ca/assets/red-panda.webp" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="ColorPals" />
+    <meta name="apple-mobile-web-app-title" content="Snapuzzle" />
     <link rel="preload" as="image" href="assets/red-panda.webp" fetchpriority="high" />
-    <link rel="stylesheet" href="styles.css?v=plus-profile-copy-20260613" />
+    <link rel="stylesheet" href="styles.css?v=snapuzzle-pricing-20260613" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
-        "name": "ColorPals",
+        "name": "Snapuzzle",
         "applicationCategory": "GameApplication",
         "operatingSystem": "Web browser, iPadOS, iOS, Android",
-        "url": "https://colorcut-studio.vercel.app/",
+        "url": "https://snapuzzle.ca/",
         "description": "A calm puzzle coloring web app where kids assemble cutout art and scratch to reveal the color.",
-        "image": "https://colorcut-studio.vercel.app/assets/red-panda.webp",
+        "image": "https://snapuzzle.ca/assets/red-panda.webp",
         "isAccessibleForFree": true,
         "audience": {
           "@type": "PeopleAudience",
@@ -52,11 +52,11 @@
   <body class="app-body">
     <div class="app-shell">
       <header class="app-header">
-        <button class="brand" type="button" aria-label="ColorPals Studio home">
+        <button class="brand" type="button" aria-label="Snapuzzle Studio home">
           <span class="brand-mark" aria-hidden="true">
             <img src="assets/icon-library-puzzles.webp" width="512" height="512" alt="" draggable="false" />
           </span>
-          <span>ColorPals</span>
+          <span>Snapuzzle</span>
         </button>
 
         <div class="header-actions">
@@ -73,7 +73,7 @@
             <img src="assets/icon-library-puzzles.webp" width="512" height="512" alt="" draggable="false" />
           </button>
 
-          <button class="icon-button premium-button" id="parentButton" type="button" aria-label="ColorPals Plus" title="ColorPals Plus">
+          <button class="icon-button premium-button" id="parentButton" type="button" aria-label="Snapuzzle Plus" title="Snapuzzle Plus">
             <span class="premium-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24">
                 <path class="premium-plus" d="M10.7 4.2h2.6v4.5h4.5v2.6h-4.5v4.5h-2.6v-4.5H6.2V8.7h4.5V4.2Z" />
@@ -113,7 +113,7 @@
           </div>
         </section>
 
-        <section class="studio-view is-hidden" id="studioView" aria-label="ColorPals activity">
+        <section class="studio-view is-hidden" id="studioView" aria-label="Snapuzzle activity">
           <div class="work-area">
             <div class="board-shell">
               <div class="puzzle-board" id="puzzleBoard" aria-label="Puzzle board">
@@ -212,30 +212,52 @@
           </div>
 
           <div class="parent-panel" id="parentPanelStep">
-            <p class="modal-eyebrow">ColorPals Plus</p>
-            <h2>Ad-free puzzle coloring for calm iPad play.</h2>
-            <div class="parent-value-grid" aria-label="ColorPals Plus benefits">
-              <div>
-                <strong>$4.99/mo</strong>
-                <span>Monthly plan target</span>
-              </div>
-              <div>
-                <strong>$29/yr</strong>
-                <span>Annual target</span>
-              </div>
-              <div>
-                <strong>80+</strong>
-                <span>Premium puzzle goal</span>
-              </div>
+            <p class="modal-eyebrow">Snapuzzle Plus</p>
+            <h2>Choose calm puzzle play.</h2>
+            <p class="parent-pricing-copy">Start free, unlock richer packs when your family is ready.</p>
+            <div class="parent-pricing-grid" aria-label="Snapuzzle pricing plans">
+              <article class="pricing-option">
+                <span class="pricing-option-label">Free</span>
+                <strong>$0</strong>
+                <small>Try the core puzzle loop</small>
+                <ul>
+                  <li>Free animal puzzles</li>
+                  <li>Easy and classic cuts</li>
+                  <li>Local profile progress</li>
+                </ul>
+                <button class="pricing-option-button is-muted" type="button" disabled>Current plan</button>
+              </article>
+
+              <article class="pricing-option is-recommended">
+                <span class="pricing-option-badge">Recommended</span>
+                <span class="pricing-option-label">Plus</span>
+                <div class="billing-toggle" id="billingToggle" role="group" aria-label="Choose billing period">
+                  <button class="is-active" type="button" data-billing-plan="monthly" aria-pressed="true">Monthly</button>
+                  <button type="button" data-billing-plan="yearly" aria-pressed="false">Yearly</button>
+                </div>
+                <strong id="plusPriceLabel">$5/mo</strong>
+                <small id="plusPriceNote">Simple monthly access</small>
+                <ul>
+                  <li>Premium puzzle packs</li>
+                  <li>Plus difficulty cuts</li>
+                  <li>More nature, landmarks, dinosaurs, and space</li>
+                </ul>
+                <button class="parent-primary pricing-option-button" id="plusSubscribeButton" type="button" data-checkout-plan="monthly">Subscribe monthly</button>
+              </article>
+
+              <article class="pricing-option">
+                <span class="pricing-option-label">School</span>
+                <strong>Class</strong>
+                <small>For teachers and small groups</small>
+                <ul>
+                  <li>Classroom-friendly packs</li>
+                  <li>Printable coloring sheets</li>
+                  <li>Shared setup help</li>
+                </ul>
+                <a class="pricing-option-button is-secondary" href="mailto:hello@snapuzzle.ca?subject=Snapuzzle%20school%20plan">Contact</a>
+              </article>
             </div>
-            <ul class="parent-benefits">
-              <li>No ads, no social feed, no child accounts.</li>
-              <li>Plus difficulty with larger puzzle cuts for older kids.</li>
-              <li>Dinosaur and space pack previews, with more premium packs planned.</li>
-              <li>Offline play, printable coloring sheets, and classroom mode.</li>
-            </ul>
             <div class="parent-actions is-panel">
-              <button class="parent-primary" id="parentCheckoutButton" type="button">Continue to Plus</button>
               <a class="parent-secondary" href="parents.html">View full product page</a>
             </div>
             <button class="parent-link-button parent-login-link" id="parentPanelLoginButton" type="button">Already have Plus? Sign in</button>
@@ -250,7 +272,7 @@
 
       <div class="waitlist-modal" id="waitlistModal" role="dialog" aria-modal="true" aria-labelledby="waitlistTitle" aria-hidden="true" hidden>
         <button class="waitlist-backdrop" id="waitlistBackdrop" type="button" aria-label="Close waitlist"></button>
-        <section class="waitlist-sheet" aria-label="ColorPals waitlist">
+        <section class="waitlist-sheet" aria-label="Snapuzzle waitlist">
           <button class="waitlist-close" id="waitlistCloseButton" type="button" aria-label="Close">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="m6.4 4.9 5.6 5.6 5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6 1.5-1.5Z" />
@@ -355,6 +377,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=plus-profile-copy-20260613"></script>
+    <script src="app.js?v=snapuzzle-pricing-20260613"></script>
   </body>
 </html>

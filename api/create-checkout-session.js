@@ -2,7 +2,7 @@ const Stripe = require("stripe");
 const { isValidEmail, json, normalizeEmail, readJson } = require("./_supabase");
 
 function appUrl() {
-  return process.env.APP_URL || "https://colorcut-studio.vercel.app";
+  return process.env.APP_URL || "https://snapuzzle.ca";
 }
 
 module.exports = async function handler(req, res) {
@@ -11,19 +11,34 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  let body;
+
+  try {
+    body = await readJson(req);
+  } catch (error) {
+    json(res, 400, {
+      ok: false,
+      message: error.message || "Invalid checkout request."
+    });
+    return;
+  }
+
   const secretKey = process.env.STRIPE_SECRET_KEY;
-  const priceId = process.env.STRIPE_PLUS_PRICE_ID;
+  const plan = body.plan === "yearly" ? "yearly" : "monthly";
+  const priceId =
+    plan === "yearly"
+      ? process.env.STRIPE_PLUS_YEARLY_PRICE_ID
+      : process.env.STRIPE_PLUS_MONTHLY_PRICE_ID || process.env.STRIPE_PLUS_PRICE_ID;
 
   if (!secretKey || !priceId) {
     json(res, 503, {
       ok: false,
-      message: "Stripe checkout is not connected yet."
+      message: `Stripe ${plan} checkout is not connected yet.`
     });
     return;
   }
 
   try {
-    const body = await readJson(req);
     const email = normalizeEmail(body.email);
     const stripe = new Stripe(secretKey, {
       apiVersion: "2024-06-20"
@@ -42,11 +57,13 @@ module.exports = async function handler(req, res) {
       allow_promotion_codes: true,
       billing_address_collection: "auto",
       metadata: {
-        source: String(body.source || "app")
+        source: String(body.source || "app"),
+        plan
       },
       subscription_data: {
         metadata: {
-          source: String(body.source || "app")
+          source: String(body.source || "app"),
+          plan
         }
       }
     };

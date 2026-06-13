@@ -21,7 +21,7 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const appUrl = process.env.APP_URL || "https://colorcut-studio.vercel.app";
+    const appUrl = process.env.APP_URL || "https://snapuzzle.ca";
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {

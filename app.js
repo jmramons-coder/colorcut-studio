@@ -6,9 +6,9 @@ const MOBILE_PIECE_OFFSCREEN_RATIO = 0.28;
 const MOBILE_LOOSE_BOTTOM_RESERVE = 148;
 const BRUSH_SIZE = 42;
 const COLOR_COMPLETE_RATIO = 0.68;
-const PROFILE_STORAGE_KEY = "colorcut-profile-v1";
-const WAITLIST_STORAGE_KEY = "colorcut-waitlist-email";
-const PARENT_AUTH_STORAGE_KEY = "colorcut-parent-auth-v1";
+const PROFILE_STORAGE_KEY = "snapuzzle-profile-v1";
+const WAITLIST_STORAGE_KEY = "snapuzzle-waitlist-email";
+const PARENT_AUTH_STORAGE_KEY = "snapuzzle-parent-auth-v1";
 
 const avatarOptions = [
   { id: "core", label: "C", color: "#172026" },
@@ -305,7 +305,10 @@ const dom = {
   parentGateAnswer: document.querySelector("#parentGateAnswer"),
   parentGateSubmit: document.querySelector("#parentGateSubmit"),
   parentGateError: document.querySelector("#parentGateError"),
-  parentCheckoutButton: document.querySelector("#parentCheckoutButton"),
+  plusSubscribeButton: document.querySelector("#plusSubscribeButton"),
+  billingToggle: document.querySelector("#billingToggle"),
+  plusPriceLabel: document.querySelector("#plusPriceLabel"),
+  plusPriceNote: document.querySelector("#plusPriceNote"),
   parentCheckoutStatus: document.querySelector("#parentCheckoutStatus"),
   parentPanelLoginButton: document.querySelector("#parentPanelLoginButton"),
   parentAuthModal: document.querySelector("#parentAuthModal"),
@@ -378,6 +381,7 @@ const state = {
   parentAuth: loadParentAuth(),
   parentAuthPendingEmail: "",
   parentCheckoutBusy: false,
+  billingPlan: "monthly",
   profile: loadProfile(),
   profileSelectedPuzzleId: null,
   profileEditingName: false,
@@ -392,6 +396,7 @@ renderPicker();
 bindControls();
 renderProfileButton();
 renderParentAuth();
+renderBillingPlan();
 consumeParentAuthRedirect();
 consumeCheckoutRedirect();
 refreshParentAuth();
@@ -583,7 +588,7 @@ function renderCategoryTabs() {
       const active = category.id === state.category;
       const locked = category.tier === "plus";
       return `
-        <button class="category-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-category="${category.id}" role="tab" aria-selected="${active}" aria-label="${category.name}${locked ? ", ColorPals Plus preview" : ""}">
+        <button class="category-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-category="${category.id}" role="tab" aria-selected="${active}" aria-label="${category.name}${locked ? ", Snapuzzle Plus preview" : ""}">
           ${categoryIcon(category.id)}
           <span>${category.name}</span>
         </button>
@@ -598,7 +603,7 @@ function renderDifficultyTabs() {
       const active = option.id === state.difficulty;
       const locked = option.tier === "plus";
       return `
-        <button class="difficulty-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-difficulty="${option.id}" role="tab" aria-selected="${active}" aria-label="${option.name}, ${option.label}${locked ? ", ColorPals Plus" : ""}">
+        <button class="difficulty-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-difficulty="${option.id}" role="tab" aria-selected="${active}" aria-label="${option.name}, ${option.label}${locked ? ", Snapuzzle Plus" : ""}">
           ${difficultyIcon(option.id)}
           <span>${option.name}</span>
           <small>${option.label}</small>
@@ -637,7 +642,7 @@ function renderDrawingCards() {
       const styleClass = animal.style ? ` is-${animal.style}` : "";
       const recommended = state.category === "animals" && index === 0;
       return `
-        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}${recommended ? " is-recommended" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", ColorPals Plus" : ""}">
+        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}${recommended ? " is-recommended" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", Snapuzzle Plus" : ""}">
           ${recommended ? `<span class="drawing-recommend">Start here</span>` : ""}
           ${
             locked
@@ -714,7 +719,8 @@ function bindControls() {
       verifyParentAuth();
     }
   });
-  dom.parentCheckoutButton.addEventListener("click", handleParentCheckout);
+  dom.plusSubscribeButton.addEventListener("click", () => handleParentCheckout(state.billingPlan));
+  dom.billingToggle.addEventListener("click", updateBillingPlan);
   dom.waitlistBackdrop.addEventListener("click", hideWaitlistModal);
   dom.waitlistCloseButton.addEventListener("click", hideWaitlistModal);
   dom.waitlistForm.addEventListener("submit", saveWaitlistEmail);
@@ -1071,6 +1077,27 @@ function renderParentCheckoutStatus(message = "") {
   }
 }
 
+function updateBillingPlan(event) {
+  const button = event.target.closest("[data-billing-plan]");
+  if (!button || button.dataset.billingPlan === state.billingPlan) return;
+
+  state.billingPlan = button.dataset.billingPlan === "yearly" ? "yearly" : "monthly";
+  renderBillingPlan();
+}
+
+function renderBillingPlan() {
+  const isYearly = state.billingPlan === "yearly";
+  dom.billingToggle.querySelectorAll("[data-billing-plan]").forEach((button) => {
+    const active = button.dataset.billingPlan === state.billingPlan;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  dom.plusPriceLabel.textContent = isYearly ? "$29/yr" : "$5/mo";
+  dom.plusPriceNote.textContent = isYearly ? "Save with annual access" : "Simple monthly access";
+  dom.plusSubscribeButton.textContent = isYearly ? "Subscribe yearly" : "Subscribe monthly";
+  dom.plusSubscribeButton.dataset.checkoutPlan = state.billingPlan;
+}
+
 function showParentAuthModal(message = "") {
   dom.parentAuthModal.hidden = false;
   dom.parentAuthModal.setAttribute("aria-hidden", "false");
@@ -1271,11 +1298,11 @@ function clearParentAuth() {
   dom.parentAuthEmail.focus();
 }
 
-async function handleParentCheckout() {
+async function handleParentCheckout(plan = "monthly") {
   if (state.parentCheckoutBusy) return;
 
   state.parentCheckoutBusy = true;
-  dom.parentCheckoutButton.disabled = true;
+  dom.plusSubscribeButton.disabled = true;
   renderParentCheckoutStatus("Opening secure checkout...");
 
   try {
@@ -1286,6 +1313,7 @@ async function handleParentCheckout() {
       },
       body: JSON.stringify({
         email: isParentSignedIn() ? parentEmail() : "",
+        plan: plan === "yearly" ? "yearly" : "monthly",
         source: "app-parent-panel"
       })
     });
@@ -1298,7 +1326,7 @@ async function handleParentCheckout() {
     renderParentCheckoutStatus(error.message || "Stripe checkout is not ready yet.");
   } finally {
     state.parentCheckoutBusy = false;
-    dom.parentCheckoutButton.disabled = false;
+    dom.plusSubscribeButton.disabled = false;
   }
 }
 

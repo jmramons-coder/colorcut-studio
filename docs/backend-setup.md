@@ -35,7 +35,7 @@ If Supabase is missing or the table has not been created yet, the frontend keeps
 After deployment, open:
 
 ```txt
-https://colorcut-studio.vercel.app/api/health
+https://snapuzzle.ca/api/health
 ```
 
 Expected after Supabase env vars are set:
@@ -68,10 +68,10 @@ The current Supabase default email template sends a magic sign-in link. The app 
 Supabase Auth settings used:
 
 ```txt
-Site URL: https://colorcut-studio.vercel.app
+Site URL: https://snapuzzle.ca
 Redirect URLs:
-https://colorcut-studio.vercel.app
-https://colorcut-studio.vercel.app/*
+https://snapuzzle.ca
+https://snapuzzle.ca/*
 ```
 
 The parent sign-in UI is intentionally separate from the pricing modal. Parents can buy first through Stripe, then sign in with the same email after checkout so Plus can attach to their account.
@@ -87,16 +87,17 @@ Checkout uses:
 Required Vercel environment variables:
 
 ```txt
-APP_URL=https://colorcut-studio.vercel.app
+APP_URL=https://snapuzzle.ca
 STRIPE_SECRET_KEY
-STRIPE_PLUS_PRICE_ID
+STRIPE_PLUS_MONTHLY_PRICE_ID
+STRIPE_PLUS_YEARLY_PRICE_ID
 STRIPE_WEBHOOK_SECRET
 ```
 
 Add this webhook endpoint in Stripe:
 
 ```txt
-https://colorcut-studio.vercel.app/api/stripe-webhook
+https://snapuzzle.ca/api/stripe-webhook
 ```
 
 Subscribe it to:
@@ -123,6 +124,7 @@ Stripe will use:
 
 ```txt
 STRIPE_SECRET_KEY
-STRIPE_PLUS_PRICE_ID
+STRIPE_PLUS_MONTHLY_PRICE_ID
+STRIPE_PLUS_YEARLY_PRICE_ID
 STRIPE_WEBHOOK_SECRET
 ```

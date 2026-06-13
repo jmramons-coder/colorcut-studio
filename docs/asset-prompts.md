@@ -1,11 +1,11 @@
-# ColorCut Asset Prompts
+# Snapuzzle Asset Prompts
 
 ## Free Animal Baseline
 
 Use this prompt family for new free animal puzzle assets so they stay aligned with the original red panda, sea turtle, tiger, and deer set.
 
 ```text
-Create one full-body animal character for ColorCut, a kids puzzle-coloring app.
+Create one full-body animal character for Snapuzzle, a kids puzzle-coloring app.
 
 Subject:
 - Animal: <animal name>
@@ -18,7 +18,7 @@ Style:
 - Soft watercolor and gouache texture with visible brush grain.
 - Light inked detail lines and crisp readable edges.
 - Playful, polished, warm, and tactile.
-- Match the original ColorCut animals: red panda, sea turtle, tiger, deer.
+- Match the original Snapuzzle animals: red panda, sea turtle, tiger, deer.
 
 Color and texture:
 - Rich natural colors with a few tasteful accent colors when appropriate.
