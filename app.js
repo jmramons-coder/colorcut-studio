@@ -245,6 +245,36 @@ const libraryItems = [
     tier: "plus"
   },
   {
+    id: "spinosaurus",
+    name: "Spinosaurus",
+    category: "dinosaurs",
+    src: "assets/spinosaurus.webp",
+    aspect: 1392 / 1115,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.9,
+    tier: "plus"
+  },
+  {
+    id: "stegosaurus",
+    name: "Stegosaurus",
+    category: "dinosaurs",
+    src: "assets/stegosaurus.webp",
+    aspect: 1413 / 963,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.9,
+    tier: "plus"
+  },
+  {
+    id: "ankylosaurus",
+    name: "Ankylosaurus",
+    category: "dinosaurs",
+    src: "assets/ankylosaurus.webp",
+    aspect: 1284 / 781,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.9,
+    tier: "plus"
+  },
+  {
     id: "rocket",
     name: "Rocket",
     category: "space",
@@ -262,6 +292,36 @@ const libraryItems = [
     aspect: 2 / 3,
     grid: { cols: 5, rows: 5 },
     targetRatio: 0.88,
+    tier: "plus"
+  },
+  {
+    id: "moon-rover",
+    name: "Moon Rover",
+    category: "space",
+    src: "assets/moon-rover.webp",
+    aspect: 1137 / 1001,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.9,
+    tier: "plus"
+  },
+  {
+    id: "ringed-planet",
+    name: "Ringed Planet",
+    category: "space",
+    src: "assets/ringed-planet.webp",
+    aspect: 1231 / 1018,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.9,
+    tier: "plus"
+  },
+  {
+    id: "space-shuttle",
+    name: "Space Shuttle",
+    category: "space",
+    src: "assets/space-shuttle.webp",
+    aspect: 1090 / 1052,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.9,
     tier: "plus"
   }
 ];
