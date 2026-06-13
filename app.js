@@ -1136,10 +1136,10 @@ function renderParentAuth(message = "") {
       : "Email magic link";
   dom.parentAuthSendButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
   dom.parentAuthEmail.disabled = state.parentAuthBusy;
-  dom.parentAuthEmail.readOnly = passwordMode && Boolean(checkoutEmail);
+  dom.parentAuthEmail.readOnly = passwordMode;
   dom.parentAuthPassword.disabled = state.parentAuthBusy;
   dom.parentAuthPassword.autocomplete = passwordMode ? "new-password" : "current-password";
-  dom.parentAuthPasswordButton.disabled = state.parentAuthBusy;
+  dom.parentAuthPasswordButton.disabled = state.parentAuthBusy || (passwordMode && !checkoutEmail);
   dom.parentAuthCopy.textContent = signedIn
     ? "You are logged in."
     : passwordMode
@@ -1508,7 +1508,9 @@ async function hydrateCheckoutAccount(checkoutSessionId) {
     renderParentAuth("Choose a password for this account.");
     window.setTimeout(() => dom.parentAuthPassword.focus(), 40);
   } catch (error) {
-    renderParentAuth(error.message || "Could not load your checkout account.");
+    renderParentAuth(error.message === "Something went wrong."
+      ? "Could not verify checkout yet. Refresh from the Stripe success page."
+      : error.message || "Could not load your checkout account.");
   } finally {
     state.parentAuthBusy = false;
     renderParentAuth(dom.parentAuthStatus.textContent);
@@ -1876,6 +1878,7 @@ function closestGalleryIndex() {
 }
 
 function showFinishTray() {
+  dom.finishTray.hidden = false;
   dom.finishTray.classList.add("is-visible");
   dom.finishTray.setAttribute("aria-hidden", "false");
 }
@@ -1883,9 +1886,11 @@ function showFinishTray() {
 function hideFinishTray() {
   dom.finishTray.classList.remove("is-visible");
   dom.finishTray.setAttribute("aria-hidden", "true");
+  dom.finishTray.hidden = true;
 }
 
 function showFinishSuggestions() {
+  dom.finishSuggestions.hidden = false;
   dom.finishSuggestions.classList.add("is-visible");
   dom.finishSuggestions.setAttribute("aria-hidden", "false");
 }
@@ -1893,9 +1898,11 @@ function showFinishSuggestions() {
 function hideFinishSuggestions() {
   dom.finishSuggestions.classList.remove("is-visible");
   dom.finishSuggestions.setAttribute("aria-hidden", "true");
+  dom.finishSuggestions.hidden = true;
 }
 
 function showScratchComplete() {
+  dom.scratchComplete.hidden = false;
   dom.scratchComplete.classList.remove("is-visible");
   void dom.scratchComplete.offsetWidth;
   dom.scratchComplete.classList.add("is-visible");
@@ -1905,6 +1912,7 @@ function showScratchComplete() {
 function hideScratchComplete() {
   dom.scratchComplete.classList.remove("is-visible");
   dom.scratchComplete.setAttribute("aria-hidden", "true");
+  dom.scratchComplete.hidden = true;
 }
 
 function showLoadingSurface() {

@@ -1248,6 +1248,12 @@ button {
     transform 240ms cubic-bezier(0.18, 0.9, 0.22, 1.18);
 }
 
+.scratch-complete[hidden],
+.finish-suggestions[hidden],
+.finish-tray[hidden] {
+  display: none;
+}
+
 .finish-tray.is-visible {
   opacity: 1;
   pointer-events: auto;
@@ -1345,7 +1351,7 @@ button {
 .scratch-complete {
   position: absolute;
   left: 50%;
-  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 176px);
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 156px);
   z-index: 56;
   min-width: 164px;
   min-height: 54px;
