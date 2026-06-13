@@ -320,6 +320,8 @@ const dom = {
   parentAuthFooter: document.querySelector("#parentAuthFooter"),
   parentAuthSummary: document.querySelector("#parentAuthSummary"),
   parentAuthEmailLabel: document.querySelector("#parentAuthEmailLabel"),
+  parentAuthManageBillingButton: document.querySelector("#parentAuthManageBillingButton"),
+  parentAuthLogoutButton: document.querySelector("#parentAuthLogoutButton"),
   parentAuthSubscribeButton: document.querySelector("#parentAuthSubscribeButton"),
   parentAuthEmailStep: document.querySelector("#parentAuthEmailStep"),
   parentAuthEmail: document.querySelector("#parentAuthEmail"),
@@ -709,6 +711,8 @@ function bindControls() {
   dom.parentAuthBackdrop.addEventListener("click", hideParentAuthModal);
   dom.parentAuthCloseButton.addEventListener("click", hideParentAuthModal);
   dom.parentAuthSendButton.addEventListener("click", startParentAuth);
+  dom.parentAuthManageBillingButton.addEventListener("click", openBillingPortal);
+  dom.parentAuthLogoutButton.addEventListener("click", logoutParentAccount);
   dom.parentAuthSubscribeButton.addEventListener("click", openSubscribeFromAuth);
   dom.parentAuthEmail.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -1097,9 +1101,10 @@ function renderParentAuth(message = "") {
     : "Plus access";
   dom.profileParentAuthButton.textContent = signedIn ? "Logout" : "Login";
   dom.profileSubscribeButton.hidden = false;
-  dom.profileSubscribeButton.textContent = signedIn && plusActive ? "Manage" : "Subscribe";
-  dom.profileSubscribeButton.dataset.billingAction = signedIn && plusActive ? "portal" : "subscribe";
-  dom.parentButton.hidden = signedIn && plusActive;
+  dom.profileSubscribeButton.textContent = signedIn ? "Manage" : "Subscribe";
+  dom.profileSubscribeButton.dataset.billingAction = signedIn ? "account" : "subscribe";
+  dom.parentButton.hidden = false;
+  dom.parentAuthManageBillingButton.hidden = !plusActive;
   dom.parentAuthSendButton.textContent = cooldownSeconds
     ? `Try again in ${cooldownSeconds}s`
     : state.parentAuthPendingEmail && !signedIn
@@ -1219,8 +1224,8 @@ async function openBillingPortal() {
 }
 
 function handleProfileBillingAction() {
-  if (dom.profileSubscribeButton.dataset.billingAction === "portal") {
-    openBillingPortal();
+  if (dom.profileSubscribeButton.dataset.billingAction === "account") {
+    showParentAuthModal();
     return;
   }
 
@@ -1230,13 +1235,18 @@ function handleProfileBillingAction() {
 
 function handleProfileAuthButton() {
   if (isParentSignedIn()) {
-    saveParentAuth(null);
-    state.parentAuthPendingEmail = "";
-    dom.parentAuthEmail.value = "";
-    renderParentAuth("Logged out.");
+    logoutParentAccount();
     return;
   }
   showParentAuthModal();
+}
+
+function logoutParentAccount() {
+  saveParentAuth(null);
+  state.parentAuthPendingEmail = "";
+  dom.parentAuthEmail.value = "";
+  hideParentAuthModal();
+  renderParentAuth("Logged out.");
 }
 
 function openSubscribeFromAuth() {
@@ -1402,13 +1412,6 @@ function consumeBillingRedirect() {
     showProfileModal();
     renderParentAuth("Billing updated.");
   }
-}
-
-function clearParentAuth() {
-  saveParentAuth(null);
-  state.parentAuthPendingEmail = "";
-  renderParentAuth("Logged out.");
-  dom.parentAuthEmail.focus();
 }
 
 async function handleParentCheckout(plan = "monthly") {

@@ -2537,6 +2537,20 @@ button {
   overflow-wrap: anywhere;
 }
 
+.parent-auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.parent-auth-actions .parent-primary,
+.parent-auth-actions .parent-secondary {
+  min-height: 38px;
+  padding-inline: 14px;
+  font-size: 0.82rem;
+}
+
 .parent-auth-form {
   display: grid;
   gap: 12px;
