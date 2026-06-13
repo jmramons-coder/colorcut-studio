@@ -473,7 +473,8 @@ function loadProfile() {
       version: 1,
       name: sanitizeProfileName(stored.name) || fallback.name,
       avatar: avatarOptions.some((avatar) => avatar.id === stored.avatar) ? stored.avatar : fallback.avatar,
-      completions: stored.completions && typeof stored.completions === "object" ? stored.completions : {}
+      completions: stored.completions && typeof stored.completions === "object" ? stored.completions : {},
+      activityDays: normalizeActivityDays(stored.activityDays, stored.completions)
     };
   } catch {
     return fallback;
@@ -511,8 +512,56 @@ function createDefaultProfile() {
     version: 1,
     name: names[index],
     avatar: avatarOptions[index % avatarOptions.length].id,
-    completions: {}
+    completions: {},
+    activityDays: []
   };
+}
+
+function dayKey(timestamp = Date.now()) {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeActivityDays(days, completions = {}) {
+  const keys = new Set();
+
+  if (Array.isArray(days)) {
+    days.forEach((day) => {
+      if (typeof day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(day)) {
+        keys.add(day);
+      }
+    });
+  }
+
+  if (completions && typeof completions === "object") {
+    Object.values(completions).forEach((stats) => {
+      if (stats?.lastCompletedAt) keys.add(dayKey(stats.lastCompletedAt));
+    });
+  }
+
+  return [...keys].sort();
+}
+
+function currentStreak(days = []) {
+  const keys = new Set(normalizeActivityDays(days));
+  if (!keys.size) return 0;
+
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  if (!keys.has(dayKey(cursor.getTime()))) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  let streak = 0;
+  while (keys.has(dayKey(cursor.getTime()))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
 }
 
 function saveProfile() {
@@ -845,8 +894,8 @@ function renderProfileStats(totals = selectedProfilePuzzle() ? profilePuzzleTota
       <span>Total plays</span>
     </div>
     <div>
-      <strong>${formatDuration(totals.bestTime)}</strong>
-      <span>Best time</span>
+      <strong>${totals.streak}</strong>
+      <span>Streak</span>
     </div>
   `;
   dom.profileStats.setAttribute("aria-label", mode);
@@ -1016,10 +1065,7 @@ function profileTotals() {
   return {
     completed: values.filter((stats) => stats.plays > 0).length,
     plays: values.reduce((total, stats) => total + (stats.plays || 0), 0),
-    bestTime: values.reduce((best, stats) => {
-      if (!stats.bestTime) return best;
-      return best ? Math.min(best, stats.bestTime) : stats.bestTime;
-    }, 0)
+    streak: currentStreak(state.profile.activityDays)
   };
 }
 
@@ -1028,7 +1074,7 @@ function profilePuzzleTotals(id) {
   return {
     completed: stats.plays ? 1 : 0,
     plays: stats.plays || 0,
-    bestTime: stats.bestTime || 0
+    streak: stats.lastCompletedAt ? 1 : 0
   };
 }
 
@@ -2792,6 +2838,10 @@ function recordPuzzleCompletion() {
     lastDuration: duration || previous.lastDuration,
     lastCompletedAt: now
   };
+  state.profile.activityDays = normalizeActivityDays([
+    ...(state.profile.activityDays || []),
+    dayKey(now)
+  ]);
   state.profileSelectedPuzzleId = state.animal.id;
   saveProfile();
   renderProfileButton();
