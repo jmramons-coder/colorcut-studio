@@ -55,13 +55,12 @@ Parent login uses Supabase Auth through these API routes:
 ```txt
 /api/auth-password-login
 /api/auth-password-set
-/api/auth-start
 /api/auth-link
 /api/auth-me
 /api/auth-refresh
 ```
 
-Password login is primary. Magic links remain available as a fallback until Google/Apple SSO is added.
+Password login is primary. `/api/auth-link` remains only to complete Supabase recovery redirects that arrive with a token hash.
 
 Password recovery is the path for parents who paid but do not know their password. The app checks that the email belongs to an active member profile, creates a linked Supabase Auth user if the paid profile does not have one yet, sends a Supabase recovery email, and then lets the parent set a new password from the recovery redirect.
 
@@ -115,6 +114,22 @@ customer.subscription.deleted
 Stripe should collect the payment email. The webhook creates or updates a Supabase `profiles` row, marks it as `plus` while the subscription is active or trialing, marks it `free` when the subscription becomes inactive, and records the Stripe subscription in `public.subscriptions`.
 
 Stripe customer id is treated as the stable billing identity. If a Stripe customer's email changes, profile sync first looks up the profile by `stripe_customer_id`, then updates the email/status. Login eligibility is based on active member status (`plus`, `active`, or `trialing`), not merely the existence of a historical Stripe customer id.
+
+## Admin
+
+The private customer admin page is available at:
+
+```txt
+https://snapuzzle.ca/admin
+```
+
+Required Vercel environment variable:
+
+```txt
+ADMIN_SECRET
+```
+
+The admin page can search customers by email, inspect Supabase profile/auth state, inspect Stripe customer/subscription/invoice/payment state, grant or remove comp Plus, resync Stripe state, cancel the latest Stripe subscription, and delete a Supabase test account. Stripe remains the billing source of truth.
 
 ## Next Integrations
 
