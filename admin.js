@@ -1,10 +1,21 @@
-const STORAGE_KEY = "snapuzzle-admin-secret";
+const STORAGE_KEY = "snapuzzle-admin-session";
 
-const form = document.querySelector("#adminSearchForm");
-const secretInput = document.querySelector("#adminSecret");
-const emailInput = document.querySelector("#customerEmail");
+const loginPanel = document.querySelector("#loginPanel");
+const loginForm = document.querySelector("#adminLoginForm");
+const adminEmail = document.querySelector("#adminEmail");
+const adminPassword = document.querySelector("#adminPassword");
+const adminIdentity = document.querySelector("#adminIdentity");
+const logoutButton = document.querySelector("#adminLogoutButton");
 const statusEl = document.querySelector("#adminStatus");
 const dashboard = document.querySelector("#dashboard");
+const overviewPanel = document.querySelector("#overviewPanel");
+const revenuePanel = document.querySelector("#revenuePanel");
+const puzzlePanel = document.querySelector("#puzzlePanel");
+const searchForm = document.querySelector("#adminSearchForm");
+const searchInput = document.querySelector("#customerEmail");
+const usersTable = document.querySelector("#usersTable");
+const userFilters = document.querySelector("#userFilters");
+const customerDetail = document.querySelector("#customerDetail");
 const profilePanel = document.querySelector("#profilePanel");
 const stripePanel = document.querySelector("#stripePanel");
 const subscriptionPanel = document.querySelector("#subscriptionPanel");
@@ -12,15 +23,39 @@ const moneyPanel = document.querySelector("#moneyPanel");
 const progressPanel = document.querySelector("#progressPanel");
 
 const state = {
+  admin: null,
   customer: null,
-  email: ""
+  email: "",
+  filter: "all",
+  session: loadSession()
 };
 
-secretInput.value = localStorage.getItem(STORAGE_KEY) || "";
-
-form.addEventListener("submit", (event) => {
+loginForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  searchCustomer();
+  login();
+});
+
+logoutButton.addEventListener("click", logout);
+
+searchForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  loadUsers();
+});
+
+userFilters.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-user-filter]");
+  if (!button) return;
+  state.filter = button.dataset.userFilter || "all";
+  userFilters.querySelectorAll("[data-user-filter]").forEach((item) => {
+    item.classList.toggle("is-active", item === button);
+  });
+  loadUsers();
+});
+
+usersTable.addEventListener("click", (event) => {
+  const row = event.target.closest("[data-profile-id]");
+  if (!row) return;
+  loadCustomer({ profileId: row.dataset.profileId, email: row.dataset.email });
 });
 
 document.addEventListener("click", (event) => {
@@ -28,6 +63,64 @@ document.addEventListener("click", (event) => {
   if (!actionButton) return;
   runAction(actionButton.dataset.action);
 });
+
+boot();
+
+async function boot() {
+  if (!state.session?.accessToken) {
+    showLogin();
+    return;
+  }
+
+  showDashboardShell();
+  try {
+    const data = await adminRequest({ view: "me" });
+    state.admin = data.admin;
+    renderAdminIdentity();
+    await Promise.all([loadOverview(), loadUsers()]);
+    setStatus("Admin dashboard loaded.");
+  } catch (error) {
+    clearSession();
+    showLogin(error.message || "Log in again.");
+  }
+}
+
+function loadSession() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(session) {
+  state.session = session;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+}
+
+function clearSession() {
+  state.session = null;
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+function showLogin(message = "") {
+  loginPanel.hidden = false;
+  dashboard.hidden = true;
+  adminIdentity.hidden = true;
+  logoutButton.hidden = true;
+  setStatus(message);
+}
+
+function showDashboardShell() {
+  loginPanel.hidden = true;
+  dashboard.hidden = false;
+  adminIdentity.hidden = false;
+  logoutButton.hidden = false;
+}
+
+function renderAdminIdentity() {
+  adminIdentity.textContent = state.admin?.email ? `${state.admin.email} · ${state.admin.role || "admin"}` : "Admin";
+}
 
 function setStatus(message = "", isError = false) {
   statusEl.textContent = message;
@@ -38,23 +131,56 @@ function setBusy(isBusy) {
   document.body.classList.toggle("is-busy", isBusy);
 }
 
-function adminSecret() {
-  return secretInput.value.trim();
+async function login() {
+  const email = adminEmail.value.trim().toLowerCase();
+  const password = adminPassword.value;
+  if (!email || !password) {
+    setStatus("Enter your admin email and password.", true);
+    return;
+  }
+
+  setBusy(true);
+  setStatus("Logging in...");
+  try {
+    const response = await fetch("/api/auth-password-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.message || "Login failed.");
+
+    saveSession(data.session);
+    const me = await adminRequest({ view: "me" });
+    state.admin = me.admin;
+    adminPassword.value = "";
+    showDashboardShell();
+    renderAdminIdentity();
+    await Promise.all([loadOverview(), loadUsers()]);
+    setStatus("Admin dashboard loaded.");
+  } catch (error) {
+    clearSession();
+    setStatus(error.message || "Could not log in.", true);
+  } finally {
+    setBusy(false);
+  }
 }
 
-function customerEmail() {
-  return emailInput.value.trim().toLowerCase();
+function logout() {
+  clearSession();
+  state.admin = null;
+  state.customer = null;
+  showLogin("Logged out.");
 }
 
 async function adminRequest(payload) {
-  const secret = adminSecret();
-  if (!secret) throw new Error("Enter the admin secret.");
+  if (!state.session?.accessToken) throw new Error("Admin login required.");
 
   const response = await fetch("/api/admin-customer", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Admin-Secret": secret
+      Authorization: `Bearer ${state.session.accessToken}`
     },
     body: JSON.stringify(payload)
   });
@@ -64,25 +190,48 @@ async function adminRequest(payload) {
     throw new Error(data.message || "Admin request failed.");
   }
 
-  localStorage.setItem(STORAGE_KEY, secret);
   return data;
 }
 
-async function searchCustomer(message = "Searching...") {
-  const email = customerEmail();
-  if (!email) {
-    setStatus("Enter a customer email.", true);
-    return;
-  }
-
+async function loadOverview() {
   setBusy(true);
-  setStatus(message);
   try {
-    const data = await adminRequest({ email });
+    const data = await adminRequest({ view: "overview" });
+    renderOverview(data.overview || {});
+  } catch (error) {
+    setStatus(error.message || "Could not load overview.", true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function loadUsers() {
+  setBusy(true);
+  try {
+    const data = await adminRequest({
+      view: "users",
+      search: searchInput.value.trim(),
+      status: state.filter
+    });
+    renderUsers(data.users || []);
+  } catch (error) {
+    setStatus(error.message || "Could not load users.", true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function loadCustomer({ profileId = "", email = "" } = {}) {
+  setBusy(true);
+  setStatus("Loading customer...");
+  try {
+    const data = await adminRequest({ profileId, email });
     state.customer = data;
-    state.email = email;
-    renderDashboard(data);
-    setStatus(data.message || "Customer loaded.");
+    state.email = data.profile?.email || email || "";
+    renderCustomerDetail(data);
+    customerDetail.hidden = false;
+    customerDetail.scrollIntoView({ behavior: "smooth", block: "start" });
+    setStatus("Customer loaded.");
   } catch (error) {
     setStatus(error.message || "Could not load customer.", true);
   } finally {
@@ -91,10 +240,10 @@ async function searchCustomer(message = "Searching...") {
 }
 
 async function runAction(action) {
-  const email = state.customer?.profile?.email || state.email || customerEmail();
+  const email = state.customer?.profile?.email || state.email || "";
   const profileId = state.customer?.profile?.id || "";
   if (!email && !profileId) {
-    setStatus("Search a customer first.", true);
+    setStatus("Select a customer first.", true);
     return;
   }
 
@@ -117,13 +266,90 @@ async function runAction(action) {
   try {
     const data = await adminRequest(payload);
     state.customer = data;
-    renderDashboard(data);
+    renderCustomerDetail(data);
+    await Promise.all([loadOverview(), loadUsers()]);
     setStatus(data.message || "Action complete.");
   } catch (error) {
     setStatus(error.message || "Action failed.", true);
   } finally {
     setBusy(false);
   }
+}
+
+function renderOverview(overview) {
+  const revenue = overview.revenue || {};
+  overviewPanel.innerHTML = [
+    kpi("Total users", overview.totalUsers || 0),
+    kpi("Paid users", overview.paidUsers || 0),
+    kpi("Free users", overview.freeUsers || 0),
+    kpi("Active 7d", overview.activeUsers7d || 0),
+    kpi("MRR", money(revenue.mrrCents || 0, revenue.currency || "usd")),
+    kpi("Total paid", money(revenue.totalPaidCents || 0, revenue.currency || "usd")),
+    kpi("Waitlist", overview.waitlistCount || 0),
+    kpi("Puzzle plays", overview.totalPlays || 0)
+  ].join("");
+
+  revenuePanel.innerHTML = `
+    <p class="eyebrow">Revenue</p>
+    <h2>Stripe snapshot</h2>
+    ${kv([
+      ["MRR", safeText(money(revenue.mrrCents || 0, revenue.currency || "usd"))],
+      ["Total paid", safeText(money(revenue.totalPaidCents || 0, revenue.currency || "usd"))],
+      ["Active Stripe subs", safeText(revenue.activeStripeSubscriptions || 0)],
+      ["Mirrored active subs", safeText(overview.activeSubscriptions || 0)],
+      ["Canceled/problem subs", safeText(overview.canceledSubscriptions || 0)]
+    ])}
+    <p class="fine-print">Revenue is a quick Stripe snapshot from recent charges/subscriptions. Stripe remains the accounting source of truth.</p>
+  `;
+
+  puzzlePanel.innerHTML = `
+    <p class="eyebrow">Product usage</p>
+    <h2>Top puzzles</h2>
+    ${(overview.topPuzzles || []).length ? list(overview.topPuzzles.map((item) => `
+      <div class="row"><strong>${safeText(item.puzzleId)}</strong><span class="badge">${safeText(item.plays)} plays</span></div>
+      <span class="muted">${safeText(item.completions)} completed profiles</span>
+    `)) : `<p class="empty">No puzzle usage yet.</p>`}
+  `;
+}
+
+function renderUsers(users) {
+  if (!users.length) {
+    usersTable.innerHTML = `<tr><td colspan="5" class="empty-cell">No users found.</td></tr>`;
+    return;
+  }
+
+  usersTable.innerHTML = users.map((user) => `
+    <tr data-profile-id="${escapeHtml(user.id)}" data-email="${escapeHtml(user.email || "")}" tabindex="0">
+      <td>
+        <strong>${safeText(user.email)}</strong>
+        <span class="table-muted">${safeText(user.displayName)}</span>
+      </td>
+      <td>${badge(user.subscriptionStatus)}</td>
+      <td>
+        <strong>${safeText(user.usage?.totalPlays || 0)} plays</strong>
+        <span class="table-muted">${safeText(user.usage?.completedPuzzles || 0)} puzzles</span>
+      </td>
+      <td>${safeText(dateLabel(user.usage?.lastCompletedAt || user.updatedAt))}</td>
+      <td>${user.stripeCustomerId ? badge("linked") : badge("none")}</td>
+    </tr>
+  `).join("");
+}
+
+function renderCustomerDetail(data) {
+  renderProfile(data);
+  renderStripe(data);
+  renderSubscriptions(data);
+  renderMoney(data);
+  renderProgress(data);
+}
+
+function kpi(label, value) {
+  return `
+    <article class="kpi-card">
+      <span>${escapeHtml(label)}</span>
+      <strong>${safeText(value)}</strong>
+    </article>
+  `;
 }
 
 function escapeHtml(value) {
@@ -172,15 +398,6 @@ function link(url, label) {
 
 function kv(rows) {
   return `<dl class="kv">${rows.map(([key, value]) => `<div><dt>${escapeHtml(key)}</dt><dd>${value}</dd></div>`).join("")}</dl>`;
-}
-
-function renderDashboard(data) {
-  dashboard.hidden = false;
-  renderProfile(data);
-  renderStripe(data);
-  renderSubscriptions(data);
-  renderMoney(data);
-  renderProgress(data);
 }
 
 function renderProfile(data) {

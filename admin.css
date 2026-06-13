@@ -59,6 +59,14 @@ a {
   margin-bottom: 22px;
 }
 
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -74,6 +82,18 @@ a {
   height: 42px;
   object-fit: contain;
   filter: drop-shadow(0 8px 12px rgba(31, 49, 56, 0.14));
+}
+
+.admin-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: rgba(74, 169, 121, 0.13);
+  color: var(--green-dark);
+  font-size: 0.82rem;
+  font-weight: 950;
 }
 
 .site-link,
@@ -104,7 +124,9 @@ a {
   backdrop-filter: blur(18px);
 }
 
-.search-panel {
+.search-panel,
+.login-panel,
+.hero-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 460px);
   gap: 24px;
@@ -155,6 +177,13 @@ h3 {
 .admin-form {
   display: grid;
   gap: 12px;
+}
+
+.search-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
 }
 
 label {
@@ -235,6 +264,129 @@ input:focus {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.kpi-card {
+  min-height: 116px;
+  padding: 18px;
+  border: 1px solid rgba(23, 32, 38, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 14px 34px rgba(31, 49, 56, 0.08);
+}
+
+.kpi-card span {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.kpi-card strong {
+  display: block;
+  color: var(--ink);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 0.95;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.filter-row {
+  display: inline-flex;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(23, 32, 38, 0.05);
+}
+
+.filter-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(23, 32, 38, 0.62);
+  font-weight: 950;
+}
+
+.filter-button.is-active {
+  background: var(--ink);
+  color: #ffffff;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 13px 10px;
+  border-bottom: 1px solid rgba(23, 32, 38, 0.08);
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+tbody tr {
+  cursor: pointer;
+}
+
+tbody tr:hover {
+  background: rgba(74, 169, 121, 0.07);
+}
+
+td strong {
+  display: block;
+}
+
+.table-muted {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.empty-cell {
+  color: var(--muted);
+  font-weight: 850;
+  text-align: center;
+}
+
+.customer-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.customer-detail[hidden] {
+  display: none;
+}
+
 .kv {
   display: grid;
   gap: 8px;
@@ -279,14 +431,17 @@ input:focus {
 .badge.plus,
 .badge.active,
 .badge.trialing,
-.badge.paid {
+.badge.paid,
+.badge.linked {
   background: rgba(74, 169, 121, 0.18);
   color: var(--green-dark);
 }
 
 .badge.free,
 .badge.canceled,
-.badge.refunded {
+.badge.refunded,
+.badge.none,
+.badge.no {
   background: rgba(23, 32, 38, 0.07);
   color: rgba(23, 32, 38, 0.64);
 }
@@ -369,6 +524,8 @@ body.is-busy .danger-button {
 
   .admin-header,
   .search-panel,
+  .login-panel,
+  .hero-panel,
   .grid.two {
     grid-template-columns: 1fr;
   }
@@ -397,5 +554,24 @@ body.is-busy .danger-button {
 
   .action-grid {
     display: grid;
+  }
+
+  .search-form,
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-heading {
+    display: grid;
+    align-items: start;
+  }
+
+  .filter-row {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .filter-button {
+    flex: 1;
   }
 }

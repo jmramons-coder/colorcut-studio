@@ -123,13 +123,21 @@ The private customer admin page is available at:
 https://snapuzzle.ca/admin
 ```
 
-Required Vercel environment variable:
+Admin access uses Supabase Auth plus the `public.admin_users` table. There is no shared admin code in the UI.
 
-```txt
-ADMIN_SECRET
+Create your admin account in **Supabase → Authentication → Users**, then run this in the SQL Editor with your admin email:
+
+```sql
+insert into public.admin_users (auth_user_id, email, role)
+select id, email, 'owner'
+from auth.users
+where email = 'YOUR_ADMIN_EMAIL@example.com'
+on conflict (auth_user_id) do update
+set email = excluded.email,
+    role = excluded.role;
 ```
 
-The admin page can search customers by email, inspect Supabase profile/auth state, inspect Stripe customer/subscription/invoice/payment state, grant or remove comp Plus, resync Stripe state, cancel the latest Stripe subscription, and delete a Supabase test account. Stripe remains the billing source of truth.
+The admin page can show high-level KPIs, list/search users, inspect Supabase profile/auth state, inspect Stripe customer/subscription/invoice/payment state, grant or remove comp Plus, resync Stripe state, cancel the latest Stripe subscription, and delete a Supabase test account. Stripe remains the billing source of truth.
 
 ## Next Integrations
 

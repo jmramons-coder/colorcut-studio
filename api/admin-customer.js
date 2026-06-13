@@ -82,6 +82,191 @@ function serializeCharge(charge) {
   };
 }
 
+async function countedQuery(query) {
+  const { count, error } = await query;
+  if (error) throw error;
+  return count || 0;
+}
+
+async function countTable(supabase, table) {
+  return countedQuery(supabase.from(table).select("id", { count: "exact", head: true }));
+}
+
+function centsToMonthly(subscription) {
+  const item = subscription.items?.data?.[0];
+  const amount = Number(item?.price?.unit_amount || 0);
+  const interval = item?.price?.recurring?.interval;
+  if (!amount) return 0;
+  if (interval === "year") return Math.round(amount / 12);
+  return amount;
+}
+
+async function revenueOverview() {
+  const stripe = stripeClient();
+  if (!stripe) {
+    return {
+      configured: false,
+      mrrCents: 0,
+      totalPaidCents: 0,
+      currency: "usd",
+      activeStripeSubscriptions: 0
+    };
+  }
+
+  const [subscriptions, charges] = await Promise.all([
+    stripe.subscriptions.list({ status: "active", limit: 100 }),
+    stripe.charges.list({ limit: 100 })
+  ]);
+
+  const mrrCents = subscriptions.data.reduce((sum, subscription) => sum + centsToMonthly(subscription), 0);
+  const paidCharges = charges.data.filter((charge) => charge.paid && !charge.refunded);
+  const totalPaidCents = paidCharges.reduce((sum, charge) => sum + Number(charge.amount || 0), 0);
+
+  return {
+    configured: true,
+    mrrCents,
+    totalPaidCents,
+    currency: paidCharges[0]?.currency || subscriptions.data[0]?.currency || "usd",
+    activeStripeSubscriptions: subscriptions.data.length
+  };
+}
+
+async function adminOverview(supabase) {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [
+    totalUsers,
+    paidUsers,
+    freeUsers,
+    activeSubscriptions,
+    canceledSubscriptions,
+    waitlistCount,
+    completionRows,
+    recentCompletionRows,
+    revenue
+  ] = await Promise.all([
+    countTable(supabase, "profiles"),
+    countedQuery(supabase.from("profiles").select("id", { count: "exact", head: true }).eq("subscription_status", "plus")),
+    countedQuery(supabase.from("profiles").select("id", { count: "exact", head: true }).eq("subscription_status", "free")),
+    countedQuery(supabase.from("subscriptions").select("id", { count: "exact", head: true }).in("status", ["active", "trialing"])),
+    countedQuery(supabase.from("subscriptions").select("id", { count: "exact", head: true }).in("status", ["canceled", "unpaid", "past_due"])),
+    countTable(supabase, "waitlist_leads"),
+    supabase.from("puzzle_completions").select("profile_id,puzzle_id,plays,last_completed_at").limit(1000),
+    supabase.from("puzzle_completions").select("profile_id,last_completed_at").gte("last_completed_at", sevenDaysAgo).limit(1000),
+    revenueOverview()
+  ]);
+
+  if (completionRows.error) throw completionRows.error;
+  if (recentCompletionRows.error) throw recentCompletionRows.error;
+
+  const completions = completionRows.data || [];
+  const recentActiveProfiles = new Set((recentCompletionRows.data || []).map((row) => row.profile_id).filter(Boolean));
+  const totalPlays = completions.reduce((sum, row) => sum + Number(row.plays || 0), 0);
+  const puzzleCounts = new Map();
+  completions.forEach((row) => {
+    const existing = puzzleCounts.get(row.puzzle_id) || { puzzleId: row.puzzle_id, completions: 0, plays: 0 };
+    existing.completions += 1;
+    existing.plays += Number(row.plays || 0);
+    puzzleCounts.set(row.puzzle_id, existing);
+  });
+
+  return {
+    ok: true,
+    overview: {
+      totalUsers,
+      paidUsers,
+      freeUsers,
+      activeSubscriptions,
+      canceledSubscriptions,
+      waitlistCount,
+      activeUsers7d: recentActiveProfiles.size,
+      completedPuzzleRows: completions.length,
+      totalPlays,
+      revenue,
+      topPuzzles: Array.from(puzzleCounts.values())
+        .sort((a, b) => b.plays - a.plays)
+        .slice(0, 8)
+    }
+  };
+}
+
+async function adminUsers(supabase, body) {
+  const search = normalizeEmail(body.search || body.email || "");
+  const status = String(body.status || "all").toLowerCase();
+  const limit = Math.min(Math.max(Number(body.limit || 50), 1), 100);
+
+  let query = supabase
+    .from("profiles")
+    .select("id,email,display_name,avatar,subscription_status,stripe_customer_id,auth_user_id,created_at,updated_at", { count: "exact" })
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (search) query = query.ilike("email", `%${search}%`);
+  if (status === "plus" || status === "free") query = query.eq("subscription_status", status);
+
+  const { data: profiles, count, error } = await query;
+  if (error) throw error;
+
+  const profileIds = (profiles || []).map((profile) => profile.id);
+  let subscriptions = [];
+  let completions = [];
+
+  if (profileIds.length) {
+    const [subscriptionRows, completionRows] = await Promise.all([
+      supabase
+        .from("subscriptions")
+        .select("profile_id,status,price_id,current_period_end,updated_at")
+        .in("profile_id", profileIds)
+        .order("updated_at", { ascending: false }),
+      supabase
+        .from("puzzle_completions")
+        .select("profile_id,puzzle_id,plays,last_completed_at")
+        .in("profile_id", profileIds)
+    ]);
+
+    if (subscriptionRows.error) throw subscriptionRows.error;
+    if (completionRows.error) throw completionRows.error;
+    subscriptions = subscriptionRows.data || [];
+    completions = completionRows.data || [];
+  }
+
+  const subscriptionByProfile = new Map();
+  subscriptions.forEach((subscription) => {
+    if (!subscriptionByProfile.has(subscription.profile_id)) {
+      subscriptionByProfile.set(subscription.profile_id, subscription);
+    }
+  });
+
+  const usageByProfile = new Map();
+  completions.forEach((completion) => {
+    const usage = usageByProfile.get(completion.profile_id) || {
+      completedPuzzles: 0,
+      totalPlays: 0,
+      lastCompletedAt: null
+    };
+    usage.completedPuzzles += 1;
+    usage.totalPlays += Number(completion.plays || 0);
+    if (!usage.lastCompletedAt || new Date(completion.last_completed_at || 0) > new Date(usage.lastCompletedAt || 0)) {
+      usage.lastCompletedAt = completion.last_completed_at;
+    }
+    usageByProfile.set(completion.profile_id, usage);
+  });
+
+  return {
+    ok: true,
+    count: count || 0,
+    users: (profiles || []).map((profile) => ({
+      ...serializeProfile(profile),
+      subscription: subscriptionByProfile.get(profile.id) || null,
+      usage: usageByProfile.get(profile.id) || {
+        completedPuzzles: 0,
+        totalPlays: 0,
+        lastCompletedAt: null
+      }
+    }))
+  };
+}
+
 async function profileByEmail(supabase, email) {
   const { data, error } = await supabase
     .from("profiles")
@@ -464,7 +649,30 @@ module.exports = async function handler(req, res) {
 
   try {
     const body = await readJson(req);
-    if (!requireAdmin(req, res, body)) return;
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const supabase = supabaseAdmin();
+    if (!supabase) {
+      json(res, 503, { ok: false, message: "Supabase admin is not configured." });
+      return;
+    }
+
+    const view = String(body.view || "").trim();
+    if (view === "me") {
+      json(res, 200, { ok: true, admin });
+      return;
+    }
+
+    if (view === "overview") {
+      json(res, 200, await adminOverview(supabase));
+      return;
+    }
+
+    if (view === "users") {
+      json(res, 200, await adminUsers(supabase, body));
+      return;
+    }
 
     if (body.action) {
       const result = await performAction(body);

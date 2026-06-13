@@ -80,16 +80,26 @@ create trigger set_subscriptions_updated_at
 before update on public.subscriptions
 for each row execute function public.set_updated_at();
 
+create table if not exists public.admin_users (
+  id uuid primary key default gen_random_uuid(),
+  auth_user_id uuid not null unique references auth.users(id) on delete cascade,
+  email citext not null unique,
+  role text not null default 'admin',
+  created_at timestamptz not null default now()
+);
+
 alter table public.waitlist_leads enable row level security;
 alter table public.profiles enable row level security;
 alter table public.puzzle_completions enable row level security;
 alter table public.subscriptions enable row level security;
+alter table public.admin_users enable row level security;
 
 grant usage on schema public to anon, authenticated, service_role;
 grant all privileges on table public.waitlist_leads to service_role;
 grant all privileges on table public.profiles to service_role;
 grant all privileges on table public.puzzle_completions to service_role;
 grant all privileges on table public.subscriptions to service_role;
+grant all privileges on table public.admin_users to service_role;
 revoke insert, update on table public.profiles from authenticated;
 grant select on table public.profiles to authenticated;
 grant update (display_name, avatar) on table public.profiles to authenticated;

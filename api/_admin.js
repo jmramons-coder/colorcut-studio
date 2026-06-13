@@ -1,39 +1,57 @@
-const crypto = require("crypto");
-const { json } = require("./_supabase");
+const { bearerToken, json, supabaseAdmin, supabasePublic } = require("./_supabase");
 
-function adminSecret() {
-  return String(process.env.ADMIN_SECRET || "").trim();
-}
+async function requireAdmin(req, res) {
+  const token = bearerToken(req);
+  if (!token) {
+    json(res, 401, { ok: false, message: "Admin login required." });
+    return null;
+  }
 
-function timingSafeEqualText(left, right) {
-  const leftBuffer = Buffer.from(String(left || ""));
-  const rightBuffer = Buffer.from(String(right || ""));
-  if (!leftBuffer.length || leftBuffer.length !== rightBuffer.length) return false;
-  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
-}
+  const publicClient = supabasePublic();
+  const adminClient = supabaseAdmin();
+  if (!publicClient || !adminClient) {
+    json(res, 503, { ok: false, message: "Admin auth is not configured." });
+    return null;
+  }
 
-function requestAdminSecret(req, body = {}) {
-  const auth = String(req.headers.authorization || "");
-  const bearer = auth.match(/^Bearer\s+(.+)$/i)?.[1] || "";
-  return String(req.headers["x-admin-secret"] || body.adminSecret || bearer || "").trim();
-}
+  const { data: userData, error: userError } = await publicClient.auth.getUser(token);
+  if (userError || !userData?.user?.id) {
+    json(res, 401, { ok: false, message: "Admin session expired. Log in again." });
+    return null;
+  }
 
-function requireAdmin(req, res, body = {}) {
-  const expected = adminSecret();
-  if (!expected) {
-    json(res, 503, {
+  const { data: adminUser, error: adminError } = await adminClient
+    .from("admin_users")
+    .select("id,auth_user_id,email,role,created_at")
+    .eq("auth_user_id", userData.user.id)
+    .maybeSingle();
+
+  if (adminError) {
+    json(res, 500, {
       ok: false,
-      message: "Admin access is not configured. Add ADMIN_SECRET in Vercel."
+      message: adminError.code === "42P01"
+        ? "Admin table is missing. Run the latest Supabase schema."
+        : adminError.message || "Could not verify admin access."
     });
-    return false;
+    return null;
   }
 
-  if (!timingSafeEqualText(requestAdminSecret(req, body), expected)) {
-    json(res, 401, { ok: false, message: "Invalid admin secret." });
-    return false;
+  if (!adminUser) {
+    json(res, 403, { ok: false, message: "This account is not an admin." });
+    return null;
   }
 
-  return true;
+  return {
+    id: adminUser.id,
+    authUserId: adminUser.auth_user_id,
+    email: adminUser.email || userData.user.email,
+    role: adminUser.role || "admin",
+    createdAt: adminUser.created_at,
+    user: {
+      id: userData.user.id,
+      email: userData.user.email
+    }
+  };
 }
 
 function stripeDashboardBase() {
