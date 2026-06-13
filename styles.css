@@ -2522,6 +2522,13 @@ button {
   text-align: left;
 }
 
+.parent-auth-summary[hidden],
+.parent-auth-form[hidden],
+.parent-auth-field[hidden],
+.parent-auth-footer[hidden] {
+  display: none;
+}
+
 .parent-auth-summary span,
 .parent-auth-field span {
   color: rgba(23, 32, 38, 0.56);

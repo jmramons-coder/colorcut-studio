@@ -1123,8 +1123,8 @@ function renderParentAuth(message = "") {
   dom.profileSubscribeButton.textContent = signedIn ? "Manage" : "Subscribe";
   dom.profileSubscribeButton.dataset.billingAction = signedIn ? "account" : "subscribe";
   dom.parentButton.hidden = false;
-  dom.parentAuthManageBillingButton.hidden = !signedIn;
-  dom.parentAuthCancelPlanButton.hidden = !signedIn;
+  dom.parentAuthManageBillingButton.hidden = !plusActive;
+  dom.parentAuthCancelPlanButton.hidden = !plusActive;
   dom.parentAuthSendButton.textContent = cooldownSeconds
     ? `Try again in ${cooldownSeconds}s`
     : state.parentAuthPendingEmail && !signedIn
