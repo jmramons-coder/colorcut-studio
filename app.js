@@ -393,7 +393,6 @@ const dom = {
   parentAuthPasswordStep: document.querySelector("#parentAuthPasswordStep"),
   parentAuthPassword: document.querySelector("#parentAuthPassword"),
   parentAuthPasswordButton: document.querySelector("#parentAuthPasswordButton"),
-  parentAuthSendButton: document.querySelector("#parentAuthSendButton"),
   parentAuthStatus: document.querySelector("#parentAuthStatus"),
   waitlistModal: document.querySelector("#waitlistModal"),
   waitlistBackdrop: document.querySelector("#waitlistBackdrop"),
@@ -849,7 +848,6 @@ function bindControls() {
   dom.parentAuthEmailButton.addEventListener("click", startParentPasswordReset);
   dom.parentAuthPasswordButton.addEventListener("click", submitParentPasswordAuth);
   dom.parentAuthForgotButton.addEventListener("click", toggleForgotPasswordMode);
-  dom.parentAuthSendButton.addEventListener("click", startParentAuth);
   dom.parentAuthEditEmailButton.addEventListener("click", editParentAccountEmail);
   dom.parentAuthManageBillingButton.addEventListener("click", openBillingPortal);
   dom.parentAuthCancelPlanButton.addEventListener("click", openBillingPortal);
@@ -1269,6 +1267,8 @@ function renderParentAuth(message = "") {
     : resetMode
       ? "Save password"
       : "Login";
+  dom.parentAuthEmailButton.textContent = "Send recovery link";
+  dom.parentAuthSubscribeButton.textContent = "Get Plus access";
   dom.profileParentAuthLabel.textContent = signedIn
     ? `${plusActive ? "Plus active" : "Free account"} · ${dateLabel || email}`
     : "Plus access";
@@ -1283,14 +1283,7 @@ function renderParentAuth(message = "") {
   dom.parentAuthCancelPlanButton.hidden = !plusActive;
   dom.parentAuthEmailButton.hidden = signedIn || !forgotMode;
   dom.parentAuthEmailButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
-  dom.parentAuthSendButton.textContent = cooldownSeconds
-    ? `Try again in ${cooldownSeconds}s`
-    : state.parentAuthPendingEmail && !signedIn
-      ? "Send again"
-      : "Email magic link";
-  dom.parentAuthSendButton.hidden = forgotMode;
   dom.parentAuthForgotButton.textContent = forgotMode ? "Back to login" : "Forgot password?";
-  dom.parentAuthSendButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
   dom.parentAuthForgotButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
   dom.parentAuthEmail.disabled = state.parentAuthBusy;
   dom.parentAuthEmail.readOnly = setupMode;
@@ -1304,12 +1297,12 @@ function renderParentAuth(message = "") {
       ? checkoutEmail
         ? "Create a password for your paid account."
         : "Checking the email used at checkout..."
-      : resetMode
-        ? resetEmail
-          ? "Choose a new password for this account."
-          : "Checking your reset link..."
+        : resetMode
+          ? resetEmail
+            ? "Choose a new password for this account."
+            : "Checking your reset link..."
         : forgotMode
-          ? "Enter the email used at checkout. If it matches a member account, we will send a reset link."
+          ? "Enter your member email. We will send a secure link to choose a new password."
       : "Enter the email used at checkout and your password.";
   dom.parentAuthStatus.textContent = message;
 
@@ -1613,40 +1606,6 @@ function openSubscribeFromAuth() {
   focusParentPanel();
 }
 
-async function startParentAuth() {
-  const email = String(dom.parentAuthEmail.value || "").trim().toLowerCase();
-  if (!isValidEmail(email)) {
-    renderParentAuth("Enter a valid email.");
-    dom.parentAuthEmail.focus();
-    return;
-  }
-
-  const cooldownSeconds = parentAuthCooldownSeconds();
-  if (cooldownSeconds) {
-    renderParentAuth(`Use the newest magic link. You can request another in ${cooldownSeconds}s.`);
-    return;
-  }
-
-  setParentAuthBusy(true);
-  renderParentAuth("Sending login email...");
-
-  try {
-    await parentAuthRequest("/api/auth-start", { email });
-    state.parentAuthPendingEmail = email;
-    state.parentAuthCooldownUntil = Date.now() + LOGIN_EMAIL_COOLDOWN_MS;
-    renderParentAuth("Check your email. Open the newest link on this device.");
-    scheduleParentAuthCooldownRender();
-  } catch (error) {
-    if (error.code === "email_rate_limit" || error.status === 429) {
-      state.parentAuthCooldownUntil = Date.now() + 5 * 60 * 1000;
-      scheduleParentAuthCooldownRender();
-    }
-    renderParentAuth(error.message || "Could not send the login email.");
-  } finally {
-    setParentAuthBusy(false);
-  }
-}
-
 async function startParentPasswordReset() {
   const email = String(dom.parentAuthEmail.value || "").trim().toLowerCase();
   if (!isValidEmail(email)) {
@@ -1657,25 +1616,25 @@ async function startParentPasswordReset() {
 
   const cooldownSeconds = parentAuthCooldownSeconds();
   if (cooldownSeconds) {
-    renderParentAuth(`Use the newest email. You can request another in ${cooldownSeconds}s.`);
+    renderParentAuth(`Use the newest recovery email. You can request another in ${cooldownSeconds}s.`);
     return;
   }
 
   setParentAuthBusy(true);
-  renderParentAuth("Sending password reset...");
+  renderParentAuth("Sending recovery link...");
 
   try {
     await parentAuthRequest("/api/auth-password-set", { action: "reset-start", email });
     state.parentAuthPendingEmail = email;
     state.parentAuthCooldownUntil = Date.now() + LOGIN_EMAIL_COOLDOWN_MS;
-    renderParentAuth("Reset link sent. Open the newest email on this device, then choose a new password.");
+    renderParentAuth("If that email has Plus access, a recovery link is on its way.");
     scheduleParentAuthCooldownRender();
   } catch (error) {
     if (error.code === "email_rate_limit" || error.status === 429) {
       state.parentAuthCooldownUntil = Date.now() + 5 * 60 * 1000;
       scheduleParentAuthCooldownRender();
     }
-    renderParentAuth(error.message || "Could not send the password reset email.");
+    renderParentAuth(error.message || "Could not send the recovery email.");
   } finally {
     setParentAuthBusy(false);
   }
@@ -1851,7 +1810,7 @@ async function consumeParentAuthRedirect() {
     }, 450);
   } catch (error) {
     saveParentAuth(null);
-    renderParentAuth(error.message || "This magic link may have already been used. Request a new link on this device.");
+    renderParentAuth(error.message || "This sign-in link may have already been used. Request a new recovery link if needed.");
   }
 }
 

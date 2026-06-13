@@ -2679,16 +2679,14 @@ button {
 }
 
 .auth-modal.is-busy #parentAuthPasswordButton,
-.auth-modal.is-busy #parentAuthEmailButton,
-.auth-modal.is-busy #parentAuthSendButton {
+.auth-modal.is-busy #parentAuthEmailButton {
   position: relative;
   color: transparent;
   pointer-events: none;
 }
 
 .auth-modal.is-busy #parentAuthPasswordButton::after,
-.auth-modal.is-busy #parentAuthEmailButton::after,
-.auth-modal.is-busy #parentAuthSendButton::after {
+.auth-modal.is-busy #parentAuthEmailButton::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -2702,7 +2700,7 @@ button {
   animation: authButtonSpin 720ms linear infinite;
 }
 
-#parentAuthSendButton::after {
+#parentAuthEmailButton::after {
   border-color: rgba(53, 109, 108, 0.22);
   border-top-color: #356d6c;
 }
