@@ -1268,23 +1268,6 @@ async function submitParentPasswordAuth() {
   }
 }
 
-async function hydrateCheckoutMemberEmail(checkoutSessionId) {
-  if (!checkoutSessionId) return;
-
-  try {
-    const data = await parentAuthRequest("/api/member-status", {
-      checkoutSessionId
-    });
-    if (data.email && !isParentSignedIn()) {
-      dom.parentAuthEmail.value = data.email;
-      renderParentAuth("Create a password for your checkout email.");
-      window.setTimeout(() => dom.parentAuthPassword.focus(), 40);
-    }
-  } catch {
-    // Non-blocking: the password endpoint will still validate the checkout session.
-  }
-}
-
 async function openBillingPortal() {
   if (!state.parentAuth?.session?.accessToken) {
     showParentAuthModal("Sign in to manage billing.");
@@ -1501,7 +1484,6 @@ function consumeCheckoutRedirect() {
     state.parentCheckoutSessionId = checkoutSessionId;
     state.parentAuthMode = "set-password";
     showParentAuthModal("Payment complete. Create your password.");
-    hydrateCheckoutMemberEmail(checkoutSessionId);
     return;
   }
 

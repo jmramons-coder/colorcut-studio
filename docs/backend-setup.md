@@ -50,20 +50,18 @@ Expected after Supabase env vars are set:
 
 ## Parent Auth
 
-Parent login uses Supabase Email Auth through these API routes:
+Parent login uses Supabase Auth through these API routes:
 
 ```txt
+/api/auth-password-login
+/api/auth-password-set
 /api/auth-start
-/api/auth-verify
+/api/auth-link
 /api/auth-me
 /api/auth-refresh
 ```
 
-The current Supabase default email template sends a magic sign-in link. The app also includes a 6-digit code field, which will work once custom SMTP is connected and the Supabase "Magic link or OTP" email template includes:
-
-```txt
-{{ .Token }}
-```
+Password login is primary. Magic links remain available as a fallback until Google/Apple SSO is added.
 
 Supabase Auth settings used:
 
