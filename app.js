@@ -614,7 +614,8 @@ function renderPicker() {
     ensureAudioContext();
     playPickSound();
 
-    if (option.tier === "plus") {
+    if (isPlusLocked(option)) {
+      state.parentIntent = "library-plus";
       showParentModal();
       return;
     }
@@ -633,6 +634,7 @@ function renderPicker() {
     if (card.dataset.locked === "true") {
       ensureAudioContext();
       playPickSound();
+      state.parentIntent = "library-plus";
       showParentModal();
       return;
     }
@@ -655,9 +657,9 @@ function renderCategoryTabs() {
   dom.categoryTabs.innerHTML = categories
     .map((category) => {
       const active = category.id === state.category;
-      const locked = category.tier === "plus";
+      const locked = isPlusLocked(category);
       return `
-        <button class="category-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-category="${category.id}" role="tab" aria-selected="${active}" aria-label="${category.name}${locked ? ", Snapuzzle Plus preview" : ""}">
+        <button class="category-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}${category.tier === "plus" && !locked ? " is-plus-unlocked" : ""}" type="button" data-category="${category.id}" role="tab" aria-selected="${active}" aria-label="${category.name}${locked ? ", Snapuzzle Plus preview" : ""}">
           ${categoryIcon(category.id)}
           <span>${category.name}</span>
         </button>
@@ -670,7 +672,7 @@ function renderDifficultyTabs() {
   dom.difficultyTabs.innerHTML = difficultyOptions
     .map((option) => {
       const active = option.id === state.difficulty;
-      const locked = option.tier === "plus";
+      const locked = isPlusLocked(option);
       return `
         <button class="difficulty-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-difficulty="${option.id}" role="tab" aria-selected="${active}" aria-label="${option.name}, ${option.label}${locked ? ", Snapuzzle Plus" : ""}">
           ${difficultyIcon(option.id)}
@@ -707,11 +709,11 @@ function renderDrawingCards() {
   state.galleryLoopCount = visibleItems.length;
   dom.drawingGrid.innerHTML = visibleItems
     .map((animal, index) => {
-      const locked = animal.tier === "plus";
+      const locked = isPlusLocked(animal);
       const styleClass = animal.style ? ` is-${animal.style}` : "";
       const recommended = state.category === "animals" && index === 0;
       return `
-        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}${recommended ? " is-recommended" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", Snapuzzle Plus" : ""}">
+        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}${animal.tier === "plus" && !locked ? " is-plus-unlocked" : ""}${recommended ? " is-recommended" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", Snapuzzle Plus" : ""}">
           ${recommended ? `<span class="drawing-recommend">Start here</span>` : ""}
           ${
             locked
@@ -735,6 +737,10 @@ function renderDrawingCards() {
   updateGalleryArrows();
 }
 
+function isPlusLocked(item) {
+  return item?.tier === "plus" && !isParentPlusActive();
+}
+
 function scheduleImageWarmup(srcList) {
   const run = () => srcList.forEach((src) => warmImage(src));
   if ("requestIdleCallback" in window) {
@@ -746,7 +752,13 @@ function scheduleImageWarmup(srcList) {
 
 function bindControls() {
   dom.profileButton.addEventListener("click", showProfileModal);
-  dom.parentButton.addEventListener("click", showParentModal);
+  dom.parentButton.addEventListener("click", () => {
+    if (isParentPlusActive()) {
+      showParentAuthModal("Plus is active.");
+      return;
+    }
+    showParentModal();
+  });
   dom.galleryButton.addEventListener("click", handleGalleryButtonClick);
   dom.fullscreenButton.addEventListener("click", toggleFullscreen);
   dom.spreadButton.addEventListener("click", spreadLoosePieces);
@@ -915,7 +927,7 @@ function renderProfilePuzzleGrid() {
   dom.profilePuzzleGrid.innerHTML = libraryItems
     .map((item) => {
       const stats = puzzleStats(item.id);
-      const locked = item.tier === "plus";
+      const locked = isPlusLocked(item);
       const selected = item.id === state.profileSelectedPuzzleId;
       const styleClass = item.style ? ` is-${item.style}` : "";
       const dimensions = imageDimensions(item);
@@ -1017,7 +1029,7 @@ function updateProfilePuzzleSelection() {
     const item = libraryItems.find((puzzle) => puzzle.id === id);
     const stats = puzzleStats(id);
     const selected = id === state.profileSelectedPuzzleId;
-    const locked = item?.tier === "plus";
+    const locked = isPlusLocked(item);
     card.classList.toggle("is-selected", selected);
     card.classList.toggle("is-undone", !locked && !stats.plays);
     card.classList.toggle("is-complete", Boolean(stats.plays));
@@ -1187,8 +1199,8 @@ function renderParentAuth(message = "") {
     : "Plus access";
   dom.profileParentAuthButton.textContent = signedIn ? "Logout" : "Login";
   dom.profileSubscribeButton.hidden = false;
-  dom.profileSubscribeButton.textContent = signedIn ? "Manage" : "Subscribe";
-  dom.profileSubscribeButton.dataset.billingAction = signedIn ? "account" : "subscribe";
+  dom.profileSubscribeButton.textContent = signedIn && plusActive ? "Manage" : "Subscribe";
+  dom.profileSubscribeButton.dataset.billingAction = signedIn && plusActive ? "account" : "subscribe";
   dom.parentButton.hidden = false;
   dom.parentAuthManageBillingButton.hidden = !plusActive;
   dom.parentAuthCancelPlanButton.hidden = !plusActive;
@@ -1315,6 +1327,18 @@ function saveParentAuthResponse(data) {
   state.parentResetExpiresAt = 0;
   state.parentResetEmail = "";
   renderParentAuth("Logged in.");
+  syncAccessAfterAuthChange();
+  renderProfilePanel();
+}
+
+function syncAccessAfterAuthChange() {
+  const difficulty = difficultyOptions.find((option) => option.id === state.difficulty);
+  if (isPlusLocked(difficulty)) {
+    state.difficulty = "classic";
+  }
+  renderCategoryTabs();
+  renderDifficultyTabs();
+  renderDrawingCards();
 }
 
 async function submitParentPasswordAuth() {
@@ -1459,6 +1483,7 @@ function logoutParentAccount() {
   dom.parentAuthPassword.value = "";
   hideParentAuthModal();
   renderParentAuth("Logged out.");
+  syncAccessAfterAuthChange();
 }
 
 function editParentAccountEmail() {
@@ -1577,9 +1602,11 @@ async function refreshParentAuth() {
       profile: data.profile
     });
     renderParentAuth();
+    syncAccessAfterAuthChange();
   } catch {
     saveParentAuth(null);
     renderParentAuth();
+    syncAccessAfterAuthChange();
   }
 }
 
@@ -1801,13 +1828,27 @@ function focusParentPanel(message = "") {
   dom.parentPanelStep.focus({ preventScroll: true });
 }
 
+function parentIntentMessage() {
+  if (state.parentIntent === "finish-plus") {
+    return "Unlock dinosaurs, space, and 25-piece puzzles.";
+  }
+  if (state.parentIntent === "library-plus") {
+    return "This puzzle is part of Snapuzzle Plus.";
+  }
+  return "";
+}
+
 function showParentModal() {
+  if (isParentPlusActive()) {
+    showParentAuthModal("Plus is active.");
+    return;
+  }
+
   dom.parentModal.hidden = false;
   dom.parentModal.setAttribute("aria-hidden", "false");
   dom.parentModal.classList.toggle("is-unlocked", state.parentUnlocked);
   if (state.parentUnlocked) {
-    const message = state.parentIntent === "finish-plus" ? "Continue to Stripe to unlock Plus." : "";
-    focusParentPanel(message);
+    focusParentPanel(parentIntentMessage());
     return;
   }
 
@@ -1843,8 +1884,7 @@ function checkParentGate() {
 
   state.parentUnlocked = true;
   dom.parentGateError.textContent = "";
-  const message = state.parentIntent === "finish-plus" ? "Continue to Stripe to unlock Plus." : "";
-  focusParentPanel(message);
+  focusParentPanel(parentIntentMessage());
 }
 
 function showWaitlistModal() {
@@ -2097,6 +2137,7 @@ function hideFinishTray() {
 }
 
 function showFinishSuggestions() {
+  renderFinishSuggestions();
   dom.finishSuggestions.hidden = false;
   dom.finishSuggestions.classList.add("is-visible");
   dom.finishSuggestions.setAttribute("aria-hidden", "false");
@@ -2139,14 +2180,42 @@ function hideFinishExperience() {
   hideScratchComplete();
 }
 
+function renderFinishSuggestions() {
+  const plusActive = isParentPlusActive();
+  const suggestions = plusActive
+    ? libraryItems.filter((item) => item.id !== state.animal?.id).slice(0, 3)
+    : libraryItems.filter((item) => item.tier === "plus").slice(0, 3);
+
+  dom.finishSuggestions.innerHTML = `
+    <span class="finish-suggestions-label">${plusActive ? "Try another" : "Unlock bigger puzzles"}</span>
+    ${suggestions
+      .map((item) => `
+        <button class="finish-suggestion${!plusActive ? " is-premium" : ""}" type="button" data-finish-animal="${item.id}" data-locked="${isPlusLocked(item)}" aria-label="${isPlusLocked(item) ? `Unlock ${item.name}` : `Try ${item.name}`}">
+          <img src="${item.src}" alt="" loading="lazy" decoding="async" />
+          ${
+            isPlusLocked(item)
+              ? `<span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z"/></svg> Plus</span>`
+              : ""
+          }
+        </button>
+      `)
+      .join("")}
+  `;
+}
+
 function handleFinishSuggestionClick(event) {
-  const button = event.target.closest("[data-premium-teaser]");
+  const button = event.target.closest("[data-finish-animal]");
   if (!button) return;
 
   ensureAudioContext();
   playPickSound();
-  state.parentIntent = "finish-plus";
-  showParentModal();
+  if (button.dataset.locked === "true") {
+    state.parentIntent = "finish-plus";
+    showParentModal();
+    return;
+  }
+
+  selectAnimal(button.dataset.finishAnimal);
 }
 
 function restartCurrentAnimal() {

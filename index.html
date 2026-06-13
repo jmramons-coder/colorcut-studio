@@ -147,27 +147,7 @@
                 <small>Color revealed</small>
               </div>
 
-              <div class="finish-suggestions" id="finishSuggestions" aria-hidden="true" hidden>
-                <span class="finish-suggestions-label">Try another</span>
-                <button class="finish-suggestion" type="button" data-premium-teaser="dinosaurs" aria-label="Try a locked dinosaur puzzle">
-                  <img src="assets/t-rex.webp" width="565" height="1003" alt="" loading="lazy" decoding="async" draggable="false" />
-                  <span>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z" />
-                    </svg>
-                    Plus
-                  </span>
-                </button>
-                <button class="finish-suggestion" type="button" data-premium-teaser="space" aria-label="Try a locked space puzzle">
-                  <img src="assets/astronaut.webp" width="600" height="900" alt="" loading="lazy" decoding="async" draggable="false" />
-                  <span>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z" />
-                    </svg>
-                    Plus
-                  </span>
-                </button>
-              </div>
+              <div class="finish-suggestions" id="finishSuggestions" aria-hidden="true" hidden></div>
 
               <div class="finish-tray" id="finishTray" aria-hidden="true" hidden>
                 <button class="finish-button" id="finishLibraryButton" type="button" aria-label="Back to library">
@@ -213,8 +193,22 @@
 
           <div class="parent-panel" id="parentPanelStep">
             <p class="modal-eyebrow">Snapuzzle Plus</p>
-            <h2>Choose calm puzzle play.</h2>
-            <p class="parent-pricing-copy">Start free, unlock richer packs when your family is ready.</p>
+            <h2>Unlock the bigger puzzle shelf.</h2>
+            <p class="parent-pricing-copy">Plus adds richer packs, harder cuts, and more calm iPad play after the free puzzles.</p>
+            <div class="plus-preview-strip" aria-label="Plus puzzle previews">
+              <span>
+                <img src="assets/t-rex.webp" alt="" loading="lazy" decoding="async" />
+                Dinosaurs
+              </span>
+              <span>
+                <img src="assets/rocket.webp" alt="" loading="lazy" decoding="async" />
+                Space
+              </span>
+              <span>
+                <img src="assets/aurora-pine-forest.webp" alt="" loading="lazy" decoding="async" />
+                25 pieces
+              </span>
+            </div>
             <div class="parent-pricing-grid" aria-label="Snapuzzle pricing plans">
               <article class="pricing-option">
                 <span class="pricing-option-label">Free</span>
@@ -238,9 +232,9 @@
                 <strong id="plusPriceLabel">$5/mo</strong>
                 <small id="plusPriceNote">Simple monthly access</small>
                 <ul>
-                  <li>Premium puzzle packs</li>
-                  <li>Plus difficulty cuts</li>
-                  <li>More nature, landmarks, dinosaurs, and space</li>
+                  <li>Dinosaurs and space packs</li>
+                  <li>25-piece Plus difficulty</li>
+                  <li>More older-kid puzzles over time</li>
                 </ul>
                 <button class="parent-primary pricing-option-button" id="plusSubscribeButton" type="button" data-checkout-plan="monthly">Subscribe monthly</button>
               </article>
