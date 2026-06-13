@@ -8,7 +8,6 @@ const BRUSH_SIZE = 42;
 const COLOR_COMPLETE_RATIO = 0.68;
 const PROFILE_STORAGE_KEY = "colorcut-profile-v1";
 const WAITLIST_STORAGE_KEY = "colorcut-waitlist-email";
-const GALLERY_LOOP_COPIES = 3;
 
 const avatarOptions = [
   { id: "core", label: "C", color: "#172026" },
@@ -579,16 +578,14 @@ function difficultyIcon(id) {
 
 function renderDrawingCards() {
   const visibleItems = libraryItems.filter((item) => item.category === state.category);
-  const loopItems = visibleItems.length > 1 ? Array.from({ length: GALLERY_LOOP_COPIES }, () => visibleItems).flat() : visibleItems;
   state.galleryLoopCount = visibleItems.length;
-  dom.drawingGrid.innerHTML = loopItems
+  dom.drawingGrid.innerHTML = visibleItems
     .map((animal, index) => {
       const locked = animal.tier === "plus";
       const styleClass = animal.style ? ` is-${animal.style}` : "";
-      const clone = visibleItems.length > 1 && (index < visibleItems.length || index >= visibleItems.length * 2);
-      const recommended = state.category === "animals" && index === visibleItems.length;
+      const recommended = state.category === "animals" && index === 0;
       return `
-        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}${recommended ? " is-recommended" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" data-loop-index="${index % Math.max(visibleItems.length, 1)}" aria-label="${animal.name}${locked ? ", ColorPals Plus" : ""}"${clone ? " aria-hidden=\"true\" tabindex=\"-1\"" : ""}>
+        <button class="drawing-card${styleClass}${locked ? " is-locked" : ""}${recommended ? " is-recommended" : ""}" type="button" data-animal="${animal.id}" data-category="${animal.category}" data-locked="${locked}" aria-label="${animal.name}${locked ? ", ColorPals Plus" : ""}">
           ${recommended ? `<span class="drawing-recommend">Start here</span>` : ""}
           ${
             locked
@@ -607,7 +604,9 @@ function renderDrawingCards() {
     })
     .join("");
   scheduleImageWarmup(visibleItems.slice(0, 3).map((item) => item.src));
-  jumpGalleryToCard(state.galleryLoopCount + state.galleryActiveIndex);
+  state.galleryActiveIndex = Math.max(0, Math.min(state.galleryActiveIndex, Math.max(visibleItems.length - 1, 0)));
+  jumpGalleryToCard(state.galleryActiveIndex);
+  updateGalleryArrows();
 }
 
 function scheduleImageWarmup(srcList) {
@@ -1126,13 +1125,13 @@ function handleGalleryScroll() {
   window.clearTimeout(state.galleryScrollTimer);
   state.galleryScrollTimer = window.setTimeout(() => {
     if (state.stage !== "pick") return;
-    keepGalleryInLoop();
-    const activeIndex = closestGalleryIndex() % Math.max(state.galleryLoopCount, 1);
+    const activeIndex = closestGalleryIndex();
     if (activeIndex !== state.galleryActiveIndex) {
       state.galleryActiveIndex = activeIndex;
       if (!state.gallerySilentScroll) playArrivalSound();
     }
     state.gallerySilentScroll = false;
+    updateGalleryArrows();
   }, 90);
 }
 
@@ -1141,27 +1140,14 @@ function scrollGalleryByStep(direction) {
   const cards = Array.from(dom.drawingGrid.querySelectorAll(".drawing-card"));
   if (!cards.length) return;
 
-  const base = Math.max(state.galleryLoopCount, 1);
   const currentIndex = closestGalleryIndex();
-  const currentLoopIndex = Number(cards[currentIndex]?.dataset.loopIndex || 0);
-  const nextLoopIndex = (currentLoopIndex + direction + base) % base;
-  const nextIndex = base + nextLoopIndex;
+  const nextIndex = Math.max(0, Math.min(cards.length - 1, currentIndex + direction));
+  if (nextIndex === currentIndex) return;
   centerGalleryCard(nextIndex, "smooth");
 
-  state.galleryActiveIndex = nextLoopIndex;
+  state.galleryActiveIndex = nextIndex;
+  updateGalleryArrows();
   playPickSound();
-}
-
-function keepGalleryInLoop() {
-  const base = state.galleryLoopCount;
-  if (base <= 1) return;
-
-  const index = closestGalleryIndex();
-  if (index < base) {
-    centerGalleryCard(index + base, "auto");
-  } else if (index >= base * 2) {
-    centerGalleryCard(index - base, "auto");
-  }
 }
 
 function centerGalleryCard(index, behavior = "smooth") {
@@ -1190,6 +1176,23 @@ function jumpGalleryToCard(index) {
     dom.drawingGrid.style.scrollBehavior = previousBehavior;
     dom.drawingGrid.style.scrollSnapType = previousSnap;
   });
+}
+
+function updateGalleryArrows() {
+  const cards = dom.drawingGrid.querySelectorAll(".drawing-card");
+  const hasCards = cards.length > 0;
+  const activeIndex = hasCards ? Math.max(0, Math.min(cards.length - 1, state.galleryActiveIndex)) : 0;
+  const atStart = !hasCards || activeIndex <= 0;
+  const atEnd = !hasCards || activeIndex >= cards.length - 1;
+
+  if (dom.galleryPrevButton) {
+    dom.galleryPrevButton.disabled = atStart;
+    dom.galleryPrevButton.setAttribute("aria-disabled", String(atStart));
+  }
+  if (dom.galleryNextButton) {
+    dom.galleryNextButton.disabled = atEnd;
+    dom.galleryNextButton.setAttribute("aria-disabled", String(atEnd));
+  }
 }
 
 function closestGalleryIndex() {
