@@ -278,6 +278,7 @@ async function runAction(action) {
 
 function renderOverview(overview) {
   const revenue = overview.revenue || {};
+  const events = overview.events || {};
   overviewPanel.innerHTML = [
     kpi("Total users", overview.totalUsers || 0),
     kpi("Paid users", overview.paidUsers || 0),
@@ -286,7 +287,11 @@ function renderOverview(overview) {
     kpi("MRR", money(revenue.mrrCents || 0, revenue.currency || "usd")),
     kpi("Total paid", money(revenue.totalPaidCents || 0, revenue.currency || "usd")),
     kpi("Waitlist", overview.waitlistCount || 0),
-    kpi("Puzzle plays", overview.totalPlays || 0)
+    kpi("Puzzle plays", overview.totalPlays || 0),
+    kpi("Pricing opens", events.pricingOpened || 0),
+    kpi("Locked taps", events.lockedClicks || 0),
+    kpi("Scratch done", events.scratchCompleted || 0),
+    kpi("Checkout rate", `${events.checkoutCompletionRate || 0}%`)
   ].join("");
 
   revenuePanel.innerHTML = `
@@ -303,8 +308,24 @@ function renderOverview(overview) {
   `;
 
   puzzlePanel.innerHTML = `
-    <p class="eyebrow">Product usage</p>
-    <h2>Top puzzles</h2>
+    <p class="eyebrow">Product analytics</p>
+    <h2>Funnel</h2>
+    ${kv([
+      ["App opens", safeText(events.appOpened || 0)],
+      ["Puzzle views", safeText(events.puzzleViewed || 0)],
+      ["Puzzle starts", safeText(events.puzzleStarted || 0)],
+      ["Puzzle assembled", safeText(events.puzzleCompleted || 0)],
+      ["Scratch complete", safeText(events.scratchCompleted || 0)],
+      ["First-puzzle rate", safeText(`${events.firstPuzzleCompletionRate || 0}%`)],
+      ["Pricing opens", safeText(events.pricingOpened || 0)],
+      ["Checkout starts", safeText(events.checkoutStarted || 0)]
+    ])}
+    <h3>Premium demand</h3>
+    ${(events.lockedDemand || []).length ? list(events.lockedDemand.map((item) => `
+      <div class="row"><strong>${safeText(item.puzzleId || item.category || item.id)}</strong><span class="badge">${safeText(item.count)} taps</span></div>
+      <span class="muted">${safeText(item.category)} · ${safeText(item.tier)}</span>
+    `)) : `<p class="empty">No locked puzzle taps yet.</p>`}
+    <h3>Top completed puzzles</h3>
     ${(overview.topPuzzles || []).length ? list(overview.topPuzzles.map((item) => `
       <div class="row"><strong>${safeText(item.puzzleId)}</strong><span class="badge">${safeText(item.plays)} plays</span></div>
       <span class="muted">${safeText(item.completions)} completed profiles</span>

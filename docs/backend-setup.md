@@ -32,21 +32,7 @@ If Supabase is missing or the table has not been created yet, the frontend keeps
 
 ## Health Check
 
-After deployment, open:
-
-```txt
-https://snapuzzle.ca/api/health
-```
-
-Expected after Supabase env vars are set:
-
-```json
-{
-  "ok": true,
-  "supabase": true,
-  "publicAuthConfig": true
-}
-```
+The old `/api/health` route was removed to stay within Vercel Hobby's serverless function limit. Production health is verified through the auth, Stripe, waitlist, event, and admin API flows.
 
 ## Parent Auth
 
@@ -138,6 +124,22 @@ set email = excluded.email,
 ```
 
 The admin page can show high-level KPIs, list/search users, inspect Supabase profile/auth state, inspect Stripe customer/subscription/invoice/payment state, grant or remove comp Plus, resync Stripe state, cancel the latest Stripe subscription, and delete a Supabase test account. Stripe remains the billing source of truth.
+
+## Product Events
+
+The app posts lightweight product analytics to:
+
+```txt
+/api/events
+```
+
+Rows are saved in:
+
+```txt
+public.puzzle_events
+```
+
+Tracked events include `app_opened`, `category_selected`, `difficulty_selected`, `puzzle_viewed`, `puzzle_started`, `puzzle_completed`, `scratch_started`, `scratch_completed`, `locked_puzzle_clicked`, `pricing_opened`, `checkout_started`, `checkout_completed`, and `profile_opened`. Free users are tracked with an anonymous local id; logged-in parent sessions are linked server-side to the parent profile.
 
 ## Next Integrations
 

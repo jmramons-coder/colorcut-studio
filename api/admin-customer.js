@@ -131,6 +131,43 @@ async function revenueOverview() {
   };
 }
 
+function eventCount(rows, type) {
+  return rows.filter((row) => row.event_type === type).length;
+}
+
+function topEvents(rows, filterType, key = "puzzle_id") {
+  const counts = new Map();
+  rows
+    .filter((row) => !filterType || row.event_type === filterType)
+    .forEach((row) => {
+      const id = row[key] || row.category || "unknown";
+      const existing = counts.get(id) || {
+        id,
+        puzzleId: row.puzzle_id,
+        category: row.category,
+        difficulty: row.difficulty,
+        tier: row.tier,
+        count: 0
+      };
+      existing.count += 1;
+      counts.set(id, existing);
+    });
+
+  return Array.from(counts.values()).sort((a, b) => b.count - a.count).slice(0, 8);
+}
+
+async function eventRowsForOverview(supabase) {
+  const { data, error } = await supabase
+    .from("puzzle_events")
+    .select("event_type,puzzle_id,category,difficulty,tier,anonymous_id,profile_id,created_at")
+    .order("created_at", { ascending: false })
+    .limit(2000);
+
+  if (error?.code === "42P01") return [];
+  if (error) throw error;
+  return data || [];
+}
+
 async function adminOverview(supabase) {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -143,6 +180,7 @@ async function adminOverview(supabase) {
     waitlistCount,
     completionRows,
     recentCompletionRows,
+    eventRows,
     revenue
   ] = await Promise.all([
     countTable(supabase, "profiles"),
@@ -153,6 +191,7 @@ async function adminOverview(supabase) {
     countTable(supabase, "waitlist_leads"),
     supabase.from("puzzle_completions").select("profile_id,puzzle_id,plays,last_completed_at").limit(1000),
     supabase.from("puzzle_completions").select("profile_id,last_completed_at").gte("last_completed_at", sevenDaysAgo).limit(1000),
+    eventRowsForOverview(supabase),
     revenueOverview()
   ]);
 
@@ -162,6 +201,16 @@ async function adminOverview(supabase) {
   const completions = completionRows.data || [];
   const recentActiveProfiles = new Set((recentCompletionRows.data || []).map((row) => row.profile_id).filter(Boolean));
   const totalPlays = completions.reduce((sum, row) => sum + Number(row.plays || 0), 0);
+  const starters = new Set(eventRows
+    .filter((row) => row.event_type === "puzzle_started")
+    .map((row) => row.profile_id || row.anonymous_id)
+    .filter(Boolean));
+  const scratchFinishers = new Set(eventRows
+    .filter((row) => row.event_type === "scratch_completed")
+    .map((row) => row.profile_id || row.anonymous_id)
+    .filter(Boolean));
+  const checkoutStarters = eventCount(eventRows, "checkout_started");
+  const checkoutCompleters = eventCount(eventRows, "checkout_completed");
   const puzzleCounts = new Map();
   completions.forEach((row) => {
     const existing = puzzleCounts.get(row.puzzle_id) || { puzzleId: row.puzzle_id, completions: 0, plays: 0 };
@@ -183,6 +232,24 @@ async function adminOverview(supabase) {
       completedPuzzleRows: completions.length,
       totalPlays,
       revenue,
+      events: {
+        total: eventRows.length,
+        appOpened: eventCount(eventRows, "app_opened"),
+        puzzleViewed: eventCount(eventRows, "puzzle_viewed"),
+        puzzleStarted: eventCount(eventRows, "puzzle_started"),
+        puzzleCompleted: eventCount(eventRows, "puzzle_completed"),
+        scratchStarted: eventCount(eventRows, "scratch_started"),
+        scratchCompleted: eventCount(eventRows, "scratch_completed"),
+        lockedClicks: eventCount(eventRows, "locked_puzzle_clicked"),
+        pricingOpened: eventCount(eventRows, "pricing_opened"),
+        checkoutStarted: checkoutStarters,
+        checkoutCompleted: checkoutCompleters,
+        firstPuzzleCompletionRate: starters.size ? Math.round((scratchFinishers.size / starters.size) * 100) : 0,
+        checkoutCompletionRate: checkoutStarters ? Math.round((checkoutCompleters / checkoutStarters) * 100) : 0,
+        lockedDemand: topEvents(eventRows, "locked_puzzle_clicked"),
+        topViewed: topEvents(eventRows, "puzzle_viewed"),
+        categoryDemand: topEvents(eventRows, null, "category").filter((item) => item.id !== "unknown")
+      },
       topPuzzles: Array.from(puzzleCounts.values())
         .sort((a, b) => b.plays - a.plays)
         .slice(0, 8)

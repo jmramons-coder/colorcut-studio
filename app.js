@@ -9,6 +9,7 @@ const COLOR_COMPLETE_RATIO = 0.68;
 const PROFILE_STORAGE_KEY = "snapuzzle-profile-v1";
 const WAITLIST_STORAGE_KEY = "snapuzzle-waitlist-email";
 const PARENT_AUTH_STORAGE_KEY = "snapuzzle-parent-auth-v1";
+const ANALYTICS_ID_STORAGE_KEY = "snapuzzle-analytics-id-v1";
 const LOGIN_EMAIL_COOLDOWN_MS = 90000;
 
 const avatarOptions = [
@@ -434,6 +435,7 @@ const state = {
   colorCheckTimer: 0,
   deviceScale: 1,
   isColoring: false,
+  scratchStartedTracked: false,
   lastColorPoint: null,
   audioContext: null,
   scratch: null,
@@ -461,6 +463,8 @@ const state = {
   parentResetEmail: "",
   parentCheckoutBusy: false,
   billingPlan: "monthly",
+  anonymousId: loadAnalyticsId(),
+  analyticsSessionId: createClientId(),
   profile: loadProfile(),
   profileSelectedPuzzleId: null,
   profileEditingName: false,
@@ -481,6 +485,7 @@ consumeCheckoutRedirect();
 consumeBillingRedirect();
 refreshParentAuth();
 setStage("pick");
+trackEvent("app_opened", { metadata: { signedIn: isParentSignedIn(), plus: isParentPlusActive() } });
 
 function installBrowserInteractionGuards() {
   let lastTouchEnd = 0;
@@ -554,6 +559,66 @@ function loadParentAuth() {
     return stored;
   } catch {
     return null;
+  }
+}
+
+function createClientId() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function loadAnalyticsId() {
+  try {
+    const existing = localStorage.getItem(ANALYTICS_ID_STORAGE_KEY);
+    if (existing) return existing;
+    const created = createClientId();
+    localStorage.setItem(ANALYTICS_ID_STORAGE_KEY, created);
+    return created;
+  } catch {
+    return createClientId();
+  }
+}
+
+function analyticsContext(item = state.animal) {
+  return {
+    puzzleId: item?.id || null,
+    category: item?.category || state.category || null,
+    difficulty: state.difficulty || null,
+    tier: item?.tier || null
+  };
+}
+
+function trackEvent(eventType, details = {}) {
+  const context = analyticsContext(details.item);
+  const payload = {
+    anonymousId: state.anonymousId,
+    sessionId: state.analyticsSessionId,
+    eventType,
+    puzzleId: details.puzzleId || context.puzzleId,
+    category: details.category || context.category,
+    difficulty: details.difficulty || context.difficulty,
+    tier: details.tier || context.tier,
+    source: details.source || "app",
+    metadata: details.metadata || {}
+  };
+  const headers = { "Content-Type": "application/json" };
+  const token = state.parentAuth?.session?.accessToken;
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  try {
+    const body = JSON.stringify(payload);
+    if (navigator.sendBeacon && body.length < 6000 && !token) {
+      const blob = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon("/api/events", blob)) return;
+    }
+    fetch("/api/events", {
+      method: "POST",
+      headers,
+      body,
+      keepalive: true
+    }).catch(() => {});
+  } catch {
+    // Analytics should never interrupt puzzle play.
   }
 }
 
@@ -656,12 +721,31 @@ function renderPicker() {
     const category = categories.find((item) => item.id === button.dataset.category);
     if (!category) return;
 
+    if (isPlusLocked(category)) {
+      ensureAudioContext();
+      playPickSound();
+      state.parentIntent = "library-plus";
+      trackEvent("locked_puzzle_clicked", {
+        category: category.id,
+        tier: category.tier,
+        source: "category",
+        metadata: { lockedType: "category", name: category.name }
+      });
+      showParentModal();
+      return;
+    }
+
     state.category = category.id;
     state.galleryActiveIndex = 0;
     renderCategoryTabs();
     renderDrawingCards();
     ensureAudioContext();
     playArrivalSound();
+    trackEvent("category_selected", {
+      category: category.id,
+      tier: category.tier,
+      metadata: { name: category.name }
+    });
   });
 
   dom.difficultyTabs.addEventListener("click", (event) => {
@@ -676,12 +760,23 @@ function renderPicker() {
 
     if (isPlusLocked(option)) {
       state.parentIntent = "library-plus";
+      trackEvent("locked_puzzle_clicked", {
+        difficulty: option.id,
+        tier: option.tier,
+        source: "difficulty",
+        metadata: { lockedType: "difficulty", label: option.label }
+      });
       showParentModal();
       return;
     }
 
     state.difficulty = option.id;
     renderDifficultyTabs();
+    trackEvent("difficulty_selected", {
+      difficulty: option.id,
+      tier: option.tier,
+      metadata: { label: option.label }
+    });
   });
 
   dom.drawingGrid.addEventListener("click", (event) => {
@@ -695,6 +790,12 @@ function renderPicker() {
       ensureAudioContext();
       playPickSound();
       state.parentIntent = "library-plus";
+      const lockedItem = libraryItems.find((item) => item.id === card.dataset.animal);
+      trackEvent("locked_puzzle_clicked", {
+        item: lockedItem,
+        source: "library",
+        metadata: { lockedType: "puzzle" }
+      });
       showParentModal();
       return;
     }
@@ -909,6 +1010,7 @@ function bindControls() {
 }
 
 function showProfileModal() {
+  trackEvent("profile_opened", { source: "profile_button" });
   state.profileEditingName = false;
   renderProfilePanel();
   document.body.classList.add("is-profile-modal-open");
@@ -1849,6 +1951,10 @@ function consumeCheckoutRedirect() {
   window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`);
 
   if (checkout === "success") {
+    trackEvent("checkout_completed", {
+      source: "stripe_redirect",
+      metadata: { hasSessionId: Boolean(checkoutSessionId) }
+    });
     state.parentAuthPendingEmail = "";
     state.parentCheckoutSessionId = checkoutSessionId;
     state.parentCheckoutEmail = "";
@@ -1883,6 +1989,13 @@ async function handleParentCheckout(plan = "monthly") {
   state.parentCheckoutBusy = true;
   dom.plusSubscribeButton.disabled = true;
   renderParentCheckoutStatus("Opening secure checkout...");
+  trackEvent("checkout_started", {
+    source: "pricing",
+    metadata: {
+      plan: plan === "yearly" ? "yearly" : "monthly",
+      intent: state.parentIntent || "plus"
+    }
+  });
 
   try {
     const response = await fetch("/api/create-checkout-session", {
@@ -1933,6 +2046,10 @@ function showParentModal() {
     return;
   }
 
+  trackEvent("pricing_opened", {
+    source: state.parentIntent || "plus_button",
+    metadata: { unlocked: state.parentUnlocked }
+  });
   dom.parentModal.hidden = false;
   dom.parentModal.setAttribute("aria-hidden", "false");
   dom.parentModal.classList.toggle("is-unlocked", state.parentUnlocked);
@@ -2316,6 +2433,12 @@ function handleFinishSuggestionClick(event) {
   playPickSound();
   if (button.dataset.locked === "true") {
     state.parentIntent = "finish-plus";
+    const lockedItem = libraryItems.find((item) => item.id === button.dataset.finishAnimal);
+    trackEvent("locked_puzzle_clicked", {
+      item: lockedItem,
+      source: "finish_suggestion",
+      metadata: { lockedType: "puzzle" }
+    });
     showParentModal();
     return;
   }
@@ -2367,7 +2490,16 @@ function selectAnimal(id) {
   state.pieces = [];
   state.activePiece = null;
   state.colorComplete = false;
+  state.scratchStartedTracked = false;
   state.activityStartedAt = Date.now();
+  trackEvent("puzzle_viewed", {
+    item: animal,
+    metadata: { name: animal.name }
+  });
+  trackEvent("puzzle_started", {
+    item: animal,
+    metadata: { name: animal.name, grid: `${puzzleGrid().cols}x${puzzleGrid().rows}` }
+  });
 
   dom.pickerView.classList.add("is-hidden");
   dom.studioView.classList.remove("is-hidden");
@@ -2979,6 +3111,12 @@ function clearSlotHint() {
 function checkPuzzleComplete() {
   if (!state.pieces.length || !state.pieces.every((piece) => piece.snapped)) return;
 
+  trackEvent("puzzle_completed", {
+    metadata: {
+      pieces: state.pieces.length,
+      durationMs: state.activityStartedAt ? Date.now() - state.activityStartedAt : 0
+    }
+  });
   dom.puzzleBoard.classList.add("is-complete");
   dom.completePop.classList.add("is-visible");
   playCompleteSound();
@@ -3080,6 +3218,10 @@ function beginColorStroke(event) {
   if (state.stage !== "color" || !state.colorContext) return;
 
   event.preventDefault();
+  if (!state.scratchStartedTracked) {
+    state.scratchStartedTracked = true;
+    trackEvent("scratch_started");
+  }
   dom.colorCanvas.setPointerCapture(event.pointerId);
   state.isColoring = true;
   state.lastColorPoint = canvasPoint(event);
@@ -3141,6 +3283,11 @@ function completeColoring() {
   dom.colorArt.classList.add("is-celebrating");
   dom.colorArt.classList.add("is-floating");
   dom.colorBoard.classList.add("is-complete");
+  trackEvent("scratch_completed", {
+    metadata: {
+      durationMs: state.activityStartedAt ? Date.now() - state.activityStartedAt : 0
+    }
+  });
   recordPuzzleCompletion();
   showScratchComplete();
   window.clearTimeout(state.finishPromptTimer);
