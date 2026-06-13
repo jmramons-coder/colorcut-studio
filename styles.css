@@ -2593,7 +2593,8 @@ button {
 .parent-auth-summary[hidden],
 .parent-auth-form[hidden],
 .parent-auth-field[hidden],
-.parent-auth-footer[hidden] {
+.parent-auth-footer[hidden],
+.parent-auth-field button[hidden] {
   display: none;
 }
 

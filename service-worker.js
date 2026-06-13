@@ -1,4 +1,4 @@
-const CACHE_NAME = "snapuzzle-studio-v35";
+const CACHE_NAME = "snapuzzle-studio-v36";
 const APP_SHELL = [
   "./",
   "./index.html",
