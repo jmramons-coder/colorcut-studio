@@ -327,6 +327,9 @@ const dom = {
   parentAuthSubscribeButton: document.querySelector("#parentAuthSubscribeButton"),
   parentAuthEmailStep: document.querySelector("#parentAuthEmailStep"),
   parentAuthEmail: document.querySelector("#parentAuthEmail"),
+  parentAuthPasswordStep: document.querySelector("#parentAuthPasswordStep"),
+  parentAuthPassword: document.querySelector("#parentAuthPassword"),
+  parentAuthPasswordButton: document.querySelector("#parentAuthPasswordButton"),
   parentAuthSendButton: document.querySelector("#parentAuthSendButton"),
   parentAuthStatus: document.querySelector("#parentAuthStatus"),
   waitlistModal: document.querySelector("#waitlistModal"),
@@ -387,6 +390,8 @@ const state = {
   parentAuthCooldownUntil: 0,
   parentAuthCooldownTimer: 0,
   parentAuthBusy: false,
+  parentAuthMode: "login",
+  parentCheckoutSessionId: "",
   parentCheckoutBusy: false,
   billingPlan: "monthly",
   profile: loadProfile(),
@@ -712,6 +717,7 @@ function bindControls() {
   dom.parentPanelLoginButton.addEventListener("click", () => showParentAuthModal());
   dom.parentAuthBackdrop.addEventListener("click", hideParentAuthModal);
   dom.parentAuthCloseButton.addEventListener("click", hideParentAuthModal);
+  dom.parentAuthPasswordButton.addEventListener("click", submitParentPasswordAuth);
   dom.parentAuthSendButton.addEventListener("click", startParentAuth);
   dom.parentAuthEditEmailButton.addEventListener("click", editParentAccountEmail);
   dom.parentAuthManageBillingButton.addEventListener("click", openBillingPortal);
@@ -721,7 +727,13 @@ function bindControls() {
   dom.parentAuthEmail.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      startParentAuth();
+      dom.parentAuthPassword.focus();
+    }
+  });
+  dom.parentAuthPassword.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submitParentPasswordAuth();
     }
   });
   dom.plusSubscribeButton.addEventListener("click", () => handleParentCheckout(state.billingPlan));
@@ -1095,11 +1107,14 @@ function renderParentAuth(message = "") {
   const plusActive = isParentPlusActive();
   const dateLabel = parentSubscriptionDateLabel();
   const cooldownSeconds = parentAuthCooldownSeconds();
+  const passwordMode = state.parentAuthMode === "set-password";
   dom.parentAuthSummary.hidden = !signedIn;
   dom.parentAuthForm.hidden = signedIn;
   dom.parentAuthFooter.hidden = signedIn;
   dom.parentAuthEmailStep.hidden = signedIn;
+  dom.parentAuthPasswordStep.hidden = signedIn;
   dom.parentAuthEmailLabel.textContent = email || "Account";
+  dom.parentAuthPasswordButton.textContent = passwordMode ? "Create password" : "Login";
   dom.profileParentAuthLabel.textContent = signedIn
     ? `${plusActive ? "Plus active" : "Free account"} · ${dateLabel || email}`
     : "Plus access";
@@ -1114,12 +1129,16 @@ function renderParentAuth(message = "") {
     ? `Try again in ${cooldownSeconds}s`
     : state.parentAuthPendingEmail && !signedIn
       ? "Send again"
-      : "Send link";
+      : "Email magic link";
   dom.parentAuthSendButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
   dom.parentAuthEmail.disabled = state.parentAuthBusy;
+  dom.parentAuthPassword.disabled = state.parentAuthBusy;
+  dom.parentAuthPasswordButton.disabled = state.parentAuthBusy;
   dom.parentAuthCopy.textContent = signedIn
     ? "You are logged in."
-    : "Enter the email used at checkout. Open the magic link on the device you want to log in.";
+    : passwordMode
+      ? "Create a password for the email used at checkout."
+      : "Enter the email used at checkout and your password.";
   dom.parentAuthStatus.textContent = message;
 
   if (state.parentAuthPendingEmail && !signedIn) {
@@ -1196,6 +1215,76 @@ async function parentAuthRequest(path, payload) {
   return data;
 }
 
+function saveParentAuthResponse(data) {
+  saveParentAuth({
+    version: 1,
+    user: data.user,
+    session: data.session,
+    profile: data.profile
+  });
+  state.parentAuthPendingEmail = "";
+  state.parentAuthMode = "login";
+  dom.parentAuthPassword.value = "";
+  renderParentAuth("Logged in.");
+}
+
+async function submitParentPasswordAuth() {
+  const email = String(dom.parentAuthEmail.value || "").trim().toLowerCase();
+  const password = String(dom.parentAuthPassword.value || "");
+
+  if (!isValidEmail(email)) {
+    renderParentAuth("Enter a valid email.");
+    dom.parentAuthEmail.focus();
+    return;
+  }
+
+  if (password.length < 8) {
+    renderParentAuth("Use at least 8 characters.");
+    dom.parentAuthPassword.focus();
+    return;
+  }
+
+  setParentAuthBusy(true);
+  renderParentAuth(state.parentAuthMode === "set-password" ? "Creating password..." : "Logging in...");
+
+  try {
+    const data = await parentAuthRequest(
+      state.parentAuthMode === "set-password" ? "/api/auth-password-set" : "/api/auth-password-login",
+      {
+        email,
+        password,
+        checkoutSessionId: state.parentCheckoutSessionId
+      }
+    );
+    saveParentAuthResponse(data);
+    window.setTimeout(() => {
+      hideParentAuthModal();
+      showPicker();
+    }, 450);
+  } catch (error) {
+    renderParentAuth(error.message || "Email or password did not work.");
+  } finally {
+    setParentAuthBusy(false);
+  }
+}
+
+async function hydrateCheckoutMemberEmail(checkoutSessionId) {
+  if (!checkoutSessionId) return;
+
+  try {
+    const data = await parentAuthRequest("/api/member-status", {
+      checkoutSessionId
+    });
+    if (data.email && !isParentSignedIn()) {
+      dom.parentAuthEmail.value = data.email;
+      renderParentAuth("Create a password for your checkout email.");
+      window.setTimeout(() => dom.parentAuthPassword.focus(), 40);
+    }
+  } catch {
+    // Non-blocking: the password endpoint will still validate the checkout session.
+  }
+}
+
 async function openBillingPortal() {
   if (!state.parentAuth?.session?.accessToken) {
     showParentAuthModal("Sign in to manage billing.");
@@ -1249,7 +1338,10 @@ function handleProfileAuthButton() {
 function logoutParentAccount() {
   saveParentAuth(null);
   state.parentAuthPendingEmail = "";
+  state.parentAuthMode = "login";
+  state.parentCheckoutSessionId = "";
   dom.parentAuthEmail.value = "";
+  dom.parentAuthPassword.value = "";
   hideParentAuthModal();
   renderParentAuth("Logged out.");
 }
@@ -1258,7 +1350,10 @@ function editParentAccountEmail() {
   saveParentAuth(null);
   state.parentAuthPendingEmail = "";
   state.parentAuthCooldownUntil = 0;
+  state.parentAuthMode = "login";
+  state.parentCheckoutSessionId = "";
   dom.parentAuthEmail.value = "";
+  dom.parentAuthPassword.value = "";
   renderParentAuth("Enter the new checkout email.");
   window.setTimeout(() => dom.parentAuthEmail.focus(), 40);
 }
@@ -1374,8 +1469,7 @@ async function consumeParentAuthRedirect() {
     }
 
     const fallbackExpiresAt = Math.floor(Date.now() / 1000) + Number(expiresIn || 3600);
-    saveParentAuth({
-      version: 1,
+    saveParentAuthResponse({
       user: data.user,
       session: {
         accessToken: data.session?.accessToken || accessToken,
@@ -1384,8 +1478,6 @@ async function consumeParentAuthRedirect() {
       },
       profile: data.profile
     });
-    state.parentAuthPendingEmail = "";
-    renderParentAuth("Logged in.");
     window.setTimeout(() => {
       hideParentAuthModal();
       showPicker();
@@ -1399,13 +1491,17 @@ async function consumeParentAuthRedirect() {
 function consumeCheckoutRedirect() {
   const queryParams = new URLSearchParams(window.location.search);
   const checkout = queryParams.get("checkout");
+  const checkoutSessionId = queryParams.get("session_id") || "";
   if (!checkout) return;
 
   window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`);
 
   if (checkout === "success") {
     state.parentAuthPendingEmail = "";
-    showParentAuthModal("Payment complete. Log in with your checkout email.");
+    state.parentCheckoutSessionId = checkoutSessionId;
+    state.parentAuthMode = "set-password";
+    showParentAuthModal("Payment complete. Create your password.");
+    hydrateCheckoutMemberEmail(checkoutSessionId);
     return;
   }
 

@@ -302,7 +302,7 @@
           </button>
           <p class="modal-eyebrow">Member login</p>
           <h2 id="parentAuthTitle">Login</h2>
-          <p class="modal-copy" id="parentAuthCopy">Enter the email used at checkout. Open the magic link on the device you want to log in.</p>
+          <p class="modal-copy" id="parentAuthCopy">Enter the email used at checkout and your password.</p>
           <div class="parent-auth-summary" id="parentAuthSummary" hidden>
             <span>Used email</span>
             <strong id="parentAuthEmailLabel">parent@example.com</strong>
@@ -318,12 +318,19 @@
               <span>Email</span>
               <div>
                 <input id="parentAuthEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" />
-                <button class="parent-primary" id="parentAuthSendButton" type="button">Send link</button>
+              </div>
+            </label>
+            <label class="parent-auth-field" id="parentAuthPasswordStep" for="parentAuthPassword">
+              <span>Password</span>
+              <div>
+                <input id="parentAuthPassword" type="password" autocomplete="current-password" placeholder="Password" />
+                <button class="parent-primary" id="parentAuthPasswordButton" type="button">Login</button>
               </div>
             </label>
             <p class="parent-auth-status" id="parentAuthStatus" role="status" aria-live="polite"></p>
           </form>
           <div class="parent-auth-footer" id="parentAuthFooter">
+            <button class="parent-link-button" id="parentAuthSendButton" type="button">Email magic link</button>
             <span>No account?</span>
             <button class="parent-link-button" id="parentAuthSubscribeButton" type="button">Subscribe</button>
           </div>
