@@ -776,9 +776,7 @@ function hideProfileModal() {
 }
 
 function renderProfileButton() {
-  const avatar = avatarById(state.profile.avatar);
-  dom.profileButtonAvatar.textContent = avatar.label;
-  dom.profileButtonAvatar.style.setProperty("--avatar-color", avatar.color);
+  dom.profileButton.setAttribute("aria-label", "Profile");
 }
 
 function updateProfileAvatarSurface() {

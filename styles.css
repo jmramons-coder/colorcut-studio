@@ -268,9 +268,14 @@ button {
 .profile-button-avatar {
   width: 28px;
   height: 28px;
-  background: var(--button-icon);
-  color: var(--button-gold-light);
-  font-size: 0.82rem;
+  background: transparent;
+  color: var(--button-icon);
+}
+
+.profile-button-avatar svg {
+  width: 25px;
+  height: 25px;
+  fill: currentColor;
 }
 
 .main {
