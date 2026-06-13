@@ -18,11 +18,7 @@ module.exports = async function handler(req, res) {
 
     const memberProfile = await memberProfileForEmail(email);
     if (!memberProfile) {
-      json(res, 404, {
-        ok: false,
-        code: "account_not_found",
-        message: "No member account found for this email. Subscribe first, then log in with your checkout email."
-      });
+      json(res, 200, { ok: true, email });
       return;
     }
 

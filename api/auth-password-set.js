@@ -22,12 +22,8 @@ async function startPasswordReset(email) {
   const memberProfile = await memberProfileForEmail(email);
   if (!memberProfile) {
     return {
-      status: 404,
-      body: {
-        ok: false,
-        code: "account_not_found",
-        message: "No member account found for this email. Subscribe first, then create your password."
-      }
+      status: 200,
+      body: { ok: true, email }
     };
   }
 
@@ -215,11 +211,12 @@ module.exports = async function handler(req, res) {
 
     let userId = memberProfile.auth_user_id;
     if (userId) {
-      const { error } = await admin.auth.admin.updateUserById(userId, {
-        password,
-        email_confirm: true
+      json(res, 409, {
+        ok: false,
+        code: "account_exists",
+        message: "This account is already created. Log in or use Forgot password."
       });
-      if (error) throw error;
+      return;
     } else {
       const { data, error } = await admin.auth.admin.createUser({
         email,

@@ -90,7 +90,9 @@ grant all privileges on table public.waitlist_leads to service_role;
 grant all privileges on table public.profiles to service_role;
 grant all privileges on table public.puzzle_completions to service_role;
 grant all privileges on table public.subscriptions to service_role;
-grant select, insert, update on table public.profiles to authenticated;
+revoke insert, update on table public.profiles from authenticated;
+grant select on table public.profiles to authenticated;
+grant update (display_name, avatar) on table public.profiles to authenticated;
 grant select, insert, update, delete on table public.puzzle_completions to authenticated;
 grant select on table public.subscriptions to authenticated;
 
