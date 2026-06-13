@@ -1,54 +1,5 @@
-const Stripe = require("stripe");
-const { isValidEmail, json, normalizeEmail, readJson, supabaseAdmin, supabasePublic, upsertProfileForUser } = require("./_supabase");
-
-const MEMBER_STATUSES = new Set(["plus", "active", "trialing"]);
-
-async function memberProfileForEmail(email) {
-  const supabase = supabaseAdmin();
-  if (!supabase) return null;
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id,email,auth_user_id,subscription_status,stripe_customer_id")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) return null;
-
-  const status = String(data.subscription_status || "").toLowerCase();
-  return MEMBER_STATUSES.has(status) || data.stripe_customer_id ? data : null;
-}
-
-async function checkoutEmail(sessionId) {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey || !sessionId) return "";
-
-  const stripe = new Stripe(secretKey, {
-    apiVersion: "2024-06-20"
-  });
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
-  const email = normalizeEmail(session.customer_details?.email || session.customer_email);
-
-  if (!email || session.payment_status !== "paid") {
-    return "";
-  }
-
-  const supabase = supabaseAdmin();
-  if (supabase) {
-    const { error } = await supabase.from("profiles").upsert(
-      {
-        email,
-        stripe_customer_id: typeof session.customer === "string" ? session.customer : session.customer?.id || null,
-        subscription_status: "plus"
-      },
-      { onConflict: "email" }
-    );
-    if (error) throw error;
-  }
-
-  return email;
-}
+const { isValidEmail, json, readJson, supabaseAdmin, supabasePublic, upsertProfileForUser } = require("./_supabase");
+const { memberProfileForEmail, syncCheckoutAccount } = require("./_stripe");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -60,7 +11,8 @@ module.exports = async function handler(req, res) {
     const body = await readJson(req);
     const password = String(body.password || "");
     const checkoutSessionId = String(body.checkoutSessionId || body.sessionId || "").trim();
-    const email = await checkoutEmail(checkoutSessionId);
+    const checkout = await syncCheckoutAccount(checkoutSessionId);
+    const email = checkout?.email || "";
 
     if (!isValidEmail(email)) {
       json(res, 401, {

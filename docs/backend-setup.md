@@ -72,7 +72,9 @@ https://snapuzzle.ca
 https://snapuzzle.ca/*
 ```
 
-The parent sign-in UI is intentionally separate from the pricing modal. Parents can buy first through Stripe, then sign in with the same email after checkout so Plus can attach to their account.
+The parent sign-in UI is intentionally separate from the pricing modal. Parents buy first through Stripe. On successful checkout, the app receives Stripe's `session_id`, loads the checkout email server-side, shows that email as read-only, and lets the parent create a password for that paid account.
+
+Security rule: password creation must come from a paid Stripe subscription checkout session. The app must not allow setting a password only because someone knows a paid email address.
 
 ## Stripe
 
@@ -80,6 +82,8 @@ Checkout uses:
 
 ```txt
 /api/create-checkout-session
+/api/checkout-account
+/api/create-billing-portal-session
 ```
 
 Required Vercel environment variables:
@@ -106,7 +110,9 @@ customer.subscription.updated
 customer.subscription.deleted
 ```
 
-Stripe should collect the payment email. The webhook creates or updates a Supabase `profiles` row by that email, marks it as `plus` while the subscription is active or trialing, and records the Stripe subscription in `public.subscriptions`. When the parent later signs in with the same email, the app links the auth user to that profile.
+Stripe should collect the payment email. The webhook creates or updates a Supabase `profiles` row, marks it as `plus` while the subscription is active or trialing, marks it `free` when the subscription becomes inactive, and records the Stripe subscription in `public.subscriptions`.
+
+Stripe customer id is treated as the stable billing identity. If a Stripe customer's email changes, profile sync first looks up the profile by `stripe_customer_id`, then updates the email/status. Login eligibility is based on active member status (`plus`, `active`, or `trialing`), not merely the existence of a historical Stripe customer id.
 
 ## Next Integrations
 

@@ -1,27 +1,5 @@
-const { isValidEmail, json, normalizeEmail, readJson, supabaseAdmin, supabasePublic } = require("./_supabase");
-
-const MEMBER_STATUSES = new Set(["plus", "active", "trialing"]);
-
-async function memberProfileForEmail(email) {
-  const supabase = supabaseAdmin();
-  if (!supabase) return null;
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("email,subscription_status,stripe_customer_id")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) return null;
-
-  const status = String(data.subscription_status || "").toLowerCase();
-  if (MEMBER_STATUSES.has(status) || data.stripe_customer_id) {
-    return data;
-  }
-
-  return null;
-}
+const { isValidEmail, json, normalizeEmail, readJson, supabasePublic } = require("./_supabase");
+const { appUrl, memberProfileForEmail } = require("./_stripe");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -54,12 +32,11 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const appUrl = process.env.APP_URL || "https://snapuzzle.ca";
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: appUrl
+        emailRedirectTo: appUrl()
       }
     });
 

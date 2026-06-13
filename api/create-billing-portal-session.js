@@ -1,9 +1,5 @@
-const Stripe = require("stripe");
 const { bearerToken, json, supabaseAdmin, supabasePublic, upsertProfileForUser } = require("./_supabase");
-
-function appUrl() {
-  return process.env.APP_URL || "https://snapuzzle.ca";
-}
+const { appUrl, stripeClient } = require("./_stripe");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -11,8 +7,8 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
+  const stripe = stripeClient();
+  if (!stripe) {
     json(res, 503, { ok: false, message: "Stripe billing is not connected yet." });
     return;
   }
@@ -52,9 +48,6 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const stripe = new Stripe(secretKey, {
-      apiVersion: "2024-06-20"
-    });
     const session = await stripe.billingPortal.sessions.create({
       customer: privateProfile.stripe_customer_id,
       return_url: `${appUrl()}/?billing=return`

@@ -1,25 +1,5 @@
-const Stripe = require("stripe");
-const { json, normalizeEmail, readJson, supabaseAdmin } = require("./_supabase");
-
-async function paidCheckoutSession(sessionId) {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey || !sessionId) return null;
-
-  const stripe = new Stripe(secretKey, {
-    apiVersion: "2024-06-20"
-  });
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
-  const email = normalizeEmail(session.customer_details?.email || session.customer_email);
-
-  if (!email || session.payment_status !== "paid") {
-    return null;
-  }
-
-  return {
-    email,
-    customerId: typeof session.customer === "string" ? session.customer : session.customer?.id || null
-  };
-}
+const { json, readJson } = require("./_supabase");
+const { syncCheckoutAccount } = require("./_stripe");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -30,7 +10,7 @@ module.exports = async function handler(req, res) {
   try {
     const body = await readJson(req);
     const checkoutSessionId = String(body.checkoutSessionId || body.sessionId || "").trim();
-    const checkout = await paidCheckoutSession(checkoutSessionId);
+    const checkout = await syncCheckoutAccount(checkoutSessionId);
 
     if (!checkout) {
       json(res, 401, {
@@ -39,19 +19,6 @@ module.exports = async function handler(req, res) {
         message: "Open account setup from your completed checkout."
       });
       return;
-    }
-
-    const supabase = supabaseAdmin();
-    if (supabase) {
-      const { error } = await supabase.from("profiles").upsert(
-        {
-          email: checkout.email,
-          stripe_customer_id: checkout.customerId,
-          subscription_status: "plus"
-        },
-        { onConflict: "email" }
-      );
-      if (error) throw error;
     }
 
     json(res, 200, {

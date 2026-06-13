@@ -1,9 +1,5 @@
-const Stripe = require("stripe");
 const { isValidEmail, json, normalizeEmail, readJson } = require("./_supabase");
-
-function appUrl() {
-  return process.env.APP_URL || "https://snapuzzle.ca";
-}
+const { appUrl, stripeClient } = require("./_stripe");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -23,14 +19,14 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const stripe = stripeClient();
   const plan = body.plan === "yearly" ? "yearly" : "monthly";
   const priceId =
     plan === "yearly"
       ? process.env.STRIPE_PLUS_YEARLY_PRICE_ID
       : process.env.STRIPE_PLUS_MONTHLY_PRICE_ID || process.env.STRIPE_PLUS_PRICE_ID;
 
-  if (!secretKey || !priceId) {
+  if (!stripe || !priceId) {
     json(res, 503, {
       ok: false,
       message: `Stripe ${plan} checkout is not connected yet.`
@@ -40,9 +36,6 @@ module.exports = async function handler(req, res) {
 
   try {
     const email = normalizeEmail(body.email);
-    const stripe = new Stripe(secretKey, {
-      apiVersion: "2024-06-20"
-    });
     const baseUrl = appUrl();
     const sessionPayload = {
       mode: "subscription",

@@ -1,5 +1,11 @@
-const Stripe = require("stripe");
-const { json, normalizeEmail, supabaseAdmin } = require("./_supabase");
+const { json, normalizeEmail } = require("./_supabase");
+const {
+  emailForCustomer,
+  stripeClient,
+  stripeCustomerId,
+  stripeSubscriptionId,
+  syncSubscription
+} = require("./_stripe");
 
 function readRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -10,81 +16,19 @@ function readRawBody(req) {
   });
 }
 
-function timestampToIso(value) {
-  return value ? new Date(value * 1000).toISOString() : null;
-}
-
-async function upsertPremiumProfile({ email, customerId, status }) {
-  const supabase = supabaseAdmin();
-  if (!supabase || !email) return null;
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .upsert(
-      {
-        email,
-        stripe_customer_id: customerId,
-        subscription_status: status || "active"
-      },
-      { onConflict: "email" }
-    )
-    .select("id")
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-async function syncSubscription({ email, customerId, subscriptionId, status, priceId, currentPeriodEnd }) {
-  const supabase = supabaseAdmin();
-  if (!supabase || !customerId) return;
-
-  const profile = await upsertPremiumProfile({
-    email,
-    customerId,
-    status: status === "active" || status === "trialing" ? "plus" : "free"
-  });
-
-  if (!subscriptionId) return;
-
-  const { error } = await supabase.from("subscriptions").upsert(
-    {
-      profile_id: profile?.id || null,
-      stripe_customer_id: customerId,
-      stripe_subscription_id: subscriptionId,
-      status: status || "incomplete",
-      price_id: priceId || null,
-      current_period_end: timestampToIso(currentPeriodEnd)
-    },
-    { onConflict: "stripe_subscription_id" }
-  );
-
-  if (error) throw error;
-}
-
-async function emailForCustomer(stripe, customerId) {
-  if (!customerId) return "";
-  const customer = await stripe.customers.retrieve(customerId);
-  return normalizeEmail(customer && !customer.deleted ? customer.email : "");
-}
-
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     json(res, 405, { ok: false, message: "Method not allowed." });
     return;
   }
 
-  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const stripe = stripeClient();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (!secretKey || !webhookSecret) {
+  if (!stripe || !webhookSecret) {
     json(res, 503, { ok: false, message: "Stripe webhook is not configured yet." });
     return;
   }
-
-  const stripe = new Stripe(secretKey, {
-    apiVersion: "2024-06-20"
-  });
 
   try {
     const rawBody = await readRawBody(req);
@@ -93,11 +37,11 @@ module.exports = async function handler(req, res) {
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
-      const subscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
+      const subscriptionId = stripeSubscriptionId(session.subscription);
       const subscription = subscriptionId ? await stripe.subscriptions.retrieve(subscriptionId) : null;
       await syncSubscription({
         email: normalizeEmail(session.customer_details?.email || session.customer_email),
-        customerId: typeof session.customer === "string" ? session.customer : session.customer?.id,
+        customerId: stripeCustomerId(session.customer),
         subscriptionId,
         status: subscription?.status || "active",
         priceId: subscription?.items?.data?.[0]?.price?.id,
@@ -107,7 +51,7 @@ module.exports = async function handler(req, res) {
 
     if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
       const subscription = event.data.object;
-      const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id;
+      const customerId = stripeCustomerId(subscription.customer);
       await syncSubscription({
         email: await emailForCustomer(stripe, customerId),
         customerId,
