@@ -315,9 +315,12 @@ const dom = {
   parentAuthBackdrop: document.querySelector("#parentAuthBackdrop"),
   parentAuthCloseButton: document.querySelector("#parentAuthCloseButton"),
   parentAuthForm: document.querySelector("#parentAuthForm"),
+  parentAuthCopy: document.querySelector("#parentAuthCopy"),
   parentAuthSummary: document.querySelector("#parentAuthSummary"),
   parentAuthEmailLabel: document.querySelector("#parentAuthEmailLabel"),
   parentAuthLogoutButton: document.querySelector("#parentAuthLogoutButton"),
+  parentAuthResendButton: document.querySelector("#parentAuthResendButton"),
+  parentAuthChangeEmailButton: document.querySelector("#parentAuthChangeEmailButton"),
   parentAuthEmailStep: document.querySelector("#parentAuthEmailStep"),
   parentAuthCodeStep: document.querySelector("#parentAuthCodeStep"),
   parentAuthEmail: document.querySelector("#parentAuthEmail"),
@@ -380,6 +383,7 @@ const state = {
   parentIntent: null,
   parentAuth: loadParentAuth(),
   parentAuthPendingEmail: "",
+  parentAuthStep: "email",
   parentCheckoutBusy: false,
   billingPlan: "monthly",
   profile: loadProfile(),
@@ -705,8 +709,10 @@ function bindControls() {
   dom.parentAuthBackdrop.addEventListener("click", hideParentAuthModal);
   dom.parentAuthCloseButton.addEventListener("click", hideParentAuthModal);
   dom.parentAuthSendButton.addEventListener("click", startParentAuth);
+  dom.parentAuthResendButton.addEventListener("click", resendParentAuthCode);
   dom.parentAuthVerifyButton.addEventListener("click", verifyParentAuth);
   dom.parentAuthLogoutButton.addEventListener("click", clearParentAuth);
+  dom.parentAuthChangeEmailButton.addEventListener("click", resetParentAuthEmailStep);
   dom.parentAuthEmail.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -1056,14 +1062,22 @@ function renderParentAuth(message = "") {
   const signedIn = isParentSignedIn();
   const email = parentEmail();
   const plusActive = isParentPlusActive();
+  const codeStepActive = !signedIn && state.parentAuthStep === "code" && state.parentAuthPendingEmail;
   dom.parentAuthSummary.hidden = !signedIn;
   dom.parentAuthForm.hidden = signedIn;
-  dom.parentAuthEmailStep.hidden = signedIn;
-  dom.parentAuthCodeStep.hidden = signedIn || !state.parentAuthPendingEmail;
+  dom.parentAuthEmailStep.hidden = signedIn || codeStepActive;
+  dom.parentAuthCodeStep.hidden = signedIn || !codeStepActive;
   dom.parentAuthEmailLabel.textContent = email || "Account";
   dom.profileParentAuthLabel.textContent = signedIn ? `${plusActive ? "Plus active" : "Signed in"}: ${email}` : "Plus access";
   dom.profileParentAuthButton.textContent = signedIn ? "Manage" : "Sign in";
   dom.profileSubscribeButton.hidden = plusActive;
+  dom.parentAuthCopy.textContent = signedIn
+    ? plusActive
+      ? "Plus is unlocked on this device."
+      : "You are signed in. If Plus does not appear yet, use the same email you used at checkout."
+    : codeStepActive
+      ? `Enter the 6-digit code sent to ${state.parentAuthPendingEmail}.`
+      : "Enter the email used at checkout. We will send a short code to unlock Plus on this device.";
   dom.parentAuthStatus.textContent = message;
 
   if (state.parentAuthPendingEmail && !signedIn) {
@@ -1107,7 +1121,7 @@ function showParentAuthModal(message = "") {
       dom.parentAuthLogoutButton.focus();
       return;
     }
-    const target = state.parentAuthPendingEmail ? dom.parentAuthCode : dom.parentAuthEmail;
+    const target = state.parentAuthStep === "code" && state.parentAuthPendingEmail ? dom.parentAuthCode : dom.parentAuthEmail;
     target.focus();
   }, 40);
 }
@@ -1120,6 +1134,7 @@ function hideParentAuthModal() {
 
 function setParentAuthBusy(isBusy) {
   dom.parentAuthSendButton.disabled = isBusy;
+  dom.parentAuthResendButton.disabled = isBusy;
   dom.parentAuthVerifyButton.disabled = isBusy;
   dom.parentAuthEmail.disabled = isBusy;
   dom.parentAuthCode.disabled = isBusy;
@@ -1154,11 +1169,37 @@ async function startParentAuth() {
   try {
     await parentAuthRequest("/api/auth-start", { email });
     state.parentAuthPendingEmail = email;
+    state.parentAuthStep = "code";
     dom.parentAuthCode.value = "";
-    renderParentAuth("Email sent. Open the sign-in link, or enter the 6-digit code if it appears.");
+    renderParentAuth("Code sent. Check your email.");
     window.setTimeout(() => dom.parentAuthCode.focus(), 40);
   } catch (error) {
     renderParentAuth(error.message || "Could not send the login email.");
+  } finally {
+    setParentAuthBusy(false);
+  }
+}
+
+async function resendParentAuthCode() {
+  const email = state.parentAuthPendingEmail || String(dom.parentAuthEmail.value || "").trim().toLowerCase();
+  if (!isValidEmail(email)) {
+    resetParentAuthEmailStep();
+    renderParentAuth("Enter a valid email.");
+    return;
+  }
+
+  setParentAuthBusy(true);
+  renderParentAuth("Sending a new code...");
+
+  try {
+    await parentAuthRequest("/api/auth-start", { email });
+    state.parentAuthPendingEmail = email;
+    state.parentAuthStep = "code";
+    dom.parentAuthCode.value = "";
+    renderParentAuth("New code sent.");
+    window.setTimeout(() => dom.parentAuthCode.focus(), 40);
+  } catch (error) {
+    renderParentAuth(error.message || "Could not resend the code.");
   } finally {
     setParentAuthBusy(false);
   }
@@ -1191,6 +1232,7 @@ async function verifyParentAuth() {
       profile: data.profile
     });
     state.parentAuthPendingEmail = "";
+    state.parentAuthStep = "email";
     dom.parentAuthCode.value = "";
     renderParentAuth("You're signed in.");
   } catch (error) {
@@ -1199,6 +1241,15 @@ async function verifyParentAuth() {
   } finally {
     setParentAuthBusy(false);
   }
+}
+
+function resetParentAuthEmailStep() {
+  if (isParentSignedIn()) return;
+  state.parentAuthPendingEmail = "";
+  state.parentAuthStep = "email";
+  dom.parentAuthCode.value = "";
+  renderParentAuth();
+  window.setTimeout(() => dom.parentAuthEmail.focus(), 40);
 }
 
 async function refreshParentAuth() {
@@ -1237,33 +1288,51 @@ async function consumeParentAuthRedirect() {
   const refreshToken = hashParams.get("refresh_token") || queryParams.get("refresh_token");
   const expiresAt = hashParams.get("expires_at") || queryParams.get("expires_at");
   const expiresIn = hashParams.get("expires_in") || queryParams.get("expires_in");
+  const tokenHash =
+    hashParams.get("token_hash") ||
+    queryParams.get("token_hash") ||
+    hashParams.get("token") ||
+    queryParams.get("token");
+  const authType = hashParams.get("type") || queryParams.get("type") || "email";
 
-  if (!accessToken || !refreshToken) return;
+  if (!accessToken && !tokenHash) return;
 
   window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`);
   showParentAuthModal("Finishing sign in...");
 
   try {
-    const response = await fetch("/api/auth-me", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`
+    let data;
+
+    if (accessToken && refreshToken) {
+      const response = await fetch("/api/auth-me", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      data = await response.json().catch(() => ({}));
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.message || "Could not finish sign in.");
       }
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || data.ok === false) {
-      throw new Error(data.message || "Could not finish sign in.");
+    } else {
+      data = await parentAuthRequest("/api/auth-link", {
+        tokenHash,
+        type: authType
+      });
     }
+
     const fallbackExpiresAt = Math.floor(Date.now() / 1000) + Number(expiresIn || 3600);
     saveParentAuth({
       version: 1,
       user: data.user,
       session: {
-        accessToken,
-        refreshToken,
-        expiresAt: Number(expiresAt || fallbackExpiresAt)
+        accessToken: data.session?.accessToken || accessToken,
+        refreshToken: data.session?.refreshToken || refreshToken,
+        expiresAt: Number(data.session?.expiresAt || expiresAt || fallbackExpiresAt)
       },
       profile: data.profile
     });
+    state.parentAuthPendingEmail = "";
+    state.parentAuthStep = "email";
     renderParentAuth("You're signed in.");
   } catch (error) {
     saveParentAuth(null);
@@ -1279,6 +1348,8 @@ function consumeCheckoutRedirect() {
   window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`);
 
   if (checkout === "success") {
+    state.parentAuthPendingEmail = "";
+    state.parentAuthStep = "email";
     showParentAuthModal("Payment complete. Sign in with the same email to unlock Plus on this device.");
     return;
   }
@@ -1293,6 +1364,7 @@ function consumeCheckoutRedirect() {
 function clearParentAuth() {
   saveParentAuth(null);
   state.parentAuthPendingEmail = "";
+  state.parentAuthStep = "email";
   dom.parentAuthCode.value = "";
   renderParentAuth("Signed out on this device.");
   dom.parentAuthEmail.focus();
