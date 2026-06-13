@@ -74,6 +74,41 @@ https://colorcut-studio.vercel.app
 https://colorcut-studio.vercel.app/*
 ```
 
+The parent sign-in UI is intentionally separate from the pricing modal. Parents can buy first through Stripe, then sign in with the same email after checkout so Plus can attach to their account.
+
+## Stripe
+
+Checkout uses:
+
+```txt
+/api/create-checkout-session
+```
+
+Required Vercel environment variables:
+
+```txt
+APP_URL=https://colorcut-studio.vercel.app
+STRIPE_SECRET_KEY
+STRIPE_PLUS_PRICE_ID
+STRIPE_WEBHOOK_SECRET
+```
+
+Add this webhook endpoint in Stripe:
+
+```txt
+https://colorcut-studio.vercel.app/api/stripe-webhook
+```
+
+Subscribe it to:
+
+```txt
+checkout.session.completed
+customer.subscription.updated
+customer.subscription.deleted
+```
+
+Stripe should collect the payment email. The webhook creates or updates a Supabase `profiles` row by that email, marks it as `plus` while the subscription is active or trialing, and records the Stripe subscription in `public.subscriptions`. When the parent later signs in with the same email, the app links the auth user to that profile.
+
 ## Next Integrations
 
 Resend will use:

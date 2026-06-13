@@ -1,4 +1,4 @@
-const CACHE_NAME = "colorpals-studio-v18";
+const CACHE_NAME = "colorpals-studio-v19";
 const APP_SHELL = [
   "./",
   "./index.html",

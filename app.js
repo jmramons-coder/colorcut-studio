@@ -306,6 +306,11 @@ const dom = {
   parentGateSubmit: document.querySelector("#parentGateSubmit"),
   parentGateError: document.querySelector("#parentGateError"),
   parentCheckoutButton: document.querySelector("#parentCheckoutButton"),
+  parentCheckoutStatus: document.querySelector("#parentCheckoutStatus"),
+  parentPanelLoginButton: document.querySelector("#parentPanelLoginButton"),
+  parentAuthModal: document.querySelector("#parentAuthModal"),
+  parentAuthBackdrop: document.querySelector("#parentAuthBackdrop"),
+  parentAuthCloseButton: document.querySelector("#parentAuthCloseButton"),
   parentAuthForm: document.querySelector("#parentAuthForm"),
   parentAuthSummary: document.querySelector("#parentAuthSummary"),
   parentAuthEmailLabel: document.querySelector("#parentAuthEmailLabel"),
@@ -331,6 +336,9 @@ const dom = {
   profileEditNameButton: document.querySelector("#profileEditNameButton"),
   avatarPrevButton: document.querySelector("#avatarPrevButton"),
   avatarNextButton: document.querySelector("#avatarNextButton"),
+  profileParentAuth: document.querySelector("#profileParentAuth"),
+  profileParentAuthLabel: document.querySelector("#profileParentAuthLabel"),
+  profileParentAuthButton: document.querySelector("#profileParentAuthButton"),
   profileStats: document.querySelector("#profileStats"),
   profileDetail: document.querySelector("#profileDetail"),
   profilePuzzleGrid: document.querySelector("#profilePuzzleGrid")
@@ -368,6 +376,7 @@ const state = {
   parentIntent: null,
   parentAuth: loadParentAuth(),
   parentAuthPendingEmail: "",
+  parentCheckoutBusy: false,
   profile: loadProfile(),
   profileSelectedPuzzleId: null,
   profileEditingName: false,
@@ -383,6 +392,7 @@ bindControls();
 renderProfileButton();
 renderParentAuth();
 consumeParentAuthRedirect();
+consumeCheckoutRedirect();
 refreshParentAuth();
 setStage("pick");
 
@@ -685,6 +695,9 @@ function bindControls() {
   dom.parentGateAnswer.addEventListener("keydown", (event) => {
     if (event.key === "Enter") checkParentGate();
   });
+  dom.parentPanelLoginButton.addEventListener("click", () => showParentAuthModal());
+  dom.parentAuthBackdrop.addEventListener("click", hideParentAuthModal);
+  dom.parentAuthCloseButton.addEventListener("click", hideParentAuthModal);
   dom.parentAuthSendButton.addEventListener("click", startParentAuth);
   dom.parentAuthVerifyButton.addEventListener("click", verifyParentAuth);
   dom.parentAuthLogoutButton.addEventListener("click", clearParentAuth);
@@ -706,6 +719,7 @@ function bindControls() {
   dom.waitlistForm.addEventListener("submit", saveWaitlistEmail);
   dom.avatarPrevButton.addEventListener("click", () => cycleProfileAvatar(-1));
   dom.avatarNextButton.addEventListener("click", () => cycleProfileAvatar(1));
+  dom.profileParentAuthButton.addEventListener("click", () => showParentAuthModal());
   dom.profilePuzzleGrid.addEventListener("click", selectProfilePuzzle);
   dom.profileDetail.addEventListener("click", handleProfileDetailClick);
   dom.brand.addEventListener("click", (event) => {
@@ -1026,17 +1040,45 @@ function renderParentAuth(message = "") {
   if (!dom.parentAuthForm) return;
 
   const signedIn = isParentSignedIn();
+  const email = parentEmail();
   dom.parentAuthSummary.hidden = !signedIn;
   dom.parentAuthForm.hidden = signedIn;
   dom.parentAuthEmailStep.hidden = signedIn;
   dom.parentAuthCodeStep.hidden = signedIn || !state.parentAuthPendingEmail;
-  dom.parentAuthEmailLabel.textContent = parentEmail() || "Parent";
-  dom.parentCheckoutButton.textContent = signedIn ? "Continue to Plus" : "Sign in for Plus";
+  dom.parentAuthEmailLabel.textContent = email || "Parent";
+  dom.profileParentAuthLabel.textContent = signedIn ? `Parent signed in: ${email}` : "Parent account not connected";
+  dom.profileParentAuthButton.textContent = signedIn ? "Manage" : "Sign in";
   dom.parentAuthStatus.textContent = message;
 
   if (state.parentAuthPendingEmail && !signedIn) {
     dom.parentAuthEmail.value = state.parentAuthPendingEmail;
   }
+}
+
+function renderParentCheckoutStatus(message = "") {
+  if (dom.parentCheckoutStatus) {
+    dom.parentCheckoutStatus.textContent = message;
+  }
+}
+
+function showParentAuthModal(message = "") {
+  dom.parentAuthModal.hidden = false;
+  dom.parentAuthModal.setAttribute("aria-hidden", "false");
+  renderParentAuth(message);
+  window.setTimeout(() => {
+    if (isParentSignedIn()) {
+      dom.parentAuthLogoutButton.focus();
+      return;
+    }
+    const target = state.parentAuthPendingEmail ? dom.parentAuthCode : dom.parentAuthEmail;
+    target.focus();
+  }, 40);
+}
+
+function hideParentAuthModal() {
+  if (dom.parentAuthModal.hidden) return;
+  dom.parentAuthModal.hidden = true;
+  dom.parentAuthModal.setAttribute("aria-hidden", "true");
 }
 
 function setParentAuthBusy(isBusy) {
@@ -1162,7 +1204,7 @@ async function consumeParentAuthRedirect() {
   if (!accessToken || !refreshToken) return;
 
   window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`);
-  renderParentAuth("Finishing parent sign in...");
+  showParentAuthModal("Finishing parent sign in...");
 
   try {
     const response = await fetch("/api/auth-me", {
@@ -1185,12 +1227,29 @@ async function consumeParentAuthRedirect() {
       },
       profile: data.profile
     });
-    state.parentUnlocked = true;
-    showParentModal();
     renderParentAuth("You're signed in.");
   } catch (error) {
     saveParentAuth(null);
     renderParentAuth(error.message || "Could not finish parent sign in.");
+  }
+}
+
+function consumeCheckoutRedirect() {
+  const queryParams = new URLSearchParams(window.location.search);
+  const checkout = queryParams.get("checkout");
+  if (!checkout) return;
+
+  window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`);
+
+  if (checkout === "success") {
+    showParentAuthModal("Payment complete. Sign in with the same parent email to unlock Plus on this device.");
+    return;
+  }
+
+  if (checkout === "cancel") {
+    state.parentUnlocked = true;
+    showParentModal();
+    renderParentCheckoutStatus("Checkout was canceled. You can continue whenever you're ready.");
   }
 }
 
@@ -1202,21 +1261,41 @@ function clearParentAuth() {
   dom.parentAuthEmail.focus();
 }
 
-function handleParentCheckout() {
-  if (!isParentSignedIn()) {
-    renderParentAuth("Sign in with a parent email to continue.");
-    const target = state.parentAuthPendingEmail ? dom.parentAuthCode : dom.parentAuthEmail;
-    target.focus();
-    return;
-  }
+async function handleParentCheckout() {
+  if (state.parentCheckoutBusy) return;
 
-  renderParentAuth("Parent account ready. Stripe checkout is the next step.");
+  state.parentCheckoutBusy = true;
+  dom.parentCheckoutButton.disabled = true;
+  renderParentCheckoutStatus("Opening secure checkout...");
+
+  try {
+    const response = await fetch("/api/create-checkout-session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: isParentSignedIn() ? parentEmail() : "",
+        source: "app-parent-panel"
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false || !data.url) {
+      throw new Error(data.message || "Stripe checkout is not ready yet.");
+    }
+    window.location.assign(data.url);
+  } catch (error) {
+    renderParentCheckoutStatus(error.message || "Stripe checkout is not ready yet.");
+  } finally {
+    state.parentCheckoutBusy = false;
+    dom.parentCheckoutButton.disabled = false;
+  }
 }
 
 function focusParentPanel(message = "") {
   state.parentIntent = null;
   dom.parentModal.classList.add("is-unlocked");
-  renderParentAuth(message);
+  renderParentCheckoutStatus(message);
   dom.parentPanelStep.setAttribute("tabindex", "-1");
   dom.parentPanelStep.focus({ preventScroll: true });
 }
@@ -1226,7 +1305,7 @@ function showParentModal() {
   dom.parentModal.setAttribute("aria-hidden", "false");
   dom.parentModal.classList.toggle("is-unlocked", state.parentUnlocked);
   if (state.parentUnlocked) {
-    const message = state.parentIntent === "finish-plus" ? "Sign in with a parent email to continue to Plus." : "";
+    const message = state.parentIntent === "finish-plus" ? "Continue to Stripe to unlock Plus." : "";
     focusParentPanel(message);
     return;
   }
@@ -1263,7 +1342,7 @@ function checkParentGate() {
 
   state.parentUnlocked = true;
   dom.parentGateError.textContent = "";
-  const message = state.parentIntent === "finish-plus" ? "Sign in with a parent email to continue to Plus." : "";
+  const message = state.parentIntent === "finish-plus" ? "Continue to Stripe to unlock Plus." : "";
   focusParentPanel(message);
 }
 

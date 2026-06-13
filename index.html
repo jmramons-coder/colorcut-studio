@@ -24,7 +24,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="ColorPals" />
     <link rel="preload" as="image" href="assets/red-panda.webp" fetchpriority="high" />
-    <link rel="stylesheet" href="styles.css?v=parent-otp-auth-20260612" />
+    <link rel="stylesheet" href="styles.css?v=parent-auth-checkout-20260613" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -222,34 +222,12 @@
               <li>Dinosaur and space pack previews, with more premium packs planned.</li>
               <li>Offline play, printable coloring sheets, and classroom mode.</li>
             </ul>
-            <div class="parent-auth-card" id="parentAuthCard">
-              <div class="parent-auth-summary" id="parentAuthSummary" hidden>
-                <span>Parent signed in</span>
-                <strong id="parentAuthEmailLabel">parent@example.com</strong>
-                <button class="parent-link-button" id="parentAuthLogoutButton" type="button">Switch email</button>
-              </div>
-              <form class="parent-auth-form" id="parentAuthForm">
-                <label class="parent-auth-field" id="parentAuthEmailStep" for="parentAuthEmail">
-                  <span>Parent email</span>
-                  <div>
-                    <input id="parentAuthEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" />
-                    <button class="parent-primary" id="parentAuthSendButton" type="button">Send email</button>
-                  </div>
-                </label>
-                <label class="parent-auth-field" id="parentAuthCodeStep" for="parentAuthCode" hidden>
-                  <span>6-digit code if shown</span>
-                  <div>
-                    <input id="parentAuthCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" />
-                    <button class="parent-primary" id="parentAuthVerifyButton" type="button">Verify</button>
-                  </div>
-                </label>
-                <p class="parent-auth-status" id="parentAuthStatus" role="status" aria-live="polite"></p>
-              </form>
-            </div>
             <div class="parent-actions is-panel">
-              <button class="parent-primary" id="parentCheckoutButton" type="button">Sign in for Plus</button>
+              <button class="parent-primary" id="parentCheckoutButton" type="button">Continue to Plus</button>
               <a class="parent-secondary" href="parents.html">Parent page</a>
             </div>
+            <button class="parent-link-button parent-login-link" id="parentPanelLoginButton" type="button">Already have Plus? Sign in</button>
+            <p class="parent-checkout-status" id="parentCheckoutStatus" role="status" aria-live="polite"></p>
             <div class="parent-policy-links" aria-label="Parent legal links">
               <a href="privacy.html">Privacy</a>
               <a href="terms.html">Terms</a>
@@ -276,6 +254,42 @@
               <button class="parent-primary" type="submit">Join</button>
             </div>
             <p class="waitlist-status" id="waitlistStatus" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+      </div>
+
+      <div class="auth-modal" id="parentAuthModal" role="dialog" aria-modal="true" aria-labelledby="parentAuthTitle" aria-hidden="true" hidden>
+        <button class="auth-backdrop" id="parentAuthBackdrop" type="button" aria-label="Close parent sign in"></button>
+        <section class="auth-sheet" aria-label="Parent sign in">
+          <button class="waitlist-close" id="parentAuthCloseButton" type="button" aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6.4 4.9 5.6 5.6 5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6 1.5-1.5Z" />
+            </svg>
+          </button>
+          <p class="modal-eyebrow">Parent account</p>
+          <h2 id="parentAuthTitle">Sign in to sync Plus.</h2>
+          <p class="modal-copy">Enter your parent email. Open the secure sign-in link, or enter the 6-digit code if your email shows one.</p>
+          <div class="parent-auth-summary" id="parentAuthSummary" hidden>
+            <span>Signed in on this device</span>
+            <strong id="parentAuthEmailLabel">parent@example.com</strong>
+            <button class="parent-link-button" id="parentAuthLogoutButton" type="button">Switch email</button>
+          </div>
+          <form class="parent-auth-form" id="parentAuthForm">
+            <label class="parent-auth-field" id="parentAuthEmailStep" for="parentAuthEmail">
+              <span>Parent email</span>
+              <div>
+                <input id="parentAuthEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" />
+                <button class="parent-primary" id="parentAuthSendButton" type="button">Send email</button>
+              </div>
+            </label>
+            <label class="parent-auth-field" id="parentAuthCodeStep" for="parentAuthCode" hidden>
+              <span>6-digit code if shown</span>
+              <div>
+                <input id="parentAuthCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" />
+                <button class="parent-primary" id="parentAuthVerifyButton" type="button">Verify</button>
+              </div>
+            </label>
+            <p class="parent-auth-status" id="parentAuthStatus" role="status" aria-live="polite"></p>
           </form>
         </section>
       </div>
@@ -314,6 +328,11 @@
             </div>
           </div>
 
+          <div class="profile-parent-auth" id="profileParentAuth">
+            <span id="profileParentAuthLabel">Parent account not connected</span>
+            <button class="parent-secondary" id="profileParentAuthButton" type="button">Sign in</button>
+          </div>
+
           <div class="profile-stats" id="profileStats"></div>
           <div class="profile-detail" id="profileDetail"></div>
           <div class="profile-puzzle-grid" id="profilePuzzleGrid"></div>
@@ -321,6 +340,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=parent-otp-auth-20260612"></script>
+    <script src="app.js?v=parent-auth-checkout-20260613"></script>
   </body>
 </html>

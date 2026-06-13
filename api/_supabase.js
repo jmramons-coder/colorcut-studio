@@ -107,6 +107,32 @@ async function upsertProfileForUser(user) {
     return publicProfile(existing);
   }
 
+  const { data: emailProfile, error: emailSelectError } = await supabase
+    .from("profiles")
+    .select("id,email,display_name,avatar,subscription_status,auth_user_id")
+    .eq("email", user.email)
+    .maybeSingle();
+
+  if (emailSelectError) {
+    throw emailSelectError;
+  }
+
+  if (emailProfile) {
+    if (!emailProfile.auth_user_id) {
+      const { data: linked, error: linkError } = await supabase
+        .from("profiles")
+        .update({ auth_user_id: user.id })
+        .eq("id", emailProfile.id)
+        .select("id,email,display_name,avatar,subscription_status")
+        .single();
+
+      if (linkError) throw linkError;
+      return publicProfile(linked);
+    }
+
+    return publicProfile(emailProfile);
+  }
+
   const { data, error } = await supabase
     .from("profiles")
     .insert({
