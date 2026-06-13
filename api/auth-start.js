@@ -67,9 +67,17 @@ module.exports = async function handler(req, res) {
 
     json(res, 200, { ok: true, email });
   } catch (error) {
-    json(res, 500, {
+    const message = error.message || "";
+    const isRateLimited =
+      error.status === 429 ||
+      /rate limit|email rate|too many|over_email_send_rate_limit/i.test(message);
+
+    json(res, isRateLimited ? 429 : 500, {
       ok: false,
-      message: error.message || "Could not send the login link."
+      code: isRateLimited ? "email_rate_limit" : "login_email_failed",
+      message: isRateLimited
+        ? "Too many login emails were requested. Wait a few minutes, then use the newest magic link."
+        : message || "Could not send the login link."
     });
   }
 };

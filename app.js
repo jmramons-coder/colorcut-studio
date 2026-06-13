@@ -9,6 +9,7 @@ const COLOR_COMPLETE_RATIO = 0.68;
 const PROFILE_STORAGE_KEY = "snapuzzle-profile-v1";
 const WAITLIST_STORAGE_KEY = "snapuzzle-waitlist-email";
 const PARENT_AUTH_STORAGE_KEY = "snapuzzle-parent-auth-v1";
+const LOGIN_EMAIL_COOLDOWN_MS = 90000;
 
 const avatarOptions = [
   { id: "core", label: "C", color: "#172026" },
@@ -379,6 +380,9 @@ const state = {
   parentIntent: null,
   parentAuth: loadParentAuth(),
   parentAuthPendingEmail: "",
+  parentAuthCooldownUntil: 0,
+  parentAuthCooldownTimer: 0,
+  parentAuthBusy: false,
   parentCheckoutBusy: false,
   billingPlan: "monthly",
   profile: loadProfile(),
@@ -1059,6 +1063,22 @@ function parentSubscriptionDateLabel() {
   return `Access through ${label}`;
 }
 
+function parentAuthCooldownSeconds() {
+  return Math.max(0, Math.ceil((state.parentAuthCooldownUntil - Date.now()) / 1000));
+}
+
+function scheduleParentAuthCooldownRender() {
+  window.clearTimeout(state.parentAuthCooldownTimer);
+  if (!parentAuthCooldownSeconds()) {
+    renderParentAuth(dom.parentAuthStatus.textContent);
+    return;
+  }
+  state.parentAuthCooldownTimer = window.setTimeout(() => {
+    renderParentAuth(dom.parentAuthStatus.textContent);
+    scheduleParentAuthCooldownRender();
+  }, 1000);
+}
+
 function renderParentAuth(message = "") {
   if (!dom.parentAuthForm) return;
 
@@ -1066,6 +1086,7 @@ function renderParentAuth(message = "") {
   const email = parentEmail();
   const plusActive = isParentPlusActive();
   const dateLabel = parentSubscriptionDateLabel();
+  const cooldownSeconds = parentAuthCooldownSeconds();
   dom.parentAuthSummary.hidden = !signedIn;
   dom.parentAuthForm.hidden = signedIn;
   dom.parentAuthFooter.hidden = signedIn;
@@ -1079,7 +1100,13 @@ function renderParentAuth(message = "") {
   dom.profileSubscribeButton.textContent = signedIn && plusActive ? "Manage" : "Subscribe";
   dom.profileSubscribeButton.dataset.billingAction = signedIn && plusActive ? "portal" : "subscribe";
   dom.parentButton.hidden = signedIn && plusActive;
-  dom.parentAuthSendButton.textContent = state.parentAuthPendingEmail && !signedIn ? "Send again" : "Send link";
+  dom.parentAuthSendButton.textContent = cooldownSeconds
+    ? `Try again in ${cooldownSeconds}s`
+    : state.parentAuthPendingEmail && !signedIn
+      ? "Send again"
+      : "Send link";
+  dom.parentAuthSendButton.disabled = state.parentAuthBusy || Boolean(cooldownSeconds);
+  dom.parentAuthEmail.disabled = state.parentAuthBusy;
   dom.parentAuthCopy.textContent = signedIn
     ? "You are logged in."
     : "Enter the email used at checkout. We will send a magic link to log in.";
@@ -1137,8 +1164,8 @@ function hideParentAuthModal() {
 }
 
 function setParentAuthBusy(isBusy) {
-  dom.parentAuthSendButton.disabled = isBusy;
-  dom.parentAuthEmail.disabled = isBusy;
+  state.parentAuthBusy = isBusy;
+  renderParentAuth(dom.parentAuthStatus.textContent);
 }
 
 async function parentAuthRequest(path, payload) {
@@ -1151,7 +1178,10 @@ async function parentAuthRequest(path, payload) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data.ok === false) {
-    throw new Error(data.message || "Something went wrong.");
+    const error = new Error(data.message || "Something went wrong.");
+    error.code = data.code || "";
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
@@ -1225,15 +1255,26 @@ async function startParentAuth() {
     return;
   }
 
+  const cooldownSeconds = parentAuthCooldownSeconds();
+  if (cooldownSeconds) {
+    renderParentAuth(`A login email was already sent. Try again in ${cooldownSeconds}s or use the newest magic link.`);
+    return;
+  }
+
   setParentAuthBusy(true);
   renderParentAuth("Sending login email...");
 
   try {
     await parentAuthRequest("/api/auth-start", { email });
     state.parentAuthPendingEmail = email;
+    state.parentAuthCooldownUntil = Date.now() + LOGIN_EMAIL_COOLDOWN_MS;
     renderParentAuth("Check your email for the magic link.");
-    dom.parentAuthSendButton.textContent = "Send again";
+    scheduleParentAuthCooldownRender();
   } catch (error) {
+    if (error.code === "email_rate_limit" || error.status === 429) {
+      state.parentAuthCooldownUntil = Date.now() + 5 * 60 * 1000;
+      scheduleParentAuthCooldownRender();
+    }
     renderParentAuth(error.message || "Could not send the login email.");
   } finally {
     setParentAuthBusy(false);
