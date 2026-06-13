@@ -244,6 +244,15 @@ button {
   fill: currentColor;
 }
 
+.icon-button img {
+  width: 29px;
+  height: 29px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.5));
+}
+
 .profile-button-avatar,
 .profile-avatar,
 .avatar-choice span {

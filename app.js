@@ -621,7 +621,7 @@ function scheduleImageWarmup(srcList) {
 function bindControls() {
   dom.profileButton.addEventListener("click", showProfileModal);
   dom.parentButton.addEventListener("click", showParentModal);
-  dom.galleryButton.addEventListener("click", showPicker);
+  dom.galleryButton.addEventListener("click", handleGalleryButtonClick);
   dom.fullscreenButton.addEventListener("click", toggleFullscreen);
   dom.spreadButton.addEventListener("click", spreadLoosePieces);
   dom.finishLibraryButton.addEventListener("click", showPicker);
@@ -686,6 +686,15 @@ function showProfileModal() {
   document.body.classList.add("is-profile-modal-open");
   dom.profileModal.hidden = false;
   dom.profileModal.setAttribute("aria-hidden", "false");
+}
+
+function handleGalleryButtonClick(event) {
+  event.preventDefault();
+  if (!dom.profileModal.hidden) {
+    hideProfileModal();
+    return;
+  }
+  showPicker();
 }
 
 function hideProfileModal() {
