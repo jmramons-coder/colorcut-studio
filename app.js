@@ -2599,7 +2599,7 @@ function selectAnimal(id) {
   });
   trackEvent("puzzle_started", {
     item: animal,
-    metadata: { name: animal.name, grid: `${puzzleGrid().cols}x${puzzleGrid().rows}` }
+    metadata: { name: animal.name, grid: `${itemGrid().cols}x${itemGrid().rows}` }
   });
 
   dom.pickerView.classList.add("is-hidden");
@@ -2634,12 +2634,30 @@ function warmImage(src) {
   if (state.imagePromises.has(src)) return state.imagePromises.get(src);
 
   const promise = new Promise((resolve) => {
+    let settled = false;
     const image = new Image();
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      resolve();
+    };
+    const timeout = window.setTimeout(done, 2500);
+
     image.decoding = "async";
     image.onload = () => {
-      image.decode?.().then(resolve).catch(resolve) || resolve();
+      try {
+        const decoded = image.decode?.();
+        if (decoded?.then) {
+          decoded.then(done).catch(done);
+          return;
+        }
+      } catch {
+        // Decoding is an optimization; puzzle creation can continue without it.
+      }
+      done();
     };
-    image.onerror = resolve;
+    image.onerror = done;
     image.src = src;
   });
 
@@ -3471,17 +3489,22 @@ function eraseLine(from, to) {
 }
 
 function ensureAudioContext() {
-  if (state.audioContext) {
+  try {
+    if (state.audioContext) {
+      state.audioContext.resume?.();
+      return state.audioContext;
+    }
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return null;
+
+    state.audioContext = new AudioContext();
     state.audioContext.resume?.();
     return state.audioContext;
+  } catch {
+    state.audioContext = null;
+    return null;
   }
-
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) return null;
-
-  state.audioContext = new AudioContext();
-  state.audioContext.resume?.();
-  return state.audioContext;
 }
 
 function playSnapSound() {
@@ -3529,21 +3552,25 @@ function playColorCompleteSound() {
 }
 
 function playTone(context, fromFrequency, toFrequency, startTime, duration, volume, type) {
-  const oscillator = context.createOscillator();
-  const gain = context.createGain();
+  try {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
 
-  oscillator.type = type;
-  oscillator.frequency.setValueAtTime(fromFrequency, startTime);
-  oscillator.frequency.exponentialRampToValueAtTime(toFrequency, startTime + duration);
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(fromFrequency, startTime);
+    oscillator.frequency.exponentialRampToValueAtTime(toFrequency, startTime + duration);
 
-  gain.gain.setValueAtTime(0.0001, startTime);
-  gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.018);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.018);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
 
-  oscillator.connect(gain);
-  gain.connect(context.destination);
-  oscillator.start(startTime);
-  oscillator.stop(startTime + duration + 0.02);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration + 0.02);
+  } catch {
+    // Sound is secondary; never block puzzle interaction.
+  }
 }
 
 function startScratch() {
