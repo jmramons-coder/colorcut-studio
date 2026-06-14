@@ -226,6 +226,16 @@ const libraryItems = [
     style: "photo"
   },
   {
+    id: "volcano-island",
+    name: "Volcano Island",
+    category: "nature",
+    src: "assets/volcano-island.svg",
+    aspect: 9 / 7,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.9,
+    tier: "plus"
+  },
+  {
     id: "t-rex",
     name: "T-Rex",
     category: "dinosaurs",
@@ -276,6 +286,26 @@ const libraryItems = [
     tier: "plus"
   },
   {
+    id: "plesiosaurus",
+    name: "Plesiosaurus",
+    category: "dinosaurs",
+    src: "assets/plesiosaurus.svg",
+    aspect: 9 / 7,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.9,
+    tier: "plus"
+  },
+  {
+    id: "brachiosaurus",
+    name: "Brachiosaurus",
+    category: "dinosaurs",
+    src: "assets/brachiosaurus.svg",
+    aspect: 9 / 7,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.9,
+    tier: "plus"
+  },
+  {
     id: "rocket",
     name: "Rocket",
     category: "space",
@@ -321,6 +351,26 @@ const libraryItems = [
     category: "space",
     src: "assets/space-shuttle.webp",
     aspect: 1090 / 1052,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.9,
+    tier: "plus"
+  },
+  {
+    id: "comet-moon-base",
+    name: "Comet Moon Base",
+    category: "space",
+    src: "assets/comet-moon-base.svg",
+    aspect: 9 / 7,
+    grid: { cols: 5, rows: 5 },
+    targetRatio: 0.9,
+    tier: "plus"
+  },
+  {
+    id: "nebula-satellite",
+    name: "Nebula Satellite",
+    category: "space",
+    src: "assets/nebula-satellite.svg",
+    aspect: 9 / 7,
     grid: { cols: 5, rows: 5 },
     targetRatio: 0.9,
     tier: "plus"
@@ -2407,7 +2457,9 @@ function renderFinishSuggestions() {
         const played = puzzleStats(item.id).plays > 0;
         return `
         <button class="finish-suggestion${locked ? " is-premium" : ""}${played ? " is-done" : ""}" type="button" data-finish-animal="${item.id}" data-locked="${locked}" aria-label="${locked ? `Unlock ${item.name}` : `Try ${item.name}`}${played ? ", already completed" : ""}">
+          <span class="finish-suggestion-kicker">${locked ? "Plus" : "Next"}</span>
           <img src="${item.src}" alt="" loading="lazy" decoding="async" />
+          <span class="finish-suggestion-name">${item.name}</span>
           ${
             locked
               ? `<span class="finish-plus-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z"/></svg> Plus</span>`
