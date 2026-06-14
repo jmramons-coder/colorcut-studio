@@ -465,9 +465,15 @@ const dom = {
   profileParentAuthLabel: document.querySelector("#profileParentAuthLabel"),
   profileParentAuthButton: document.querySelector("#profileParentAuthButton"),
   profileSubscribeButton: document.querySelector("#profileSubscribeButton"),
+  profileRefreshButton: document.querySelector("#profileRefreshButton"),
   profileStats: document.querySelector("#profileStats"),
   profileDetail: document.querySelector("#profileDetail"),
-  profilePuzzleGrid: document.querySelector("#profilePuzzleGrid")
+  profilePuzzleGrid: document.querySelector("#profilePuzzleGrid"),
+  appRefreshModal: document.querySelector("#appRefreshModal"),
+  appRefreshBackdrop: document.querySelector("#appRefreshBackdrop"),
+  appRefreshCloseButton: document.querySelector("#appRefreshCloseButton"),
+  appRefreshCancelButton: document.querySelector("#appRefreshCancelButton"),
+  appRefreshConfirmButton: document.querySelector("#appRefreshConfirmButton")
 };
 
 const state = {
@@ -1175,12 +1181,17 @@ function bindControls() {
   dom.avatarNextButton.addEventListener("click", () => cycleProfileAvatar(1));
   dom.profileParentAuthButton.addEventListener("click", handleProfileAuthButton);
   dom.profileSubscribeButton.addEventListener("click", handleProfileBillingAction);
+  dom.profileRefreshButton.addEventListener("click", showAppRefreshModal);
   dom.profilePuzzleGrid.addEventListener("click", selectProfilePuzzle);
   dom.profilePuzzleGrid.addEventListener("click", handleProfilePlayClick);
   dom.brand.addEventListener("click", (event) => {
     event.preventDefault();
-    forceRefreshApp();
+    showPicker();
   });
+  dom.appRefreshBackdrop.addEventListener("click", hideAppRefreshModal);
+  dom.appRefreshCloseButton.addEventListener("click", hideAppRefreshModal);
+  dom.appRefreshCancelButton.addEventListener("click", hideAppRefreshModal);
+  dom.appRefreshConfirmButton.addEventListener("click", forceRefreshApp);
   dom.colorCanvas.addEventListener("pointerdown", beginColorStroke);
   dom.colorCanvas.addEventListener("pointermove", continueColorStroke);
   dom.colorCanvas.addEventListener("pointerup", endColorStroke);
@@ -1199,14 +1210,29 @@ function bindControls() {
   document.addEventListener("webkitfullscreenchange", syncFullscreenButton);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      hideAppRefreshModal();
       hideParentModal();
       hideProfileModal();
     }
   });
 }
 
+function showAppRefreshModal() {
+  dom.appRefreshModal.hidden = false;
+  dom.appRefreshModal.setAttribute("aria-hidden", "false");
+  window.setTimeout(() => dom.appRefreshConfirmButton.focus(), 40);
+}
+
+function hideAppRefreshModal() {
+  if (dom.appRefreshModal.hidden) return;
+  dom.appRefreshModal.hidden = true;
+  dom.appRefreshModal.setAttribute("aria-hidden", "true");
+}
+
 async function forceRefreshApp() {
   updateActivityHint("Refreshing...");
+  dom.appRefreshConfirmButton.disabled = true;
+  dom.appRefreshConfirmButton.textContent = "Refreshing...";
 
   try {
     if ("serviceWorker" in navigator) {

@@ -4270,6 +4270,53 @@ body.is-parent-signed-in #parentButton {
   font-size: 0.82rem;
 }
 
+.profile-refresh-button {
+  width: min(560px, 100%);
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px auto 0;
+  padding: 0 16px;
+  border: 1px solid rgba(23, 32, 38, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  color: rgba(23, 32, 38, 0.58);
+  font-size: 0.82rem;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(31, 49, 56, 0.05);
+}
+
+.profile-refresh-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.app-refresh-sheet h2 {
+  margin: 8px 0 0;
+  color: #172026;
+  font-size: clamp(1.55rem, 4vw, 2.1rem);
+  line-height: 1;
+}
+
+.app-refresh-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.app-refresh-actions .parent-primary,
+.app-refresh-actions .parent-secondary {
+  width: 100%;
+}
+
 .profile-sheet .profile-close,
 .profile-sheet .avatar-arrow,
 .profile-sheet .profile-edit-name {

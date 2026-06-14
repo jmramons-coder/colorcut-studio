@@ -24,7 +24,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Snapuzzle" />
     <link rel="preload" as="image" href="assets/red-panda.webp" fetchpriority="high" />
-    <link rel="stylesheet" href="styles.css?v=snapuzzle-pricing-20260613" />
+    <link rel="stylesheet" href="styles.css?v=snapuzzle-profile-refresh-20260614" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -52,7 +52,7 @@
   <body class="app-body">
     <div class="app-shell">
       <header class="app-header">
-        <button class="brand" type="button" aria-label="Refresh Snapuzzle" title="Refresh Snapuzzle">
+        <button class="brand" type="button" aria-label="Snapuzzle Studio home">
           <span class="brand-mark" aria-hidden="true">
             <img src="assets/icon-library-puzzles.webp" width="512" height="512" alt="" draggable="false" />
           </span>
@@ -375,13 +375,41 @@
             </div>
           </div>
 
+          <button class="profile-refresh-button" id="profileRefreshButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7.1 7.1A7.1 7.1 0 0 1 19 12.3" />
+              <path d="M19 6.1v6.2h-6.2" />
+              <path d="M16.9 16.9A7.1 7.1 0 0 1 5 11.7" />
+              <path d="M5 17.9v-6.2h6.2" />
+            </svg>
+            <span>Update app</span>
+          </button>
+
           <div class="profile-stats" id="profileStats"></div>
           <div class="profile-detail" id="profileDetail"></div>
           <div class="profile-puzzle-grid" id="profilePuzzleGrid"></div>
         </section>
       </div>
+
+      <div class="auth-modal app-refresh-modal" id="appRefreshModal" role="dialog" aria-modal="true" aria-labelledby="appRefreshTitle" aria-hidden="true" hidden>
+        <button class="auth-backdrop" id="appRefreshBackdrop" type="button" aria-label="Cancel update"></button>
+        <section class="auth-sheet app-refresh-sheet" aria-label="Update app">
+          <button class="waitlist-close" id="appRefreshCloseButton" type="button" aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6.4 4.9 5.6 5.6 5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6 1.5-1.5Z" />
+            </svg>
+          </button>
+          <p class="modal-eyebrow">App update</p>
+          <h2 id="appRefreshTitle">Refresh Snapuzzle?</h2>
+          <p class="modal-copy">This clears cached app files and loads the newest version. Your local puzzle progress stays on this device. Premium profiles also sync online.</p>
+          <div class="app-refresh-actions">
+            <button class="parent-secondary" id="appRefreshCancelButton" type="button">Cancel</button>
+            <button class="parent-primary" id="appRefreshConfirmButton" type="button">Refresh app</button>
+          </div>
+        </section>
+      </div>
     </div>
 
-    <script src="app.js?v=snapuzzle-refresh-sync-20260614"></script>
+    <script src="app.js?v=snapuzzle-profile-refresh-20260614"></script>
   </body>
 </html>
