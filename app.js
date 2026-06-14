@@ -11,6 +11,7 @@ const WAITLIST_STORAGE_KEY = "snapuzzle-waitlist-email";
 const PARENT_AUTH_STORAGE_KEY = "snapuzzle-parent-auth-v1";
 const ANALYTICS_ID_STORAGE_KEY = "snapuzzle-analytics-id-v1";
 const LOGIN_EMAIL_COOLDOWN_MS = 90000;
+const PROFILE_SYNC_DEBOUNCE_MS = 900;
 
 const avatarOptions = [
   { id: "core", label: "C", color: "#172026" },
@@ -520,6 +521,8 @@ const state = {
   profile: loadProfile(),
   profileSelectedPuzzleId: null,
   profileEditingName: false,
+  profileSyncTimer: 0,
+  profileSyncBusy: false,
   activityStartedAt: 0,
   finishPromptTimer: 0,
   imagePromises: new Map()
@@ -746,16 +749,149 @@ function currentStreak(days = []) {
   return streak;
 }
 
-function saveProfile() {
+function saveProfile(options = {}) {
+  const sync = options.sync !== false;
   try {
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profile));
   } catch {
-    // Progress is local-only for free profiles; if storage is unavailable, keep the session state.
+    // Free profiles are local-first; if storage is unavailable, keep the session state.
   }
+  if (sync) scheduleProfileSync();
 }
 
 function sanitizeProfileName(name) {
   return String(name || "").replace(/\s+/g, " ").trim().slice(0, 18);
+}
+
+function profileSyncPayload() {
+  return {
+    name: sanitizeProfileName(state.profile.name) || "Color Maker",
+    avatar: avatarOptions.some((avatar) => avatar.id === state.profile.avatar) ? state.profile.avatar : "core",
+    completions: state.profile.completions || {},
+    activityDays: normalizeActivityDays(state.profile.activityDays, state.profile.completions)
+  };
+}
+
+function normalizeRemoteCompletion(row) {
+  const plays = Math.max(0, Number(row?.plays || 0));
+  const bestTime = Math.max(0, Number(row?.bestTime || row?.best_time_ms || 0));
+  const lastCompletedAtRaw = row?.lastCompletedAt || row?.last_completed_at || 0;
+  const lastCompletedAt = typeof lastCompletedAtRaw === "number"
+    ? lastCompletedAtRaw
+    : Date.parse(lastCompletedAtRaw || "") || 0;
+
+  return {
+    plays,
+    bestTime,
+    lastDuration: Math.max(0, Number(row?.lastDuration || row?.last_duration_ms || 0)),
+    lastCompletedAt
+  };
+}
+
+function mergeCompletionStats(local = {}, remote = {}) {
+  const localStats = normalizeRemoteCompletion(local);
+  const remoteStats = normalizeRemoteCompletion(remote);
+  const bestCandidates = [localStats.bestTime, remoteStats.bestTime].filter(Boolean);
+  const latest = localStats.lastCompletedAt >= remoteStats.lastCompletedAt ? localStats : remoteStats;
+
+  return {
+    plays: Math.max(localStats.plays, remoteStats.plays),
+    bestTime: bestCandidates.length ? Math.min(...bestCandidates) : 0,
+    lastDuration: latest.lastDuration || localStats.lastDuration || remoteStats.lastDuration || 0,
+    lastCompletedAt: Math.max(localStats.lastCompletedAt, remoteStats.lastCompletedAt)
+  };
+}
+
+function mergeProfileProgress(remoteProgress = {}) {
+  const remoteName = sanitizeProfileName(remoteProgress.name || remoteProgress.displayName);
+  const remoteAvatar = avatarOptions.some((avatar) => avatar.id === remoteProgress.avatar)
+    ? remoteProgress.avatar
+    : "";
+  const localName = sanitizeProfileName(state.profile.name);
+  const mergedCompletions = { ...(state.profile.completions || {}) };
+  const remoteCompletions = remoteProgress.completions || {};
+
+  Object.entries(remoteCompletions).forEach(([puzzleId, stats]) => {
+    mergedCompletions[puzzleId] = mergeCompletionStats(mergedCompletions[puzzleId], stats);
+  });
+
+  const merged = {
+    version: 1,
+    name: remoteName || localName || "Color Maker",
+    avatar: remoteAvatar || state.profile.avatar || "core",
+    completions: mergedCompletions,
+    activityDays: normalizeActivityDays(
+      [
+        ...(state.profile.activityDays || []),
+        ...(remoteProgress.activityDays || [])
+      ],
+      mergedCompletions
+    )
+  };
+
+  state.profile = merged;
+  state.profileSelectedPuzzleId = selectedProfilePuzzle()?.id || state.profileSelectedPuzzleId;
+  saveProfile({ sync: false });
+  renderProfileButton();
+  if (!dom.profileModal.hidden) renderProfilePanel();
+}
+
+function scheduleProfileSync() {
+  if (!isParentSignedIn()) return;
+  window.clearTimeout(state.profileSyncTimer);
+  state.profileSyncTimer = window.setTimeout(syncProfileToServer, PROFILE_SYNC_DEBOUNCE_MS);
+}
+
+async function syncProfileFromServer() {
+  if (!state.parentAuth?.session?.accessToken) return;
+
+  try {
+    const response = await fetch("/api/auth-me", {
+      headers: {
+        Authorization: `Bearer ${state.parentAuth.session.accessToken}`
+      }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) throw new Error(data.message || "Could not load profile.");
+
+    if (data.profileProgress) mergeProfileProgress(data.profileProgress);
+    if (data.user || data.profile) {
+      saveParentAuth({
+        ...state.parentAuth,
+        user: data.user || state.parentAuth.user,
+        profile: data.profile || state.parentAuth.profile
+      });
+      renderParentAuth();
+      syncAccessAfterAuthChange();
+    }
+
+    scheduleProfileSync();
+  } catch {
+    // Profile sync is a convenience layer; local play should continue uninterrupted.
+  }
+}
+
+async function syncProfileToServer() {
+  if (!state.parentAuth?.session?.accessToken || state.profileSyncBusy) return;
+
+  state.profileSyncBusy = true;
+  try {
+    const response = await fetch("/api/auth-me", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${state.parentAuth.session.accessToken}`
+      },
+      body: JSON.stringify(profileSyncPayload())
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) throw new Error(data.message || "Could not save profile.");
+    if (data.profileProgress) mergeProfileProgress(data.profileProgress);
+  } catch {
+    // Keep the local profile; the next save/login will try again.
+  } finally {
+    state.profileSyncBusy = false;
+  }
 }
 
 function avatarById(id) {
@@ -1043,7 +1179,7 @@ function bindControls() {
   dom.profilePuzzleGrid.addEventListener("click", handleProfilePlayClick);
   dom.brand.addEventListener("click", (event) => {
     event.preventDefault();
-    showPicker();
+    forceRefreshApp();
   });
   dom.colorCanvas.addEventListener("pointerdown", beginColorStroke);
   dom.colorCanvas.addEventListener("pointermove", continueColorStroke);
@@ -1067,6 +1203,32 @@ function bindControls() {
       hideProfileModal();
     }
   });
+}
+
+async function forceRefreshApp() {
+  updateActivityHint("Refreshing...");
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.update().catch(() => {})));
+    }
+
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((key) => key.startsWith("snapuzzle-studio-"))
+          .map((key) => caches.delete(key))
+      );
+    }
+  } catch {
+    // Reload anyway; refresh must work even when cache APIs are unavailable.
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("refresh", String(Date.now()));
+  window.location.replace(url.toString());
 }
 
 function showProfileModal() {
@@ -1591,6 +1753,7 @@ function saveParentAuthResponse(data) {
   state.parentResetEmail = "";
   renderParentAuth("Logged in.");
   syncAccessAfterAuthChange();
+  syncProfileFromServer();
   renderProfilePanel();
 }
 
@@ -1875,6 +2038,7 @@ async function refreshParentProfile() {
       user: data.user || state.parentAuth.user,
       profile: data.profile || state.parentAuth.profile
     });
+    if (data.profileProgress) mergeProfileProgress(data.profileProgress);
     renderParentAuth();
     syncAccessAfterAuthChange();
   } catch {
