@@ -229,11 +229,12 @@ const libraryItems = [
     id: "volcano-island",
     name: "Volcano Island",
     category: "nature",
-    src: "assets/volcano-island.svg",
-    aspect: 9 / 7,
+    src: "assets/volcano-island.webp",
+    aspect: 1,
     grid: { cols: 5, rows: 5 },
     targetRatio: 0.9,
-    tier: "plus"
+    tier: "plus",
+    style: "photo"
   },
   {
     id: "t-rex",
@@ -289,8 +290,8 @@ const libraryItems = [
     id: "plesiosaurus",
     name: "Plesiosaurus",
     category: "dinosaurs",
-    src: "assets/plesiosaurus.svg",
-    aspect: 9 / 7,
+    src: "assets/plesiosaurus.webp",
+    aspect: 1,
     grid: { cols: 5, rows: 5 },
     targetRatio: 0.9,
     tier: "plus"
@@ -299,10 +300,10 @@ const libraryItems = [
     id: "brachiosaurus",
     name: "Brachiosaurus",
     category: "dinosaurs",
-    src: "assets/brachiosaurus.svg",
-    aspect: 9 / 7,
+    src: "assets/brachiosaurus.webp",
+    aspect: 1122 / 1402,
     grid: { cols: 5, rows: 5 },
-    targetRatio: 0.9,
+    targetRatio: 0.88,
     tier: "plus"
   },
   {
@@ -359,8 +360,8 @@ const libraryItems = [
     id: "comet-moon-base",
     name: "Comet Moon Base",
     category: "space",
-    src: "assets/comet-moon-base.svg",
-    aspect: 9 / 7,
+    src: "assets/comet-moon-base.webp",
+    aspect: 1,
     grid: { cols: 5, rows: 5 },
     targetRatio: 0.9,
     tier: "plus"
@@ -369,8 +370,8 @@ const libraryItems = [
     id: "nebula-satellite",
     name: "Nebula Satellite",
     category: "space",
-    src: "assets/nebula-satellite.svg",
-    aspect: 9 / 7,
+    src: "assets/nebula-satellite.webp",
+    aspect: 1,
     grid: { cols: 5, rows: 5 },
     targetRatio: 0.9,
     tier: "plus"
