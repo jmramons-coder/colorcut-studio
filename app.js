@@ -493,6 +493,7 @@ const state = {
   galleryActiveIndex: 0,
   galleryDrag: null,
   gallerySuppressClick: false,
+  galleryTapHandled: false,
   galleryScrollTimer: 0,
   gallerySilentScroll: false,
   galleryLoopCount: 0,
@@ -837,23 +838,11 @@ function renderPicker() {
     }
     const card = event.target.closest("[data-animal]");
     if (!card) return;
-    if (card.dataset.locked === "true") {
-      ensureAudioContext();
-      playPickSound();
-      state.parentIntent = "library-plus";
-      const lockedItem = libraryItems.find((item) => item.id === card.dataset.animal);
-      trackEvent("locked_puzzle_clicked", {
-        item: lockedItem,
-        source: "library",
-        metadata: { lockedType: "puzzle" }
-      });
-      showParentModal();
-      return;
-    }
-    selectAnimal(card.dataset.animal);
+    launchLibraryPuzzle(card.dataset.animal, "library");
   });
   dom.drawingGrid.addEventListener("pointerdown", beginGalleryDrag);
   dom.drawingGrid.addEventListener("pointermove", continueGalleryDrag);
+  dom.drawingGrid.addEventListener("pointerup", handleGalleryPointerTap);
   dom.drawingGrid.addEventListener("pointerup", endGalleryDrag);
   dom.drawingGrid.addEventListener("pointercancel", endGalleryDrag);
   dom.drawingGrid.addEventListener("mousedown", beginGalleryMouseDrag);
@@ -951,6 +940,26 @@ function renderDrawingCards() {
 
 function isPlusLocked(item) {
   return item?.tier === "plus" && !isParentPlusActive();
+}
+
+function launchLibraryPuzzle(id, source = "library") {
+  const item = libraryItems.find((puzzle) => puzzle.id === id);
+  if (!item) return;
+
+  if (isPlusLocked(item)) {
+    ensureAudioContext();
+    playPickSound();
+    state.parentIntent = "library-plus";
+    trackEvent("locked_puzzle_clicked", {
+      item,
+      source,
+      metadata: { lockedType: "puzzle" }
+    });
+    showParentModal();
+    return;
+  }
+
+  selectAnimal(id);
 }
 
 function scheduleImageWarmup(srcList) {
@@ -1233,11 +1242,32 @@ function selectProfilePuzzle(event) {
   if (event.target.closest("[data-profile-play]")) return;
   const button = event.target.closest("[data-profile-puzzle]");
   if (!button) return;
-  state.profileSelectedPuzzleId = state.profileSelectedPuzzleId === button.dataset.profilePuzzle ? null : button.dataset.profilePuzzle;
+
+  const item = libraryItems.find((puzzle) => puzzle.id === button.dataset.profilePuzzle);
+  if (!item) return;
+
+  state.profileSelectedPuzzleId = item.id;
   renderProfileDetail();
   renderProfileStats();
   updateProfilePuzzleSelection();
   playArrivalSound();
+
+  if (isPlusLocked(item)) {
+    ensureAudioContext();
+    playPickSound();
+    state.parentIntent = "profile-plus";
+    trackEvent("locked_puzzle_clicked", {
+      item,
+      source: "profile",
+      metadata: { lockedType: "puzzle" }
+    });
+    hideProfileModal();
+    showParentModal();
+    return;
+  }
+
+  hideProfileModal();
+  selectAnimal(item.id);
 }
 
 function updateProfilePuzzleSelection() {
@@ -1269,7 +1299,7 @@ function handleProfilePlayClick(event) {
   const button = event.target.closest("[data-profile-play]");
   if (!button || button.disabled) return;
   hideProfileModal();
-  selectAnimal(button.dataset.profilePlay);
+  launchLibraryPuzzle(button.dataset.profilePlay, "profile");
 }
 
 function firstCompletedPuzzleId() {
@@ -2220,6 +2250,24 @@ function endGalleryDrag(event) {
 
   dom.drawingGrid.releasePointerCapture?.(event.pointerId);
   finishGalleryDrag(drag);
+}
+
+function handleGalleryPointerTap(event) {
+  const card = event.target.closest("[data-animal]");
+  if (!card) return;
+
+  const drag = state.galleryDrag;
+  if (drag && drag.pointerId !== event.pointerId) return;
+  if (drag?.moved) return;
+
+  state.galleryTapHandled = true;
+  state.gallerySuppressClick = true;
+  window.setTimeout(() => {
+    state.galleryTapHandled = false;
+    state.gallerySuppressClick = false;
+  }, 260);
+
+  launchLibraryPuzzle(card.dataset.animal, "library");
 }
 
 function beginGalleryMouseDrag(event) {
