@@ -1,4 +1,4 @@
-const CACHE_NAME = "snapuzzle-studio-v45";
+const CACHE_NAME = "snapuzzle-studio-v46";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -8,8 +8,8 @@ const APP_SHELL = [
   "./robots.txt",
   "./sitemap.xml",
   "./llms.txt",
-  "./styles.css?v=snapuzzle-profile-refresh-20260614",
-  "./app.js?v=snapuzzle-profile-refresh-20260614",
+  "./styles.css?v=snapuzzle-phase-one-20260714",
+  "./app.js?v=snapuzzle-phase-one-20260714",
   "./site.js",
   "./manifest.webmanifest",
   "./assets/app-icon.svg"

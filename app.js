@@ -30,12 +30,6 @@ const categories = [
   { id: "space", name: "Space", tier: "plus" }
 ];
 
-const difficultyOptions = [
-  { id: "easy", name: "Easy", label: "4 pieces", grid: { cols: 2, rows: 2 }, tier: "free" },
-  { id: "classic", name: "Classic", label: "Standard", grid: null, tier: "free" },
-  { id: "plus", name: "Plus", label: "25 pieces", grid: { cols: 5, rows: 5 }, tier: "plus" }
-];
-
 const startPatterns = {
   9: [
     { x: 0.69, y: 0.59, r: 6 },
@@ -383,16 +377,11 @@ const dom = {
   appShell: document.querySelector(".app-shell"),
   pickerView: document.querySelector("#pickerView"),
   categoryTabs: document.querySelector("#categoryTabs"),
-  difficultyTabs: document.querySelector("#difficultyTabs"),
   drawingGrid: document.querySelector("#drawingGrid"),
   galleryPrevButton: document.querySelector("#galleryPrevButton"),
   galleryNextButton: document.querySelector("#galleryNextButton"),
   studioView: document.querySelector("#studioView"),
   parentButton: document.querySelector("#parentButton"),
-  profileButton: document.querySelector("#profileButton"),
-  profileButtonAvatar: document.querySelector("#profileButtonAvatar"),
-  galleryButton: document.querySelector("#galleryButton"),
-  fullscreenButton: document.querySelector("#fullscreenButton"),
   brand: document.querySelector(".brand"),
   puzzleBoard: document.querySelector("#puzzleBoard"),
   colorBoard: document.querySelector("#colorBoard"),
@@ -425,6 +414,9 @@ const dom = {
   plusPriceNote: document.querySelector("#plusPriceNote"),
   parentCheckoutStatus: document.querySelector("#parentCheckoutStatus"),
   parentPanelLoginButton: document.querySelector("#parentPanelLoginButton"),
+  parentProgressCopy: document.querySelector("#parentProgressCopy"),
+  parentProgressStats: document.querySelector("#parentProgressStats"),
+  parentRefreshButton: document.querySelector("#parentRefreshButton"),
   parentAuthModal: document.querySelector("#parentAuthModal"),
   parentAuthBackdrop: document.querySelector("#parentAuthBackdrop"),
   parentAuthCloseButton: document.querySelector("#parentAuthCloseButton"),
@@ -453,22 +445,6 @@ const dom = {
   waitlistForm: document.querySelector("#waitlistForm"),
   waitlistEmail: document.querySelector("#waitlistEmail"),
   waitlistStatus: document.querySelector("#waitlistStatus"),
-  profileModal: document.querySelector("#profileModal"),
-  profileBackdrop: document.querySelector("#profileBackdrop"),
-  profileCloseButton: document.querySelector("#profileCloseButton"),
-  profileAvatarPreview: document.querySelector("#profileAvatarPreview"),
-  profileTitle: document.querySelector("#profileTitle"),
-  profileEditNameButton: document.querySelector("#profileEditNameButton"),
-  avatarPrevButton: document.querySelector("#avatarPrevButton"),
-  avatarNextButton: document.querySelector("#avatarNextButton"),
-  profileParentAuth: document.querySelector("#profileParentAuth"),
-  profileParentAuthLabel: document.querySelector("#profileParentAuthLabel"),
-  profileParentAuthButton: document.querySelector("#profileParentAuthButton"),
-  profileSubscribeButton: document.querySelector("#profileSubscribeButton"),
-  profileRefreshButton: document.querySelector("#profileRefreshButton"),
-  profileStats: document.querySelector("#profileStats"),
-  profileDetail: document.querySelector("#profileDetail"),
-  profilePuzzleGrid: document.querySelector("#profilePuzzleGrid"),
   appRefreshModal: document.querySelector("#appRefreshModal"),
   appRefreshBackdrop: document.querySelector("#appRefreshBackdrop"),
   appRefreshCloseButton: document.querySelector("#appRefreshCloseButton"),
@@ -525,8 +501,6 @@ const state = {
   anonymousId: loadAnalyticsId(),
   analyticsSessionId: createClientId(),
   profile: loadProfile(),
-  profileSelectedPuzzleId: null,
-  profileEditingName: false,
   profileSyncTimer: 0,
   profileSyncBusy: false,
   activityStartedAt: 0,
@@ -538,7 +512,6 @@ installBrowserInteractionGuards();
 registerServiceWorker();
 renderPicker();
 bindControls();
-renderProfileButton();
 renderParentAuth();
 renderBillingPlan();
 consumeParentAuthRedirect();
@@ -836,10 +809,8 @@ function mergeProfileProgress(remoteProgress = {}) {
   };
 
   state.profile = merged;
-  state.profileSelectedPuzzleId = selectedProfilePuzzle()?.id || state.profileSelectedPuzzleId;
   saveProfile({ sync: false });
-  renderProfileButton();
-  if (!dom.profileModal.hidden) renderProfilePanel();
+  renderParentProgress();
 }
 
 function scheduleProfileSync() {
@@ -900,13 +871,8 @@ async function syncProfileToServer() {
   }
 }
 
-function avatarById(id) {
-  return avatarOptions.find((avatar) => avatar.id === id) || avatarOptions[0];
-}
-
 function renderPicker() {
   renderCategoryTabs();
-  renderDifficultyTabs();
   renderDrawingCards();
 
   dom.categoryTabs.addEventListener("click", (event) => {
@@ -939,37 +905,6 @@ function renderPicker() {
       category: category.id,
       tier: category.tier,
       metadata: { name: category.name }
-    });
-  });
-
-  dom.difficultyTabs.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-difficulty]");
-    if (!button || button.dataset.difficulty === state.difficulty) return;
-
-    const option = difficultyOptions.find((item) => item.id === button.dataset.difficulty);
-    if (!option) return;
-
-    ensureAudioContext();
-    playPickSound();
-
-    if (isPlusLocked(option)) {
-      state.parentIntent = "library-plus";
-      trackEvent("locked_puzzle_clicked", {
-        difficulty: option.id,
-        tier: option.tier,
-        source: "difficulty",
-        metadata: { lockedType: "difficulty", label: option.label }
-      });
-      showParentModal();
-      return;
-    }
-
-    state.difficulty = option.id;
-    renderDifficultyTabs();
-    trackEvent("difficulty_selected", {
-      difficulty: option.id,
-      tier: option.tier,
-      metadata: { label: option.label }
     });
   });
 
@@ -1011,22 +946,6 @@ function renderCategoryTabs() {
     .join("");
 }
 
-function renderDifficultyTabs() {
-  dom.difficultyTabs.innerHTML = difficultyOptions
-    .map((option) => {
-      const active = option.id === state.difficulty;
-      const locked = isPlusLocked(option);
-      return `
-        <button class="difficulty-tab${active ? " is-active" : ""}${locked ? " is-locked" : ""}" type="button" data-difficulty="${option.id}" role="tab" aria-selected="${active}" aria-label="${option.name}, ${option.label}${locked ? ", Snapuzzle Plus" : ""}">
-          ${difficultyIcon(option.id)}
-          <span>${option.name}</span>
-          <small>${option.label}</small>
-        </button>
-      `;
-    })
-    .join("");
-}
-
 function categoryIcon(id) {
   const icons = {
     animals: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.3 11.2c-1.2 0-2.2-1.1-2.2-2.5s1-2.5 2.2-2.5 2.2 1.1 2.2 2.5-1 2.5-2.2 2.5Zm9.4 0c-1.2 0-2.2-1.1-2.2-2.5s1-2.5 2.2-2.5 2.2 1.1 2.2 2.5-1 2.5-2.2 2.5ZM12 19.3c-3 0-5.4-1.5-5.4-3.5 0-2.2 2.2-4.7 5.4-4.7s5.4 2.5 5.4 4.7c0 2-2.4 3.5-5.4 3.5Z"/></svg>`,
@@ -1036,15 +955,6 @@ function categoryIcon(id) {
     space: `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.1 4.2c2.3 1 3.8 2.9 4.5 5.3l2.2 1.2-1.5 2.2c-.2 2.1-1 3.9-2.5 5.3l-2.5-.8-3.2 3.1-1.3-1.3 1.2-3.6-3.6 1.2-1.3-1.3 3.1-3.2-.8-2.5c1.4-1.5 3.2-2.3 5.3-2.5l2.2-1.5-1.8-1.6Zm1.5 5.2a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8Z"/></svg>`
   };
   return icons[id] || icons.animals;
-}
-
-function difficultyIcon(id) {
-  const icons = {
-    easy: `<svg class="tab-icon difficulty-icon difficulty-icon-easy" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 6.2h4.4c.3 0 .5.2.5.5v2.1c.7-.2 1.5.3 1.5 1.1s-.8 1.3-1.5 1.1v4.2c0 .3-.2.5-.5.5H7.2c-.3 0-.5-.2-.5-.5v-3.5c0-.5.5-.8.9-.5.7.4 1.5-.1 1.5-.9s-.8-1.3-1.5-.9c-.4.3-.9 0-.9-.5V6.7c0-.3.2-.5.5-.5Z"/></svg>`,
-    classic: `<svg class="tab-icon difficulty-icon difficulty-icon-classic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 8.2h4.3c.3 0 .5.2.5.5v1.6c.7-.2 1.4.3 1.4 1.1s-.7 1.3-1.4 1.1v3.8c0 .3-.2.5-.5.5H6.5c-.3 0-.5-.2-.5-.5v-3.1c0-.5.5-.8.9-.5.7.4 1.5-.1 1.5-.9s-.8-1.3-1.5-.9c-.4.3-.9 0-.9-.5V8.7c0-.3.2-.5.5-.5Z"/><path d="M12.9 5.4h4.2c.3 0 .5.2.5.5v3.3c0 .5-.5.8-.9.5-.7-.4-1.5.1-1.5.9s.8 1.3 1.5.9c.4-.3.9 0 .9.5v3.2c0 .3-.2.5-.5.5h-4.2c-.3 0-.5-.2-.5-.5v-1.8c-.8.3-1.6-.3-1.6-1.1s.8-1.4 1.6-1.1V5.9c0-.3.2-.5.5-.5Z"/></svg>`,
-    plus: `<svg class="tab-icon difficulty-icon difficulty-icon-plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.1 8.3h4c.3 0 .5.2.5.5v1.4c.7-.2 1.4.3 1.4 1s-.7 1.2-1.4 1v3.5c0 .3-.2.5-.5.5h-4c-.3 0-.5-.2-.5-.5v-2.8c0-.5.5-.8.9-.5.7.4 1.4-.1 1.4-.8s-.7-1.2-1.4-.8c-.4.3-.9 0-.9-.5v-3c0-.3.2-.5.5-.5Z"/><path d="M10.5 5.5h4c.3 0 .5.2.5.5v3c0 .5-.5.8-.9.5-.7-.4-1.4.1-1.4.8s.7 1.2 1.4.8c.4-.3.9 0 .9.5v3c0 .3-.2.5-.5.5h-4c-.3 0-.5-.2-.5-.5v-1.5c-.7.2-1.4-.3-1.4-1s.7-1.2 1.4-1V6c0-.3.2-.5.5-.5Z"/><path d="M15 8.7h3.9c.3 0 .5.2.5.5v3c.7-.2 1.4.3 1.4 1s-.7 1.2-1.4 1v2.9c0 .3-.2.5-.5.5H15c-.3 0-.5-.2-.5-.5v-1.6c-.7.2-1.4-.3-1.4-1s.7-1.2 1.4-1V9.2c0-.3.2-.5.5-.5Z"/></svg>`
-  };
-  return icons[id] || icons.classic;
 }
 
 function renderDrawingCards() {
@@ -1114,33 +1024,13 @@ function scheduleImageWarmup(srcList) {
 }
 
 function bindControls() {
-  dom.profileButton.addEventListener("click", showProfileModal);
-  dom.parentButton.addEventListener("click", () => {
-    if (isParentPlusActive()) {
-      showParentAuthModal("Plus is active.");
-      return;
-    }
-    showParentModal();
-  });
-  dom.galleryButton.addEventListener("click", handleGalleryButtonClick);
-  dom.fullscreenButton.addEventListener("click", toggleFullscreen);
+  dom.parentButton.addEventListener("click", showParentModal);
   dom.spreadButton.addEventListener("click", spreadLoosePieces);
   dom.finishLibraryButton.addEventListener("click", showPicker);
   dom.finishRestartButton.addEventListener("click", restartCurrentAnimal);
   dom.finishSuggestions.addEventListener("click", handleFinishSuggestionClick);
   dom.parentBackdrop.addEventListener("click", hideParentModal);
   dom.parentCloseButton.addEventListener("click", hideParentModal);
-  dom.profileBackdrop.addEventListener("click", hideProfileModal);
-  dom.profileCloseButton.addEventListener("click", hideProfileModal);
-  dom.profileEditNameButton.addEventListener("click", showProfileNameEditor);
-  dom.profileTitle.addEventListener("input", updateProfileName);
-  dom.profileTitle.addEventListener("blur", hideProfileNameEditor);
-  dom.profileTitle.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      dom.profileTitle.blur();
-    }
-  });
   dom.parentGateSubmit.addEventListener("click", checkParentGate);
   dom.parentGateAnswer.addEventListener("keydown", (event) => {
     if (event.key === "Enter") checkParentGate();
@@ -1177,13 +1067,7 @@ function bindControls() {
   dom.waitlistBackdrop.addEventListener("click", hideWaitlistModal);
   dom.waitlistCloseButton.addEventListener("click", hideWaitlistModal);
   dom.waitlistForm.addEventListener("submit", saveWaitlistEmail);
-  dom.avatarPrevButton.addEventListener("click", () => cycleProfileAvatar(-1));
-  dom.avatarNextButton.addEventListener("click", () => cycleProfileAvatar(1));
-  dom.profileParentAuthButton.addEventListener("click", handleProfileAuthButton);
-  dom.profileSubscribeButton.addEventListener("click", handleProfileBillingAction);
-  dom.profileRefreshButton.addEventListener("click", showAppRefreshModal);
-  dom.profilePuzzleGrid.addEventListener("click", selectProfilePuzzle);
-  dom.profilePuzzleGrid.addEventListener("click", handleProfilePlayClick);
+  dom.parentRefreshButton.addEventListener("click", showAppRefreshModal);
   dom.brand.addEventListener("click", (event) => {
     event.preventDefault();
     showPicker();
@@ -1206,13 +1090,10 @@ function bindControls() {
     }, 180);
   });
 
-  document.addEventListener("fullscreenchange", syncFullscreenButton);
-  document.addEventListener("webkitfullscreenchange", syncFullscreenButton);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       hideAppRefreshModal();
       hideParentModal();
-      hideProfileModal();
     }
   });
 }
@@ -1257,253 +1138,6 @@ async function forceRefreshApp() {
   window.location.replace(url.toString());
 }
 
-function showProfileModal() {
-  trackEvent("profile_opened", { source: "profile_button" });
-  state.profileEditingName = false;
-  renderProfilePanel();
-  document.body.classList.add("is-profile-modal-open");
-  dom.profileModal.hidden = false;
-  dom.profileModal.setAttribute("aria-hidden", "false");
-}
-
-function handleGalleryButtonClick(event) {
-  event.preventDefault();
-  if (!dom.profileModal.hidden) {
-    hideProfileModal();
-    return;
-  }
-  showPicker();
-}
-
-function hideProfileModal() {
-  if (dom.profileModal.hidden) return;
-  dom.profileModal.hidden = true;
-  dom.profileModal.setAttribute("aria-hidden", "true");
-  document.body.classList.remove("is-profile-modal-open");
-  state.profileEditingName = false;
-}
-
-function renderProfileButton() {
-  dom.profileButton.setAttribute("aria-label", "Profile");
-}
-
-function updateProfileAvatarSurface() {
-  const avatar = avatarById(state.profile.avatar);
-  dom.profileAvatarPreview.textContent = avatar.label;
-  dom.profileAvatarPreview.style.setProperty("--avatar-color", avatar.color);
-  renderProfileButton();
-}
-
-function renderProfilePanel() {
-  const avatar = avatarById(state.profile.avatar);
-  const selectedItem = selectedProfilePuzzle();
-  const totals = selectedItem ? profilePuzzleTotals(selectedItem.id) : profileTotals();
-  const mode = selectedItem ? "Puzzle stats" : "All puzzles";
-
-  dom.profileModal.classList.toggle("is-editing-name", state.profileEditingName);
-  dom.profileTitle.textContent = state.profile.name;
-  dom.profileTitle.contentEditable = state.profileEditingName ? "plaintext-only" : "false";
-  dom.profileAvatarPreview.textContent = avatar.label;
-  dom.profileAvatarPreview.style.setProperty("--avatar-color", avatar.color);
-  renderProfileStats(totals);
-
-  renderProfileDetail();
-  renderProfilePuzzleGrid();
-  renderProfileButton();
-  dom.profileStats.setAttribute("aria-label", mode);
-}
-
-function renderProfileStats(totals = selectedProfilePuzzle() ? profilePuzzleTotals(selectedProfilePuzzle().id) : profileTotals()) {
-  const selectedItem = selectedProfilePuzzle();
-  const mode = selectedItem ? "Puzzle stats" : "All puzzles";
-  dom.profileStats.innerHTML = `
-    <div>
-      <strong>${totals.completed}</strong>
-      <span>Completed</span>
-    </div>
-    <div>
-      <strong>${totals.plays}</strong>
-      <span>Total plays</span>
-    </div>
-    <div>
-      <strong>${totals.streak}</strong>
-      <span>Streak</span>
-    </div>
-  `;
-  dom.profileStats.setAttribute("aria-label", mode);
-}
-
-function renderProfileDetail() {
-  dom.profileDetail.innerHTML = "";
-}
-
-function renderProfilePuzzleGrid() {
-  dom.profilePuzzleGrid.innerHTML = libraryItems
-    .map((item) => {
-      const stats = puzzleStats(item.id);
-      const locked = isPlusLocked(item);
-      const selected = item.id === state.profileSelectedPuzzleId;
-      const styleClass = item.style ? ` is-${item.style}` : "";
-      const dimensions = imageDimensions(item);
-      const unfinished = !locked && !stats.plays;
-      const playLabel = stats.plays ? "Play again" : "Play";
-      return `
-        <div class="profile-puzzle${styleClass}${selected ? " is-selected" : ""}${locked ? " is-locked" : ""}${unfinished ? " is-undone" : ""}${stats.plays ? " is-complete" : ""}" data-profile-puzzle-card="${item.id}">
-          <button class="profile-puzzle-select" type="button" data-profile-puzzle="${item.id}" aria-label="${item.name}">
-            <span class="profile-count-badge" aria-label="${stats.plays || 0} plays">${stats.plays || 0}</span>
-            ${
-              locked
-                ? `<span class="profile-lock" aria-hidden="true">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M7.2 10V8.2a4.8 4.8 0 0 1 9.6 0V10h1.1c.72 0 1.3.58 1.3 1.3v7.1c0 .72-.58 1.3-1.3 1.3H6.1c-.72 0-1.3-.58-1.3-1.3v-7.1c0-.72.58-1.3 1.3-1.3h1.1Zm2.4 0h4.8V8.2a2.4 2.4 0 0 0-4.8 0V10Z" />
-                    </svg>
-                  </span>`
-                : ""
-            }
-            <img src="${item.src}" width="${dimensions.width}" height="${dimensions.height}" alt="" loading="lazy" decoding="async" draggable="false" />
-            <span class="profile-puzzle-name">${item.name}</span>
-          </button>
-          <button class="profile-inline-play" type="button" data-profile-play="${item.id}" aria-label="${locked ? `${item.name} is locked` : `Play ${item.name}`}" ${locked || !selected ? "disabled" : ""} ${selected && !locked ? "" : "hidden"}>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M8.4 5.2 18.2 12 8.4 18.8V5.2Z" />
-            </svg>
-            <span>${playLabel}</span>
-          </button>
-        </div>
-      `;
-    })
-    .join("");
-}
-
-function updateProfileName() {
-  const name = sanitizeProfileName(dom.profileTitle.textContent);
-  state.profile.name = name || "Color Maker";
-  saveProfile();
-  renderProfileButton();
-}
-
-function imageDimensions(item) {
-  const maxSide = 900;
-  const aspect = item.aspect || 1;
-  if (aspect >= 1) {
-    return {
-      width: maxSide,
-      height: Math.round(maxSide / aspect)
-    };
-  }
-
-  return {
-    width: Math.round(maxSide * aspect),
-    height: maxSide
-  };
-}
-
-function showProfileNameEditor() {
-  state.profileEditingName = true;
-  renderProfilePanel();
-  window.setTimeout(() => {
-    const range = document.createRange();
-    range.selectNodeContents(dom.profileTitle);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    dom.profileTitle.focus();
-  }, 20);
-}
-
-function hideProfileNameEditor() {
-  state.profileEditingName = false;
-  dom.profileTitle.textContent = state.profile.name;
-  renderProfilePanel();
-}
-
-function cycleProfileAvatar(step) {
-  const index = avatarOptions.findIndex((avatar) => avatar.id === state.profile.avatar);
-  const nextIndex = (index + step + avatarOptions.length) % avatarOptions.length;
-  state.profile.avatar = avatarOptions[nextIndex].id;
-  saveProfile();
-  updateProfileAvatarSurface();
-  playPickSound();
-}
-
-function selectProfilePuzzle(event) {
-  if (event.target.closest("[data-profile-play]")) return;
-  const button = event.target.closest("[data-profile-puzzle]");
-  if (!button) return;
-
-  const item = libraryItems.find((puzzle) => puzzle.id === button.dataset.profilePuzzle);
-  if (!item) return;
-
-  state.profileSelectedPuzzleId = item.id;
-  renderProfileDetail();
-  renderProfileStats();
-  updateProfilePuzzleSelection();
-  playArrivalSound();
-
-  if (isPlusLocked(item)) {
-    ensureAudioContext();
-    playPickSound();
-    state.parentIntent = "profile-plus";
-    trackEvent("locked_puzzle_clicked", {
-      item,
-      source: "profile",
-      metadata: { lockedType: "puzzle" }
-    });
-    hideProfileModal();
-    showParentModal();
-    return;
-  }
-
-  hideProfileModal();
-  selectAnimal(item.id);
-}
-
-function updateProfilePuzzleSelection() {
-  dom.profilePuzzleGrid.querySelectorAll("[data-profile-puzzle-card]").forEach((card) => {
-    const id = card.dataset.profilePuzzleCard;
-    const item = libraryItems.find((puzzle) => puzzle.id === id);
-    const stats = puzzleStats(id);
-    const selected = id === state.profileSelectedPuzzleId;
-    const locked = isPlusLocked(item);
-    card.classList.toggle("is-selected", selected);
-    card.classList.toggle("is-undone", !locked && !stats.plays);
-    card.classList.toggle("is-complete", Boolean(stats.plays));
-    const count = card.querySelector(".profile-count-badge");
-    if (count) {
-      count.textContent = stats.plays || 0;
-      count.setAttribute("aria-label", `${stats.plays || 0} plays`);
-    }
-    const playButton = card.querySelector("[data-profile-play]");
-    if (playButton) {
-      playButton.hidden = !selected || locked;
-      playButton.disabled = !selected || locked;
-      const label = stats.plays ? "Play again" : "Play";
-      playButton.querySelector("span").textContent = label;
-    }
-  });
-}
-
-function handleProfilePlayClick(event) {
-  const button = event.target.closest("[data-profile-play]");
-  if (!button || button.disabled) return;
-  hideProfileModal();
-  launchLibraryPuzzle(button.dataset.profilePlay, "profile");
-}
-
-function firstCompletedPuzzleId() {
-  const completed = libraryItems.find((item) => puzzleStats(item.id).plays > 0);
-  return completed?.id || null;
-}
-
-function firstFreePuzzleId() {
-  return libraryItems.find((item) => item.tier !== "plus")?.id || libraryItems[0]?.id || null;
-}
-
-function selectedProfilePuzzle() {
-  if (!state.profileSelectedPuzzleId) return null;
-  return libraryItems.find((item) => item.id === state.profileSelectedPuzzleId) || null;
-}
-
 function puzzleStats(id) {
   return state.profile.completions[id] || {
     plays: 0,
@@ -1520,29 +1154,6 @@ function profileTotals() {
     plays: values.reduce((total, stats) => total + (stats.plays || 0), 0),
     streak: currentStreak(state.profile.activityDays)
   };
-}
-
-function profilePuzzleTotals(id) {
-  const stats = puzzleStats(id);
-  return {
-    completed: stats.plays ? 1 : 0,
-    plays: stats.plays || 0,
-    streak: stats.lastCompletedAt ? 1 : 0
-  };
-}
-
-function formatDuration(ms) {
-  if (!ms) return "—";
-  const totalSeconds = Math.max(1, Math.round(ms / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return minutes ? `${minutes}:${String(seconds).padStart(2, "0")}` : `${seconds}s`;
-}
-
-function formatDate(timestamp) {
-  if (!timestamp) return "—";
-  const date = new Date(timestamp);
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function isValidEmail(email) {
@@ -1615,7 +1226,6 @@ function renderParentAuth(message = "") {
   const checkoutEmail = state.parentCheckoutEmail || "";
   const resetEmail = state.parentResetEmail || "";
   const modeEmail = passwordMode ? checkoutEmail : resetMode ? resetEmail : "";
-  document.body.classList.toggle("is-parent-signed-in", signedIn);
   dom.parentAuthSummary.hidden = !signedIn;
   dom.parentAuthModal.classList.toggle("is-busy", state.parentAuthBusy);
   dom.parentAuthModal.setAttribute("aria-busy", String(state.parentAuthBusy));
@@ -1640,16 +1250,8 @@ function renderParentAuth(message = "") {
       : "Login";
   dom.parentAuthEmailButton.textContent = "Send recovery link";
   dom.parentAuthSubscribeButton.textContent = "Get Plus access";
-  dom.profileParentAuthLabel.textContent = signedIn
-    ? `${plusActive ? "Plus active" : "Free account"} · ${dateLabel || email}`
-    : "Plus access";
-  dom.profileParentAuthButton.textContent = signedIn ? "Logout" : "Login";
-  dom.profileSubscribeButton.hidden = false;
-  dom.profileSubscribeButton.textContent = signedIn && plusActive ? "Manage" : "Subscribe";
-  dom.profileSubscribeButton.dataset.billingAction = signedIn && plusActive ? "account" : "subscribe";
-  dom.parentButton.hidden = signedIn;
-  dom.parentButton.setAttribute("aria-hidden", String(signedIn));
-  dom.parentButton.tabIndex = signedIn ? -1 : 0;
+  dom.parentPanelLoginButton.textContent = signedIn ? "Manage account" : "Already have Plus? Sign in";
+  dom.parentPanelLoginButton.setAttribute("aria-label", signedIn ? "Manage account" : "Already have Plus? Sign in");
   dom.parentAuthManageBillingButton.hidden = !plusActive;
   dom.parentAuthCancelPlanButton.hidden = !plusActive;
   dom.parentAuthEmailButton.hidden = signedIn || !forgotMode;
@@ -1676,12 +1278,30 @@ function renderParentAuth(message = "") {
           ? "Enter your member email. We will send a secure link to choose a new password."
       : "Enter the email used at checkout and your password.";
   dom.parentAuthStatus.textContent = message;
+  renderParentProgress();
 
   if (setupMode && modeEmail) {
     dom.parentAuthEmail.value = modeEmail;
   } else if (state.parentAuthPendingEmail && !signedIn) {
     dom.parentAuthEmail.value = state.parentAuthPendingEmail;
   }
+}
+
+function renderParentProgress() {
+  if (!dom.parentProgressStats || !dom.parentProgressCopy) return;
+  const totals = profileTotals();
+  const signedIn = isParentSignedIn();
+  const plusActive = isParentPlusActive();
+  dom.parentProgressCopy.textContent = signedIn
+    ? plusActive
+      ? "Your Plus progress is saved to this account."
+      : "Your progress is saved on this device."
+    : "Progress is saved on this device until you sign in.";
+  dom.parentProgressStats.innerHTML = `
+    <span><strong>${totals.completed}</strong> completed</span>
+    <span><strong>${totals.plays}</strong> plays</span>
+    <span><strong>${totals.streak}</strong> day streak</span>
+  `;
 }
 
 function renderParentCheckoutStatus(message = "") {
@@ -1780,16 +1400,10 @@ function saveParentAuthResponse(data) {
   renderParentAuth("Logged in.");
   syncAccessAfterAuthChange();
   syncProfileFromServer();
-  renderProfilePanel();
 }
 
 function syncAccessAfterAuthChange() {
-  const difficulty = difficultyOptions.find((option) => option.id === state.difficulty);
-  if (isPlusLocked(difficulty)) {
-    state.difficulty = "classic";
-  }
   renderCategoryTabs();
-  renderDifficultyTabs();
   renderDrawingCards();
 }
 
@@ -1877,9 +1491,9 @@ async function openBillingPortal() {
     return;
   }
 
-  dom.profileSubscribeButton.disabled = true;
-  const previousText = dom.profileSubscribeButton.textContent;
-  dom.profileSubscribeButton.textContent = "Opening...";
+  dom.parentAuthManageBillingButton.disabled = true;
+  const previousText = dom.parentAuthManageBillingButton.textContent;
+  dom.parentAuthManageBillingButton.textContent = "Opening...";
 
   try {
     const response = await fetch("/api/create-billing-portal-session", {
@@ -1898,27 +1512,9 @@ async function openBillingPortal() {
   } catch (error) {
     showParentAuthModal(error.message || "Could not open billing management.");
   } finally {
-    dom.profileSubscribeButton.disabled = false;
-    dom.profileSubscribeButton.textContent = previousText;
+    dom.parentAuthManageBillingButton.disabled = false;
+    dom.parentAuthManageBillingButton.textContent = previousText;
   }
-}
-
-function handleProfileBillingAction() {
-  if (dom.profileSubscribeButton.dataset.billingAction === "account") {
-    showParentAuthModal();
-    return;
-  }
-
-  state.parentIntent = "profile-subscribe";
-  showParentModal();
-}
-
-function handleProfileAuthButton() {
-  if (isParentSignedIn()) {
-    logoutParentAccount();
-    return;
-  }
-  showParentAuthModal();
 }
 
 function logoutParentAccount() {
@@ -2249,7 +1845,8 @@ function consumeBillingRedirect() {
 
   window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`);
   if (billing === "return") {
-    showProfileModal();
+    state.parentUnlocked = true;
+    showParentModal();
     renderParentAuth("Billing updated.");
   }
 }
@@ -2296,6 +1893,7 @@ async function handleParentCheckout(plan = "monthly") {
 function focusParentPanel(message = "") {
   state.parentIntent = null;
   dom.parentModal.classList.add("is-unlocked");
+  renderParentProgress();
   renderParentCheckoutStatus(message);
   dom.parentPanelStep.setAttribute("tabindex", "-1");
   dom.parentPanelStep.focus({ preventScroll: true });
@@ -2312,11 +1910,6 @@ function parentIntentMessage() {
 }
 
 function showParentModal() {
-  if (isParentPlusActive()) {
-    showParentAuthModal("Plus is active.");
-    return;
-  }
-
   trackEvent("pricing_opened", {
     source: state.parentIntent || "plus_button",
     metadata: { unlocked: state.parentUnlocked }
@@ -2861,8 +2454,6 @@ function setStage(stage) {
 }
 
 function itemGrid() {
-  const difficulty = difficultyOptions.find((option) => option.id === state.difficulty);
-  if (difficulty?.grid) return difficulty.grid;
   return state.animal?.grid || DEFAULT_GRID;
 }
 
@@ -3149,27 +2740,6 @@ function outerBottom(x1, x0, y, variant) {
 function outerLeft(x, y1, y0, variant) {
   const push = variant === 0 ? -3 : 2;
   return `C ${x + push} ${y0 + (y1 - y0) * 0.72} ${x + 2} ${y0 + (y1 - y0) * 0.28} ${x} ${y0}`;
-}
-
-function toggleFullscreen() {
-  const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
-  if (fullscreenElement) {
-    const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
-    const exitPromise = exitFullscreen?.call(document);
-    exitPromise?.catch?.(() => {});
-    return;
-  }
-
-  const requestFullscreen =
-    dom.appShell.requestFullscreen || dom.appShell.webkitRequestFullscreen;
-  const requestPromise = requestFullscreen?.call(dom.appShell);
-  requestPromise?.catch?.(() => {});
-}
-
-function syncFullscreenButton() {
-  const isFullscreen = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
-  dom.fullscreenButton.setAttribute("aria-label", isFullscreen ? "Exit fullscreen" : "Enter fullscreen");
-  dom.fullscreenButton.title = isFullscreen ? "Exit fullscreen" : "Enter fullscreen";
 }
 
 function buildPuzzle() {
@@ -3636,9 +3206,8 @@ function recordPuzzleCompletion() {
     ...(state.profile.activityDays || []),
     dayKey(now)
   ]);
-  state.profileSelectedPuzzleId = state.animal.id;
   saveProfile();
-  renderProfileButton();
+  renderParentProgress();
 }
 
 function canvasPoint(event) {

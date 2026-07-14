@@ -7208,3 +7208,113 @@ body.info-body.landing-body .pricing-action svg {
     max-height: calc(100dvh - 68px);
   }
 }
+
+/* Phase 1: a quiet child shell with the parent area kept behind one gate. */
+.header-actions {
+  gap: 0;
+}
+
+.parent-button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(23, 32, 38, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.48);
+  color: rgba(23, 32, 38, 0.46);
+  box-shadow: none;
+}
+
+.parent-button:hover,
+.parent-button:active {
+  background: rgba(255, 255, 255, 0.76);
+  color: rgba(23, 32, 38, 0.72);
+  box-shadow: none;
+  transform: none;
+}
+
+.parent-button svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.picker-view {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.category-tabs {
+  margin-bottom: clamp(4px, 1vh, 12px);
+}
+
+.parent-progress {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(23, 32, 38, 0.09);
+}
+
+.parent-progress .modal-eyebrow {
+  margin-bottom: 4px;
+}
+
+.parent-progress p:not(.modal-eyebrow) {
+  margin: 0;
+  color: rgba(23, 32, 38, 0.58);
+  font-size: 0.84rem;
+  font-weight: 720;
+}
+
+.parent-progress-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.parent-progress-stats span {
+  min-width: 0;
+  padding: 9px 7px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(23, 32, 38, 0.54);
+  font-size: 0.67rem;
+  font-weight: 850;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.parent-progress-stats strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #172026;
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+
+.parent-update-button {
+  justify-self: start;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: rgba(23, 32, 38, 0.62);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 820px) {
+  .parent-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .picker-view {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .category-tabs {
+    margin-bottom: 4px;
+  }
+}

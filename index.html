@@ -24,7 +24,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Snapuzzle" />
     <link rel="preload" as="image" href="assets/red-panda.webp" fetchpriority="high" />
-    <link rel="stylesheet" href="styles.css?v=snapuzzle-profile-refresh-20260614" />
+    <link rel="stylesheet" href="styles.css?v=snapuzzle-phase-one-20260714" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -60,36 +60,12 @@
         </button>
 
         <div class="header-actions">
-          <button class="icon-button" id="galleryButton" type="button" aria-label="Choose another drawing" title="Choose another drawing">
-            <img src="assets/icon-library-puzzles.webp" width="512" height="512" alt="" draggable="false" />
-          </button>
-
-          <button class="icon-button premium-button" id="parentButton" type="button" aria-label="Snapuzzle Plus" title="Snapuzzle Plus">
-            <span class="premium-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path class="premium-plus" d="M10.7 4.2h2.6v4.5h4.5v2.6h-4.5v4.5h-2.6v-4.5H6.2V8.7h4.5V4.2Z" />
-              </svg>
-            </span>
-            <span class="premium-heart-badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="m12 20.7-1.1-1C6.7 16 4 13.5 4 10.3 4 7.8 5.9 6 8.3 6c1.4 0 2.7.6 3.7 1.7C13 6.6 14.3 6 15.7 6 18.1 6 20 7.8 20 10.3c0 3.2-2.7 5.7-6.9 9.4l-1.1 1Z" />
-              </svg>
-            </span>
-          </button>
-
-          <button class="icon-button" id="fullscreenButton" type="button" aria-label="Enter fullscreen" title="Enter fullscreen">
+          <button class="icon-button parent-button" id="parentButton" type="button" aria-label="For grown-ups" title="For grown-ups">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 10V4h6v2.4H6.4V10H4Zm10-6h6v6h-2.4V6.4H14V4ZM4 14h2.4v3.6H10V20H4v-6Zm17.6 0H20v6h-6v-2.4h3.6V14Z" />
+              <path d="M7.6 10V8.1a4.4 4.4 0 0 1 8.8 0V10" />
+              <path d="M6.2 10h11.6v9.2H6.2z" />
+              <path d="M12 13.2v2.6" />
             </svg>
-          </button>
-
-          <button class="icon-button profile-button" id="profileButton" type="button" aria-label="Profile" title="Profile">
-            <span class="profile-button-avatar" id="profileButtonAvatar" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M12 12.2a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Z" />
-                <path d="M5.4 19.2c.9-3 3.4-4.7 6.6-4.7s5.7 1.7 6.6 4.7" />
-              </svg>
-            </span>
           </button>
         </div>
       </header>
@@ -97,7 +73,6 @@
       <main class="main">
         <section class="picker-view" id="pickerView" aria-label="Drawing gallery">
           <div class="category-tabs" id="categoryTabs" role="tablist" aria-label="Library categories"></div>
-          <div class="difficulty-tabs" id="difficultyTabs" role="tablist" aria-label="Puzzle size"></div>
           <div class="gallery-wrap">
             <button class="gallery-arrow gallery-arrow-left" id="galleryPrevButton" type="button" aria-label="Previous puzzle">
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -216,8 +191,8 @@
                 <small>Try the core puzzle loop</small>
                 <ul>
                   <li>Free animal puzzles</li>
-                  <li>Easy and classic cuts</li>
-                  <li>Local profile progress</li>
+                  <li>A gentle starter shelf</li>
+                  <li>Progress on this device</li>
                 </ul>
                 <button class="pricing-option-button is-muted" type="button" disabled>Current plan</button>
               </article>
@@ -234,7 +209,7 @@
                 <ul>
                   <li>10 Plus puzzles today</li>
                   <li>Dinosaurs and space collections</li>
-                  <li>25-piece Plus difficulty</li>
+                  <li>Bigger Plus puzzles</li>
                   <li>More premium packs over time</li>
                 </ul>
                 <button class="parent-primary pricing-option-button" id="plusSubscribeButton" type="button" data-checkout-plan="monthly">Subscribe monthly</button>
@@ -256,6 +231,14 @@
               <a class="parent-secondary" href="parents.html">View full product page</a>
             </div>
             <button class="parent-link-button parent-login-link" id="parentPanelLoginButton" type="button">Already have Plus? Sign in</button>
+            <section class="parent-progress" aria-labelledby="parentProgressTitle">
+              <div>
+                <p class="modal-eyebrow" id="parentProgressTitle">Progress on this device</p>
+                <p id="parentProgressCopy">Puzzle progress is saved here.</p>
+              </div>
+              <div class="parent-progress-stats" id="parentProgressStats"></div>
+              <button class="parent-secondary parent-update-button" id="parentRefreshButton" type="button">Update app</button>
+            </section>
             <p class="parent-checkout-status" id="parentCheckoutStatus" role="status" aria-live="polite"></p>
             <div class="parent-policy-links" aria-label="Parent legal links">
               <a href="privacy.html">Privacy</a>
@@ -333,64 +316,6 @@
         </section>
       </div>
 
-      <div class="profile-modal" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileTitle" aria-hidden="true" hidden>
-        <button class="profile-backdrop" id="profileBackdrop" type="button" aria-label="Close profile"></button>
-        <section class="profile-sheet" aria-label="Profile">
-          <button class="profile-close" id="profileCloseButton" type="button" aria-label="Close">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="m6.4 4.9 5.6 5.6 5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6 1.5-1.5Z" />
-            </svg>
-          </button>
-
-          <div class="profile-head">
-            <div class="avatar-carousel" aria-label="Choose avatar">
-              <button class="avatar-arrow" id="avatarPrevButton" type="button" aria-label="Previous avatar">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m14.8 5.2 1.7 1.7L11.4 12l5.1 5.1-1.7 1.7L8 12l6.8-6.8Z" />
-                </svg>
-              </button>
-              <div class="profile-avatar" id="profileAvatarPreview" aria-hidden="true">C</div>
-              <button class="avatar-arrow" id="avatarNextButton" type="button" aria-label="Next avatar">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m9.2 18.8-1.7-1.7 5.1-5.1-5.1-5.1 1.7-1.7L16 12l-6.8 6.8Z" />
-                </svg>
-              </button>
-            </div>
-
-            <div class="profile-name-row">
-              <h2 id="profileTitle">Color Maker</h2>
-              <button class="profile-edit-name" id="profileEditNameButton" type="button" aria-label="Edit profile name">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m5 16.8 9.7-9.7 2.2 2.2-9.7 9.7H5v-2.2Zm11.1-11.1.9-.9a1.6 1.6 0 0 1 2.2 0 1.6 1.6 0 0 1 0 2.2l-.9.9-2.2-2.2Z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="profile-parent-auth" id="profileParentAuth">
-            <span id="profileParentAuthLabel">Plus access</span>
-            <div class="profile-parent-auth-actions">
-              <button class="parent-secondary" id="profileParentAuthButton" type="button">Sign in</button>
-              <button class="parent-primary" id="profileSubscribeButton" type="button">Subscribe</button>
-            </div>
-          </div>
-
-          <button class="profile-refresh-button" id="profileRefreshButton" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7.1 7.1A7.1 7.1 0 0 1 19 12.3" />
-              <path d="M19 6.1v6.2h-6.2" />
-              <path d="M16.9 16.9A7.1 7.1 0 0 1 5 11.7" />
-              <path d="M5 17.9v-6.2h6.2" />
-            </svg>
-            <span>Update app</span>
-          </button>
-
-          <div class="profile-stats" id="profileStats"></div>
-          <div class="profile-detail" id="profileDetail"></div>
-          <div class="profile-puzzle-grid" id="profilePuzzleGrid"></div>
-        </section>
-      </div>
-
       <div class="auth-modal app-refresh-modal" id="appRefreshModal" role="dialog" aria-modal="true" aria-labelledby="appRefreshTitle" aria-hidden="true" hidden>
         <button class="auth-backdrop" id="appRefreshBackdrop" type="button" aria-label="Cancel update"></button>
         <section class="auth-sheet app-refresh-sheet" aria-label="Update app">
@@ -410,6 +335,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=snapuzzle-profile-refresh-20260614"></script>
+    <script src="app.js?v=snapuzzle-phase-one-20260714"></script>
   </body>
 </html>
